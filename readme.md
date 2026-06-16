@@ -1,734 +1,156 @@
 <p align="center">
-  <img src="./resources/headmaster-banner-1.png" alt="Headmaster - Work Along with AI Specialists" width="100%">
+  <img src="./resources/headmaster-banner-1.png" alt="Headmaster — Work Along with AI Specialists" width="100%">
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/github/v/release/iOfficeAI/Headmaster?style=flat-square&color=32CD32" alt="Version">
+  <a href="https://gcaplabs.com/headmaster"><img src="https://img.shields.io/badge/Headmaster-by%20GCAP%20Labs-32CD32?style=for-the-square" alt="GCAP Labs"></a>
   &nbsp;
-  <img src="https://img.shields.io/badge/license-Apache--2.0-32CD32?style=flat-square&logo=apache&logoColor=white" alt="License">
+  <a href="./LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-32CD32?style=flat-square&logo=apache&logoColor=white" alt="License: Apache-2.0"></a>
   &nbsp;
-  <img src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-6C757D?style=flat-square&logo=linux&logoColor=white" alt="Platform">
+  <a href="https://gcaplabs.com/headmaster"><img src="https://img.shields.io/badge/website-gcaplabs.com-6C757D?style=flat-square" alt="Website"></a>
 </p>
 
 <p align="center">
-  <a href="https://trendshift.io/repositories/15423" target="_blank">
-    <img src="https://trendshift.io/api/badge/repositories/15423" alt="GitHub Trending" height="80">
-  </a>
-</p>
-
----
-
-<p align="center">
-  <strong>A free, open-source, Work Along app with AI Agents</strong><br>
-  <em>Built-in Agent | Zero Setup | Any API Key | Multi-Agents | Remote Access | Cross-Platform | 24/7 Automation</em>
+  <strong>Headmaster is a Work Along desktop app for AI agents.</strong><br>
+  <em>Built-in agent · Multi-agent · 17 messaging platforms · Scheduled automations · 24/7 unattended · Cross-platform</em>
 </p>
 
 <p align="center">
-  <a href="https://github.com/iOfficeAI/Headmaster/releases">
-    <img src="https://img.shields.io/badge/⬇️%20Download%20Now-Latest%20Release-32CD32?style=for-the-badge&logo=github&logoColor=white" alt="Download Latest Release" height="50">
+  <a href="https://github.com/mutvayzz-sys/gcaplabs-headmasterUI/releases">
+    <img src="https://img.shields.io/badge/⬇️%20Download-Latest%20Release-32CD32?style=for-the-badge&logo=github&logoColor=white" alt="Download Latest Release" height="44">
   </a>
 </p>
 
 <p align="center">
-  <strong>English</strong> | <a href="./docs/readme/readme_ch.md">简体中文</a> | <a href="./docs/readme/readme_tw.md">繁體中文</a> | <a href="./docs/readme/readme_jp.md">日本語</a> | <a href="./docs/readme/readme_ko.md">한국어</a> | <a href="./docs/readme/readme_es.md">Español</a> | <a href="./docs/readme/readme_pt.md">Português</a> | <a href="./docs/readme/readme_tr.md">Türkçe</a> | <a href="./docs/readme/readme_ru.md">Русский</a> | <a href="./docs/readme/readme_uk.md">Українська</a> | <a href="https://www.gcaplabs.com" target="_blank">Official Website</a>
-</p>
-
-<p align="center">
-  <strong>💬 Community:</strong> <a href="https://discord.gg/2QAwJn7Egx" target="_blank">Discord (English)</a> | <a href="./resources/wx-11.png" target="_blank">微信 (中文群)</a> | <a href="https://twitter.com/Headmaster" target="_blank">Twitter</a>
+  <strong>English</strong> | <a href="./docs/readme/readme_ch.md">简体中文</a> | <a href="./docs/readme/readme_tw.md">繁體中文</a> | <a href="./docs/readme/readme_jp.md">日本語</a> | <a href="./docs/readme/readme_ko.md">한국어</a> | <a href="./docs/readme/readme_es.md">Español</a> | <a href="./docs/readme/readme_pt.md">Português</a> | <a href="./docs/readme/readme_tr.md">Türkçe</a> | <a href="./docs/readme/readme_ru.md">Русский</a> | <a href="./docs/readme/readme_uk.md">Українська</a>
 </p>
 
 ---
 
-## 📋 Quick Navigation
+## What is Headmaster?
 
-<p align="center">
+**Headmaster** is a desktop app that lets you work *alongside* AI agents on your computer. You see everything the agent does, approve the moves that matter, and let the rest run on autopilot. It's built for people who want the power of an autonomous agent without giving up control.
 
-[Work Along in Action](#-cowork-in-action) ·
-[Why Choose Headmaster?](#-why-choose-headmaster-over-claude-cowork) ·
-[Quick Start](#-quick-start) ·
-[Community](#-community--support)
+It is a white-label product by **GCAP Labs**, derived from the open-source [AionUi](https://github.com/iOfficeAI/AionUi) project (Apache-2.0). We add the Hermes Python runtime, the Headmaster palette and vocabulary, and the GCAP Labs identity.
 
-</p>
-
----
-
-## Work Along — AI Agents That Work Alongside You
-
-**Headmaster is more than a chat client.** It's a Work Along platform where AI agents work alongside you on your computer — reading files, writing code, browsing the web, and automating tasks. You see everything the agent does, and you're always in control.
-
-|                                 | Traditional AI Chat Clients | **Headmaster (Work Along)**                                                                                                     |
-| :------------------------------ | :-------------------------- | :---------------------------------------------------------------------------------------------------------------------- |
-| AI can operate on your files    | Limited or No               | **Yes — built-in agent with full file access**                                                                          |
-| AI can execute multi-step tasks | Limited                     | **Yes — autonomous with your approval**                                                                                 |
-| Remote access from phone        | Rarely                      | **WebUI + Telegram / Lark / DingTalk / WeChat**                                                                         |
-| Scheduled automation            | No                          | **Cron — 24/7 unattended**                                                                                              |
-| Multiple AI Agents at once      | No                          | **Claude Code, Codex, Qwen Code, Hermes Agent, Snow CLI, Cursor Agent and 13+ more — auto-detected, unified interface** |
-| Price                           | Free / Paid                 | **Free & Open Source**                                                                                                  |
-
-<p align="center">
-  <img src="./resources/offica-ai BANNER-function.png" alt="Headmaster Work Along Platform" width="800">
-</p>
+- **Built-in agent** — zero setup. Paste an API key and you have a working agent with file access, web search, image generation, and MCP tools.
+- **Multi-agent** — bring your own. Claude Code, Codex, Qwen Code, Hermes Agent, OpenClaw, Cursor Agent and more. Auto-detected, unified UI.
+- **Multi-platform messaging** — Telegram, Discord, Slack, Lark, WeChat and 17+ more, all from one app.
+- **Scheduled automations** — cron-driven, unattended 24/7. Define a task, set a schedule, walk away.
+- **Persistent memory** — Honcho-backed, with an OpenConcho dashboard.
+- **Cross-platform** — macOS, Windows, Linux.
 
 ---
 
-## Built-in Agent — Install & Go, Zero Configuration
-
-Headmaster ships with a complete AI agent engine. Unlike tools that require you to install CLI agents separately, **Headmaster works the moment you install it**.
-
-- **No CLI tools to install** — the agent engine is built in
-- **No complex setup** — paste any API key to get started
-- **Full agent capabilities** — file read/write, web search, image generation, MCP (Model Context Protocol) tools
-- **Ready-to-use assistants** — 21 built-in professional assistants (Work Along, PPT Creator, Word Creator, Word Form Creator, Excel Creator, Morph PPT, Morph PPT 3D, Pitch Deck Creator, Dashboard Creator, Academic Paper Writer, Financial Model Creator, and more) ready to use immediately
-
-<p align="center">
-  <img src="./resources/homepage.png" alt="Built-in Agents" width="800">
-</p>
-
-### **Office assistants — PPT, Word & Excel**
-
-These tracks match what the app actually ships: **Morph PPT** presets and the **`pptx` / `docx` / `xlsx` skills** (see `assistant/` presets and `skills/` in the repo). Want document/table output? Headmaster’s built-in **[OfficeCLI](https://github.com/iOfficeAI/OfficeCli)** helps PPT (Morph), Word (`.docx`), and Excel (`.xlsx/.xlsm/.csv`) go from request to deliverable faster and more reliably.
-The three assistant types map to file workflows, and the final outputs are directly editable and reusable.
-
-#### **PPT assistant**
-
-> **Output:** editable Morph PPT (`.pptx`)
-> Morph-animated slide-to-slide transitions with coherent story pacing; powered by [OfficeCLI](https://github.com/iOfficeAI/OfficeCli).
-
-<table>
-  <tr>
-    <td align="center" width="50%">
-      <img src="./resources/morph-ppt-balanced.gif" alt="Morph PPT — slide-to-slide transitions (OfficeCLI)" width="390">
-    </td>
-    <td align="center" width="50%">
-      <img src="./resources/readme-demo-assistant-ppt.gif" alt="PPT assistant — screen recording" width="390">
-    </td>
-  </tr>
-</table>
-
-#### **Word assistant**
-
-> **Output:** editable Word (`.docx`)
-> Paper/thesis writing and production-ready document editing via the `docx` skill; powered by [OfficeCLI](https://github.com/iOfficeAI/OfficeCli).
-
-<table>
-  <tr>
-    <td align="center" width="50%">
-      <img src="./resources/readme-demo-generate-academic-paper.gif" alt="Generate academic paper demo" width="390">
-    </td>
-    <td align="center" width="50%">
-      <img src="./resources/readme-demo-assistant-write-paper.gif" alt="Paper writing assistant demo" width="390">
-    </td>
-  </tr>
-</table>
-
-#### **Excel assistant**
-
-> **Output:** usable Excel (`.xlsx/.xlsm/.csv`)
-> Generate/refresh spreadsheets with `xlsx` for analysis, auto-formatting, and charts; powered by [OfficeCLI](https://github.com/iOfficeAI/OfficeCli).
-
-<table>
-  <tr>
-    <td align="center" width="50%">
-      <img src="./resources/readme-demo-generate-excel.gif" alt="Excel generation demo" width="390">
-    </td>
-    <td align="center" width="50%">
-      <img src="./resources/readme-demo-assistant-excel.gif" alt="Excel assistant demo" width="390">
-    </td>
-  </tr>
-</table>
-
----
-
-## Multi-Agent Mode — Already Have CLI Agents? Bring Them In
-
-If you already use Claude Code, Codex, Hermes Agent, or OpenClaw, Headmaster auto-detects them and lets you Work Along with all of them — alongside the built-in agent.
-
-**Supported Agents:** Built-in Agent (zero setup) • Claude Code • Codex • Qwen Code • Goose AI • OpenClaw • Augment Code • CodeBuddy • Kimi CLI • OpenCode • Factory Droid • GitHub Copilot • Qoder CLI • Mistral Vibe • Nanobot • Aion CLI (aionrs, the Rust-based backend service shipped with Headmaster) • Snow CLI • Hermes Agent • Cursor Agent and more
-
-<p align="center">
-  <img src="./resources/multi-agent支持openclaw.gif" alt="Multi-Agent Work Along" width="800">
-</p>
-
-- **Auto Detection** — automatically recognizes installed CLI tools
-- **Unified Interface** — one Work Along platform for all your AI agents
-- **Parallel Sessions** — run multiple agents simultaneously with independent context
-- **MCP Unified Management** — configure MCP (Model Context Protocol) tools once, automatically sync to all agents — no need to configure each agent separately
-- **YOLO Mode** (auto-approve all agent actions without manual confirmation) / **Full-Auto Mode** — one click to bypass permission prompts; all agents support full-auto mode for unattended execution
-
-### The Council — Coordinated Multi-Agent Collaboration
-
-Run multiple AI agents as an organized team: a **Leader** agent receives your instructions, breaks them into subtasks, and delegates to **Teammate** agents via a built-in Team MCP Server. Teammates execute in parallel, share results through an async mailbox, and write to a shared task board.
-
-<p align="center">
-  <img src="./resources/Headmaster_team.gif" alt="The Council overview" width="800">
-</p>
-
-- **Parallel multi-agent execution** — Leader breaks tasks into subtasks and delegates to Teammate agents running in parallel; each Teammate uses its own model via ACP (Agent Communication Protocol, Headmaster's multi-agent coordination layer), Gemini, or Aionrs
-- **Leader orchestration** — Leader assigns, tracks, and aggregates results; supported backends include Claude Code, Codex, Hermes Agent, Gemini, Snow CLI, and Aion CLI
-- **Team-isolated workspace** — all agents share the same folder; each has its own permission dialog with sidebar badge for pending approvals
-
-<details>
-<summary><strong>🔍 View The Council Details ▶️</strong></summary>
-
-<br>
-
-- **Shared Workspace** — all agents read/write the same folder; the file panel stays visible throughout
-- **Supported backends** — Claude Code, Codex, Gemini, Snow CLI, Aion CLI (aionrs); other ACP backends with `mcpCapabilities.stdio` are auto-supported
-- **Dynamic scaling** — add or remove Teammates while the team is running; silent agents auto-escalate to failed with one-click removal
-- **Granular permissions** — each agent has its own permission confirmation dialog; sidebar badge shows pending approvals
-- **File sharing** — Leader can pass file attachments to Teammates
-
-</details>
-
----
-
-## Any API Key, Full Work Along Agent Power
-
-Other AI apps give you a chatbox with your API key. **Headmaster gives you a full Work Along agent.**
-
-| Your API Key               | What You Get                                |
-| :------------------------- | :------------------------------------------ |
-| Gemini API Key             | Gemini-powered Work Along Agent                 |
-| OpenAI API Key             | GPT-powered Work Along Agent                    |
-| Anthropic API Key          | Claude-powered Work Along Agent                 |
-| AWS Bedrock credentials    | Bedrock-powered Agent via Aion CLI (aionrs) |
-| Ollama / LM Studio (local) | Local model Work Along Agent                    |
-| NewAPI Gateway             | Unified access to 20+ models                |
-
-Same agent capabilities — file read/write, web search, image generation, tool use — regardless of which model powers it. Headmaster supports **30+ AI platforms** including cloud services and local deployments.
-
-<p align="center">
-  <img src="./resources/llm_newapi.png" alt="Multi-Model Support" width="800">
-</p>
-
-<details>
-<summary><strong>🔍 View All 30+ Supported Platforms ▶️</strong></summary>
-
-<br>
-
-**Comprehensive Platform Support:**
-
-- **Official Platforms** — Gemini, Gemini (Vertex AI), Anthropic (Claude), OpenAI
-- **Cloud Providers** — AWS Bedrock, New API (unified AI model gateway)
-- **Chinese Platforms** — Dashscope (Qwen), Dashscope Coding Plan, Zhipu, Moonshot (Kimi), Qianfan (Baidu), Hunyuan (Tencent), Lingyi, ModelScope, InfiniAI, Ctyun, StepFun, SiliconFlow-CN, PPIO
-- **International Platforms** — DeepSeek, MiniMax, Novita, OpenRouter, SiliconFlow, xAI, Ark (Volcengine), Poe
-- **Local Models** — Ollama, LM Studio (via Custom platform with local API endpoint)
-
-Headmaster also supports [NewAPI](https://github.com/QuantumNous/new-api) gateway service — a unified AI model hub that aggregates and distributes various LLMs. Flexibly switch between different models in the same interface to meet various task requirements.
-
-</details>
-
----
-
-## Extensible Assistants & Skills
-
-_Extensible assistant system with 21 built-in professional assistants and a three-tier skill system. Create and manage your own assistants and skills._
-
-- **Create Custom Assistants** — Define your own assistants with custom rules and capabilities
-- **Three-tier Skills** — Builtin skills (shipped with Headmaster), custom skills (your own), and Extension skills (contributed by third-party extensions); enable/disable per conversation with the skill indicator
-- **Per-conversation Control** — A skill indicator in the chat header shows active skills for the current conversation; search and exclude skills as needed
-
-<p align="center">
-  <img src="./resources/assitants.png" alt="AI Assistants & Skills Ecosystem" width="800">
-</p>
-
-Headmaster supports three skill layers: **built-in** skills (shipped with the app), **custom** skills (user-defined), and **extension** skills (loaded from the Extension SDK).
-
-<details>
-<summary><strong>🔍 View Assistant Details and Custom Skills ▶️</strong></summary>
-
-<br>
-
-Headmaster includes **21 professional assistants** with predefined capabilities, extendable through custom skills:
-
-- **🤝 Work Along** — Autonomous task execution (file operations, document processing, workflow planning)
-- **📊 PPT Creator / Morph PPT / Morph PPT 3D** — Generate and animate PPTX presentations with Morph transitions
-- **📐 Pitch Deck Creator** — Investor-ready pitch deck generation
-- **📊 Dashboard Creator** — Data dashboard generation
-- **📝 Word Creator** — Production-ready Word (`.docx`) document generation
-- **📋 Word Form Creator** — Structured Word form / contract template generation
-- **📗 Excel Creator** — Spreadsheet generation with analysis, charts, and auto-formatting
-- **🎓 Academic Paper Writer** — Structured academic paper writing
-- **💰 Financial Model Creator** — Financial models and projections
-- **⭐ Star Office Helper** — Office productivity assistant
-- **🎮 3D Game** — Single-file 3D game generation
-- **🎨 UI/UX Pro Max** — Professional UI/UX design (57 styles, 95 color palettes)
-- **📋 Planning with Files** — File-based planning for complex tasks (Manus-style persistent markdown planning)
-- **🧭 HUMAN 3.0 Coach** — Personal development coach
-- **📣 Social Job Publisher** — Job posting and publishing
-- **🦞 moltbook** — Zero-deployment AI agent social networking
-- **📈 Beautiful Mermaid** — Flowcharts, sequence diagrams, and more
-- **🔧 OpenClaw Setup** — Setup and configuration assistant for OpenClaw integration
-- **📖 Story Roleplay** — Immersive story roleplay with character cards and world info (SillyTavern compatible)
-
-**Custom Skills**: Create skills in the `skills/` directory, enable/disable skills for assistants to extend AI capabilities. Skills come from three sources: builtin (shipped with Headmaster), custom (your own), and Extension (contributed via the Extension SDK). Built-in skills include `pptx`, `docx`, `pdf`, `xlsx`, `mermaid`, and more.
-
-> 💡 Each assistant is defined by a markdown file. Check the `assistant/` directory for examples.
-
-</details>
-
----
-
-## Work Along from Anywhere
-
-_Your 24/7 AI assistant — access Headmaster from any device, anywhere._
-
-- **WebUI Mode** — access via browser from phone, tablet, or any computer. Supports LAN, cross-network, and server deployment. QR code or password login.
-
-- **Chat Platform Integration**
-  - **Telegram** — Work Along with your AI agent directly from Telegram
-  - **Lark (Feishu)** — Work Along through Feishu bots for enterprise collaboration
-  - **DingTalk** — AI Card streaming with automatic fallback
-  - **WeChat** — Personal WeChat account integration
-  - **WeCom (企业微信)**, **Slack**, **Discord** and more platforms coming soon
-
-> **Setup:** Headmaster Settings → WebUI Settings → Channel, configure the Bot Token.
-
-<p align="center">
-  <img src="./resources/webui-remote.gif" alt="WebUI remote access demo" width="800">
-</p>
-
-<p align="center"><em>Remote control &amp; monitor your agent — Claude, Gemini, Codex. Use from browser or phone, same as Claude Code remote.</em></p>
-
-> [Remote Internet Access Tutorial](https://github.com/iOfficeAI/Headmaster/wiki/Remote-Internet-Access-Guide-Chinese)
-
-## ✨ Work Along in Action
-
-### **Scheduled Tasks — Work Along on Autopilot**
-
-_Set it up once, the AI agent runs automatically on schedule — truly 24/7 unattended operation._
-
-- **Natural Language** — tell the agent what to do, just like chatting
-- **Three scheduling modes** — standard cron expression (with timezone), fixed interval (every N minutes/hours), or one-time trigger
-- **AI-created tasks** — agents can autonomously create scheduled tasks during a conversation
-- **Use Cases:** scheduled data aggregation, report generation, file organization, reminders
-
-<p align="center">
-  <img src="./resources/alart-task.png" alt="Scheduled Tasks" width="800">
-</p>
-
-<details>
-<summary><strong>🔍 View Scheduled Task Details ▶️</strong></summary>
-
-<br>
-
-**Scheduling modes:**
-
-- `Cron expression` — standard 5-field cron with timezone support (e.g. `0 9 * * 1`, `Asia/Shanghai`)
-- `Every N minutes/hours` — fixed interval, e.g. run every 30 minutes
-- `One-time` — trigger once at a specified datetime, then auto-disable
-
-**Execution modes:**
-
-- `Continue in existing conversation` — appends to the bound conversation so the AI retains full context history
-- `Create new conversation each time` — opens a fresh session on each trigger, ideal for independent periodic reports
-
-**Other capabilities:**
-
-- **Conversation-Bound** — Each scheduled task is bound to a conversation, maintaining context and history
-- **Automatic Execution** — Tasks run automatically at scheduled times, sending messages to the conversation
-- **Easy Management** — Create, modify, enable/disable, delete, and view scheduled tasks anytime
-- **Keep-awake** — Headmaster automatically prevents system sleep while tasks are active, and detects missed triggers after wake
-- **Advanced config** — each task can have its own model, workspace directory, and reasoning effort settings
-
-**Real-World Examples:**
-
-- Daily weather report generation
-- Weekly sales data aggregation
-- Monthly backup file organization
-- Custom reminder notifications
-
-</details>
-
----
-
-### **Preview Panel — Instantly View AI-Generated Results**
-
-_10+ formats: PDF, Word, Excel, PPT, code, Markdown, images, HTML, Diff — view everything without switching apps._
-
-- **Instant Preview** — after the agent generates files, view results immediately without switching apps
-- **Real-time Tracking + Editable** — automatically tracks file changes; supports live editing of Markdown, code, HTML
-- **Multi-Tab Support** — open multiple files simultaneously, each in its own tab
-- **Version History** — view and restore historical versions of files (Git-based)
-
-<p align="center">
-  <img src="./resources/preview.gif" alt="Preview Panel" width="800">
-</p>
-
-<details>
-<summary><strong>🔍 View Complete Format List ▶️</strong></summary>
-
-<br>
-
-**Supported Preview Formats:**
-
-- **Documents** — PDF, Word (`.doc`, `.docx`, `.odt`), Excel (`.xls`, `.xlsx`, `.ods`, `.csv`), PowerPoint (`.ppt`, `.pptx`, `.odp`)
-- **Code** — JavaScript, TypeScript, Python, Java, Go, Rust, C/C++, CSS, JSON, XML, YAML, Shell scripts, and 30+ programming languages
-- **Markup** — Markdown (`.md`, `.markdown`), HTML (`.html`, `.htm`)
-- **Images** — PNG, JPG, JPEG, GIF, SVG, WebP, BMP, ICO, TIFF, AVIF
-- **Other** — Diff files (`.diff`, `.patch`)
-
-</details>
-
----
-
-### **Smart File Management — Automated File Operations**
-
-_Batch renaming, automatic organization, smart classification, file merging — the Work Along agent handles it for you._
-
-<p align="center">
-  <img src="./resources/headmaster sort file 2.gif" alt="Smart File Management" width="800">
-</p>
-
-<details>
-<summary><strong>🔍 View File Management Features Details ▶️</strong></summary>
-
-<br>
-
-- **Auto Organize** — Intelligently identify content and auto-classify, keeping folders tidy
-- **Efficient Batch** — One-click rename, merge files, say goodbye to tedious manual tasks
-- **Automated Execution** — AI agents can independently execute file operations, read/write files, and complete tasks automatically
-
-**Use Cases:**
-
-- Organize messy download folders by file type
-- Batch rename photos with meaningful names
-- Merge multiple documents into one
-- Auto-classify files by content
-
-</details>
-
----
-
-### **Excel Data Processing — AI-Powered Analysis**
-
-_Deeply analyze Excel data, automatically beautify reports, and generate insights — all powered by AI agents._
-
-<p align="center">
-  <img src="./resources/generate_xlsx.gif" alt="Excel Processing" width="800">
-</p>
-
-<details>
-<summary><strong>🔍 View Excel Processing Features ▶️</strong></summary>
-
-<br>
-
-- **Smart Analysis** — AI analyzes data patterns and generates insights
-- **Auto Formatting** — Automatically beautify Excel reports with professional styling
-- **Data Transformation** — Convert, merge, and restructure data with natural language commands
-- **Report Generation** — Create comprehensive reports from raw data
-
-**Use Cases:**
-
-- Analyze sales data and generate monthly reports
-- Clean and format messy Excel files
-- Merge multiple spreadsheets intelligently
-- Create data visualizations and charts
-
-</details>
-
----
-
-### **AI Image Generation & Editing**
-
-_Intelligent image generation, editing, and recognition, powered by Gemini_
-
-<p align="center">
-  <img src="./resources/Image_Generation.gif" alt="AI Image Generation" width="800">
-</p>
-
-<details>
-<summary><strong>🔍 View Image Generation Features ▶️</strong></summary>
-
-<br>
-
-- **Text-to-Image** — Generate images from natural language descriptions
-- **Image Editing** — Modify and enhance existing images
-- **Image Recognition** — Analyze and describe image content
-- **Batch Processing** — Generate multiple images at once
-
-</details>
-
-> [Image generation model configuration guide](https://github.com/iOfficeAI/Headmaster/wiki/Headmaster-Image-Generation-Tool-Model-Configuration-Guide)
-
----
-
-### **Document Generation — PPT, Word, Markdown**
-
-_Automatically generate professional documents — presentations, reports, and more — with AI agents._
-
-<p align="center">
-  <img src="./resources/file_generation_preview.png" alt="Document Generation" width="800">
-</p>
-
-<details>
-<summary><strong>🔍 View Document Generation Features ▶️</strong></summary>
-
-<br>
-
-- **PPTX Generator** — Create professional presentations from outlines or topics
-- **Word Documents** — Generate formatted Word documents with proper structure
-- **Markdown Files** — Create and format Markdown documents for documentation
-- **PDF Conversion** — Convert between various document formats
-
-**Use Cases:**
-
-- Generate quarterly business presentations
-- Create technical documentation
-- Convert PDF to editable formats
-- Auto-format research papers
-
-</details>
-
-### **Personalized Interface Customization**
-
-_Customize with your own CSS code, make your interface match your preferences_
-
-<p align="center">
-  <img src="./resources/css with skin.gif" alt="CSS Customization" width="800">
-</p>
-
-- ✅ **Fully Customizable** — Freely customize interface colors, styles, layout through CSS code, create your exclusive experience
-
----
-
-### **Multi-Task Parallel Processing**
-
-_Open multiple conversations, tasks don't get mixed up, independent memory, double efficiency_
-
-<p align="center">
-  <img src="./resources/multichat-side-by-side.gif" alt="Multi-Task Parallel" width="800">
-</p>
-
-- ✅ **Independent Context** — Each conversation maintains its own context and history
-- ✅ **Parallel Execution** — Run multiple tasks simultaneously without interference
-- ✅ **Smart Management** — Easy switching between conversations with visual indicators
-
----
-
-## 🤔 Why Choose Headmaster Over Claude Work Along?
-
-<details>
-<summary><strong>Click to see detailed comparison</strong></summary>
-
-<br>
-
-Headmaster is a **free and open-source Multi-AI Agent Desktop**. Compared to Claude Work Along which only runs on macOS and is locked to Claude, Headmaster is its full-model, cross-platform enhanced version.
-
-| Dimension     | Claude Work Along | Headmaster                                                    |
-| :------------ | :------------ | :-------------------------------------------------------- |
-| OS            | macOS Only    | macOS / Windows / Linux                                   |
-| Model Support | Claude Only   | Gemini, Claude, DeepSeek, OpenAI, Ollama, ...             |
-| Interaction   | Desktop GUI   | Desktop GUI + WebUI + Telegram / Lark / DingTalk / WeChat |
-| Automation    | Manual only   | Cron scheduled tasks — 24/7 unattended                    |
-| Cost          | $100/month    | Free & Open Source                                        |
-
-Deep AI Office Scenario Support:
-
-- **File Management**: Intelligently organize local folders and batch rename with one click.
-- **Data Processing**: Deeply analyze and automatically beautify Excel reports.
-- **Document Generation**: Automatically write and format PPT, Word, and Markdown documents.
-- **Instant Preview**: Built-in 10+ format preview panels, AI collaboration results instantly visible.
-
-</details>
-
----
-
-## Quick Q&A
-
-<details>
-<summary><strong>Q: Do I need to install Gemini CLI or Claude Code first?</strong></summary>
-A: <strong>No.</strong> Headmaster has a built-in AI agent that works immediately after installation. Just enter any API key to get started. If you also have CLI tools like Claude Code or Gemini CLI installed, Headmaster will auto-detect and integrate them for even more capabilities.
-</details>
-
-<details>
-<summary><strong>Q: What can I do with Headmaster?</strong></summary>
-A: Headmaster is your <strong>private Work Along workspace</strong>. The built-in agent can batch organize folders, process Excel data, generate documents, search the web, and generate images. With Multi-Agent Mode, you can also leverage Claude Code, Codex, and other powerful CLI agents through the same interface.
-</details>
-
-<details>
-<summary><strong>Q: Is it free?</strong></summary>
-A: Headmaster is completely free and open source. You only pay for the API usage of whichever provider you choose, and you can use API keys from any provider you prefer.
-</details>
-
-<details>
-<summary><strong>Q: Can I run Headmaster on a server (headless)?</strong></summary>
-A: Yes — Headmaster WebUI mode runs as a standalone HTTP server. See the WebUI section above for setup instructions.
-</details>
-
-<details>
-<summary><strong>Q: Is my data secure?</strong></summary>
-A: All data is stored locally in a SQLite database. Nothing is uploaded to any server.
-</details>
-
----
-
-## See How People Use Headmaster
-
-<p align="center">
-  <a href="https://www.youtube.com/watch?v=vWxE6VO9TKo" target="_blank">
-    <img src="https://img.youtube.com/vi/vWxE6VO9TKo/maxresdefault.jpg" alt="Hermes + Aion UI is Insane (FREE)!" width="400">
-  </a>
-  &nbsp;&nbsp;
-  <a href="https://www.youtube.com/watch?v=RgSLdOhICZw" target="_blank">
-    <img src="https://img.youtube.com/vi/RgSLdOhICZw/maxresdefault.jpg" alt="OpenClaw + Aion UI is Insane (FREE!)" width="400">
-  </a>
-</p>
-<p align="center">
-  <em>Julian Goldie SEO — Hermes + Aion UI is Insane (FREE!) · 27K views</em> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <em>Julian Goldie SEO — OpenClaw + Aion UI is Insane (FREE!) · 11K views</em>
-</p>
-
-<p align="center">
-  <a href="https://www.youtube.com/watch?v=yUU5E-U5B3M" target="_blank">
-    <img src="https://img.youtube.com/vi/yUU5E-U5B3M/maxresdefault.jpg" alt="WorldofAI Review" width="400">
-  </a>
-  &nbsp;&nbsp;
-  <a href="https://www.youtube.com/watch?v=enQnkKfth10" target="_blank">
-    <img src="https://img.youtube.com/vi/enQnkKfth10/maxresdefault.jpg" alt="Julian Goldie SEO Review" width="400">
-  </a>
-</p>
-<p align="center">
-  <em>WorldofAI (200K subscribers)</em> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <em>Julian Goldie SEO (384K subscribers)</em>
-</p>
-
-### Community Articles
-
-- [Open-source free Work Along, full model integration + autonomous file operations](https://mp.weixin.qq.com/s/F3f-CCsVPaK3lK00jXhOOg) — Open Source AI Project Landing
-- [Making ordinary people use Claude Code like an APP](https://mp.weixin.qq.com/s/TsMojSbkUUFvsd-HQCazZg) — Lazy Cat Loves Fishing
-- [5500 Stars: How Open Source Breaks Anthropic's AI Tool Moat](https://mp.weixin.qq.com/s/saEk49cYV6MqBgw19Lw6Gw) — AI Silicon Moment
-
-> **Made a video about Headmaster?** [Let us know on X](https://x.com/Headmaster) and we'll feature it here!
-
----
-
-## 🚀 Quick Start
-
-### System Requirements
-
-- **macOS**: 10.15 or higher
-- **Windows**: Windows 10 or higher
-- **Linux**: Ubuntu 18.04+ / Debian 10+ / Fedora 32+
-- **Memory**: 4GB+ recommended
-- **Storage**: 500MB+ available space
+## Quick start
 
 ### Install
 
-<p>
-  <a href="https://github.com/iOfficeAI/Headmaster/releases">
-    <img src="https://img.shields.io/badge/Download-Latest%20Release-32CD32?style=for-the-badge&logo=github&logoColor=white" alt="Download Latest Release" height="50">
-  </a>
-</p>
+Download the latest release for your platform:
 
-Click the button above to go to the Releases page and download the installer for your platform (macOS / Windows / Linux).
+| Platform | File |
+|---|---|
+| Windows | `Headmaster-2.1.18-win-x64.exe` (NSIS installer) or `Headmaster-2.1.18-win-x64.zip` (portable) |
+| macOS | `Headmaster-2.1.18-macOS-*.dmg` |
+| Linux | `Headmaster-2.1.18-linux-*.AppImage` |
+
+Headless / web mode: `Headmaster-2.1.18-web-host-*.zip`.
+
+### First run
+
+1. Launch the app.
+2. Paste an API key for any provider (OpenAI, Anthropic, Google, etc.) in **Settings → Providers**.
+3. Open **New Mission** (the chat button) and start talking to the agent.
+
+### Build from source
 
 ```bash
-# Alternatively, macOS via Homebrew
-brew install headmaster
+# Clone
+git clone https://github.com/mutvayzz-sys/gcaplabs-headmasterUI.git
+cd gcaplabs-headmasterUI
+
+# Install
+bun install
+
+# Typecheck + bundle
+bunx tsc --noEmit
+bunx electron-vite build --config packages/desktop/electron.vite.config.ts
+
+# Package (Windows)
+node scripts/build-with-builder.js auto --win
+
+# Or on macOS / Linux
+node scripts/build-with-builder.js auto --mac
+node scripts/build-with-builder.js auto --linux
 ```
 
-### Get Started in 3 Steps
+Output lands in `out/`:
 
-1. **Install** Headmaster
-2. **Enter** any API key to get started
-3. **Start Work Alonging** — the built-in AI agent is ready to go
+- `out/win-unpacked/Headmaster.exe` — portable (run this for testing)
+- `out/Headmaster-2.1.18-win-x64.exe` — NSIS installer
+- `out/Headmaster-2.1.18-win-x64.zip` — portable zip
 
-### 📖 Detailed Guides
-
-<details>
-<summary><strong>📖 Expand to View Complete Usage Guide</strong></summary>
-
-<br>
-
-**🚀 Quick Start**
-
-- [📖 Complete Installation Guide](https://github.com/iOfficeAI/Headmaster/wiki/Getting-Started) — Detailed steps from download to configuration
-- [⚙️ LLM Configuration Guide](https://github.com/iOfficeAI/Headmaster/wiki/LLM-Configuration) — Multi-platform AI model configuration
-- [🤖 Multi-Agent Mode Setup](https://github.com/iOfficeAI/Headmaster/wiki/ACP-Setup) — Integrate terminal AI agents
-- [🔌 MCP Tool Configuration](https://github.com/iOfficeAI/Headmaster/wiki/MCP-Configuration-Guide) — Model Context Protocol server setup
-- [🌐 WebUI Configuration Guide](https://github.com/iOfficeAI/Headmaster/wiki/WebUI-Configuration-Guide) — Complete WebUI setup and configuration tutorial
-
-**🎯 Use Cases**
-
-- [📁 File Management](https://github.com/iOfficeAI/Headmaster/wiki/file-management) — Smart file organization
-- [📊 Excel Processing](https://github.com/iOfficeAI/Headmaster/wiki/excel-processing) — AI-driven data processing
-- [🎨 Image Generation](https://github.com/iOfficeAI/Headmaster/wiki/Headmaster-Image-Generation-Tool-Model-Configuration-Guide) — AI image creation
-- [📚 More Use Cases](https://github.com/iOfficeAI/Headmaster/wiki/Use-Cases-Overview)
-
-**❓ Support & Help**
-
-- [❓ FAQ](https://github.com/iOfficeAI/Headmaster/wiki/FAQ) — Questions and troubleshooting
-- [🔧 Configuration & Usage Tutorials](https://github.com/iOfficeAI/Headmaster/wiki/Configuration-Guides) — Complete configuration documentation
-
-</details>
+The Hermes runtime is the default. AionCore is preserved as a legacy fallback only and is **not** required at build time.
 
 ---
 
-## 💬 Community & Support
+## Runtime
 
-**Your ideas matter!** We value every suggestion and feedback.
+Headmaster talks to a backend. The default is the **Hermes Python runtime** (`NousResearch/hermes-agent`), installed as part of first-run bootstrap. The runtime provides:
 
-<p align="center">
-  <a href="https://x.com/Headmaster" target="_blank">
-    <img src="./resources/contactus-x.png" alt="Contact Us on X" width="600">
-  </a>
-</p>
+- A local HTTP/WS API on `127.0.0.1:9119` (default; `--port 0` to let the OS pick)
+- 169 FastAPI routes + 4 WebSocket routes
+- The same Hermes Agent CLI, gateway, and skills, packaged as a desktop front-end
 
-- [GitHub Discussions](https://github.com/iOfficeAI/Headmaster/discussions) — share ideas and exchange tips
-- [Report Issues](https://github.com/iOfficeAI/Headmaster/issues) — bugs and feature requests
-- [Release Updates](https://github.com/iOfficeAI/Headmaster/releases) — get the latest version
-- [Discord Community](https://discord.gg/2QAwJn7Egx) — English community
-- [WeChat Group](./resources/wx-11.png) — Chinese community
+If the Hermes venv is not found, Headmaster falls back to the legacy `aioncore` backend. The aioncore binary is **no longer shipped** — it lives only in older `aionui` releases. If you see an "installation incomplete" dialog, click **Continue Anyway** to proceed without the legacy backend; all Settings tabs (Memory, Runtime, Channels) work without it.
 
-### Contributing
+See [`docs/white-label/WHITE-LABEL-AUDIT.md`](./docs/white-label/WHITE-LABEL-AUDIT.md) for the full frontstuff-vs-runtime boundary.
 
-Please read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a PR.
+---
 
-1. Fork this project
-2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+## What's in this repo
 
-### Development Setup
+- `packages/desktop/` — the Electron app (main + renderer + preload)
+- `packages/web-host/` — headless web mode
+- `packages/web-cli/` — CLI wrapper
+- `packages/shared-scripts/` — build helpers (aioncore prepare, verify)
+- `docs/` — architecture, contributing, white-label audit
+- `resources/` — app icons, banners, mascot states
+- `out/` — build artifacts (gitignored)
+- `tests/` — Vitest unit + Playwright E2E
 
-Tech stack: Electron · Vite · React · Bun
+See [`AGENTS.md`](./AGENTS.md) for the full directory map.
 
-```bash
-bun install        # install dependencies
-bun run dev        # start dev server
-bun run test       # run unit tests
-```
+---
+
+## White-label notes
+
+If you're forking this for your own company:
+
+1. Run `bun run i18n:types` to regenerate the i18n key types after renaming anything in `locales/`.
+2. Read [`docs/white-label/WHITE-LABEL-AUDIT.md`](./docs/white-label/WHITE-LABEL-AUDIT.md) before touching anything in `packages/desktop/src/process/`.
+3. The Headmaster vocabulary (Work Along, The Council, The Specialists, etc.) is locked. See [`docs/white-label/HEADMASTER-VOCABULARY.csv`](./docs/white-label/HEADMASTER-VOCABULARY.csv).
+4. The brand assets (Sorting Hat mascot, GCAP shield, custom icons) are placeholders. See [`docs/white-label/HEADMASTER-ASSET-INVENTORY.md`](./docs/white-label/HEADMASTER-ASSET-INVENTORY.md).
+
+---
+
+## Contributing
+
+- Read [`CONTRIBUTING.md`](./CONTRIBUTING.md) before opening a PR.
+- Use `just push` (or `just push -u origin feat/branch`) for the full lint → format → typecheck → test → push pipeline.
+- Don't add AI co-author signatures.
+- See [`AGENTS.md`](./AGENTS.md) for the AI agent conventions.
 
 ---
 
 ## License
 
-This project is licensed under [Apache-2.0](LICENSE).
+Apache-2.0. See [`LICENSE`](./LICENSE).
+
+This is a white-label derivative of [AionUi](https://github.com/iOfficeAI/AionUi), originally Copyright 2025 AionUi (aionui.com), also Apache-2.0.
 
 ---
 
-## Contributors
+## About GCAP Labs
 
-<p align="center">
-  <a href="https://github.com/iOfficeAI/Headmaster/graphs/contributors">
-    <img src="https://contrib.rocks/image?repo=iOfficeAI/Headmaster&max=100" alt="Contributors" />
-  </a>
-</p>
-
-## Star History
-
-<p align="center">
-  <a href="https://www.star-history.com/#iOfficeAI/headmaster&Date" target="_blank">
-    <img src="https://api.star-history.com/svg?repos=iOfficeAI/headmaster&type=Date" alt="Star History" width="600">
-  </a>
-</p>
-
-<div align="center">
-
-**If you like it, give us a star**
-
-[Report Bug](https://github.com/iOfficeAI/Headmaster/issues) · [Request Feature](https://github.com/iOfficeAI/Headmaster/issues)
-
-</div>
-
-<sub><a href="https://linux.do/">LINUX DO - A New Ideal Community</a></sub>
+GCAP Labs builds AI agent products for organizations. Headmaster is our persistent desktop agent. Learn more at [gcaplabs.com](https://gcaplabs.com).

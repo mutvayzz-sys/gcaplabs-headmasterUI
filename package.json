@@ -1,12 +1,20 @@
 {
   "name": "headmaster",
   "version": "2.1.18",
-  "description": "Transform your command-line AI agent into a modern, efficient AI Chat interface.",
+  "description": "Headmaster — a Work Along AI agent desktop app by GCAP Labs. White-label of AionUi (Apache-2.0) with the Hermes Python runtime.",
   "keywords": [],
   "license": "Apache-2.0",
   "author": {
     "name": "GCAP Labs",
     "email": "hello@gcaplabs.com"
+  },
+  "homepage": "https://gcaplabs.com/headmaster",
+  "bugs": {
+    "url": "https://github.com/mutvayzz-sys/gcaplabs-headmasterUI/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mutvayzz-sys/gcaplabs-headmasterUI.git"
   },
   "workspaces": [
     "packages/*"
