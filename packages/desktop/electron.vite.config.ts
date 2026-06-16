@@ -7,7 +7,7 @@ import UnoCSS from 'unocss/vite';
 import unoConfig from '../../uno.config.ts';
 import { viteStaticCopy } from 'vite-plugin-static-copy';
 
-// Read the real AionUi version from the repo-root package.json.
+// Read the real Headmaster version from the repo-root package.json.
 // `packages/desktop/package.json` is a workspace-internal placeholder pinned
 // at "0.0.0" — never use it for user-visible version strings.
 const rootPackageJson = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf-8')) as {
@@ -36,13 +36,27 @@ function iconParkPlugin() {
         /import\s+\{\s+([a-zA-Z, ]*)\s+\}\s+from\s+['"]@icon-park\/react['"](;?)/g,
         function (str, match) {
           if (!match) return str;
-          const components = match.split(',');
-          const importComponent = str.replace(
-            match,
-            components.map((key: string) => `${key} as _${key.trim()}`).join(', ')
-          );
+          // Split on top-level commas, then split each token on ` as ` to
+          // recover both the source identifier (for the `_Source` alias) and
+          // the local binding name (for the `const Local = IconParkHOC(...)`
+          // declaration). Handles `Foo`, `Foo as Bar`, and mixed lists.
+          const components = match
+            .split(',')
+            .map((token: string) => token.trim())
+            .filter(Boolean)
+            .map((token: string) => {
+              const parts = token.split(/\s+as\s+/);
+              const source = parts[0].trim();
+              const local = (parts[1] ?? parts[0]).trim();
+              return { source, local };
+            });
+          const importComponent =
+            str.replace(
+              match,
+              components.map(({ source, local }: { source: string; local: string }) => `${source} as _${source}`).join(', ')
+            );
           const hoc = `import IconParkHOC from '@renderer/components/IconParkHOC';
-          ${components.map((key: string) => `const ${key.trim()} = IconParkHOC(_${key.trim()})`).join(';\n')}`;
+          ${components.map(({ source, local }: { source: string; local: string }) => `const ${local} = IconParkHOC(_${source})`).join(';\n')}`;
           return importComponent + ';' + hoc;
         }
       );
@@ -183,7 +197,7 @@ export default defineConfig(({ mode }) => {
       publicDir: resolve('public'),
       appType: 'mpa',
       server: {
-        // Default to 5173; when occupied (e.g. another AionUi clone is running),
+        // Default to 5173; when occupied (e.g. another Headmaster clone is running),
         // Vite auto-increments to the next available port.
         // electron-vite reads the actual port and sets ELECTRON_RENDERER_URL accordingly.
         port: 5173,
@@ -287,9 +301,9 @@ export default defineConfig(({ mode }) => {
       define: {
         'process.env.NODE_ENV': JSON.stringify(mode),
         'process.env.env': JSON.stringify(process.env.env),
-        'process.env.AIONUI_MULTI_INSTANCE': JSON.stringify(process.env.AIONUI_MULTI_INSTANCE ?? ''),
+        'process.env.HEADMASTER_MULTI_INSTANCE': JSON.stringify(process.env.HEADMASTER_MULTI_INSTANCE ?? ''),
         'process.env.SENTRY_DSN': JSON.stringify(process.env.SENTRY_DSN ?? ''),
-        // Inject the real AionUi version (root package.json) so renderer code
+        // Inject the real Headmaster version (root package.json) so renderer code
         // can show it without importing packages/desktop/package.json, which is
         // a workspace-internal placeholder frozen at "0.0.0".
         __APP_VERSION__: JSON.stringify(rootPackageJson.version),

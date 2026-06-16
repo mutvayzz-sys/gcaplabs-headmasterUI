@@ -1,13 +1,13 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 Headmaster (gcaplabs.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Tooltip } from '@arco-design/web-react';
-import { ArrowCircleLeft, CloseOne, Moon, SettingTwo, SunOne } from '@icon-park/react';
+import { ArrowCircleLeft, GearSix, Moon, SignOut, Sun } from '@phosphor-icons/react';
 import classNames from 'classnames';
 import { iconColors } from '@renderer/styles/colors';
 import type { SiderTooltipProps } from '@renderer/utils/ui/siderTooltip';
@@ -39,17 +39,15 @@ const SiderFooter: React.FC<SiderFooterProps> = ({
 
   const settingsIcon = isSettings ? (
     <ArrowCircleLeft
-      theme='outline'
-      size='16'
-      fill='currentColor'
+      size={16}
+      weight='regular'
       className='block leading-none'
       style={{ lineHeight: 0 }}
     />
   ) : (
-    <SettingTwo
-      theme='outline'
-      size='16'
-      fill='currentColor'
+    <GearSix
+      size={16}
+      weight='regular'
       className='block leading-none'
       style={{ lineHeight: 0 }}
     />
@@ -90,10 +88,10 @@ const SiderFooter: React.FC<SiderFooterProps> = ({
               )}
             >
               <span className='size-20px flex items-center justify-center shrink-0'>
-                <CloseOne
-                  theme='outline'
-                  size='16'
-                  fill={iconColors.primary}
+                <SignOut
+                  size={16}
+                  weight='regular'
+                  color={iconColors.primary}
                   className='block leading-none'
                   style={{ lineHeight: 0 }}
                 />
@@ -117,9 +115,9 @@ const SiderFooter: React.FC<SiderFooterProps> = ({
             >
               <span className='w-28px h-28px flex items-center justify-center shrink-0'>
                 {theme === 'dark' ? (
-                  <SunOne theme='outline' size='18' fill='currentColor' className='block leading-none' />
+                  <Sun size={18} weight='regular' className='block leading-none' />
                 ) : (
-                  <Moon theme='outline' size='18' fill='currentColor' className='block leading-none' />
+                  <Moon size={18} weight='regular' className='block leading-none' />
                 )}
               </span>
             </div>

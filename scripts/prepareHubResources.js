@@ -1,14 +1,14 @@
 /**
  * prepareHubResources.js
  *
- * Downloads the AionHub index.json and all extension zip packages
+ * Downloads the gcaplabs-headmasterhub index.json and all extension packages
  * into resources/hub/ so they are bundled with the app as local fallback.
  *
  * Called during the build pipeline before electron-builder runs.
  *
  * Environment variables:
- *   AIONUI_HUB_TAG    - Git tag to fetch from (default: 'dist-latest')
- *   AIONUI_HUB_SKIP   - Set to '1' to skip hub resource preparation
+ *   HEADMASTER_HUB_TAG    - Git tag/branch to fetch from (default: 'main')
+ *   HEADMASTER_HUB_SKIP   - Set to '1' to skip hub resource preparation
  */
 
 const fs = require('fs');
@@ -18,10 +18,10 @@ const https = require('https');
 const PROJECT_ROOT = path.resolve(__dirname, '..');
 const HUB_DIR = path.join(PROJECT_ROOT, 'resources', 'hub');
 
-const DEFAULT_TAG = 'dist-latest';
+const DEFAULT_TAG = 'main';
 const BASE_URLS = [
-  `https://raw.githubusercontent.com/iOfficeAI/AionHub/${process.env.AIONUI_HUB_TAG || DEFAULT_TAG}/`,
-  `https://cdn.jsdelivr.net/gh/iOfficeAI/AionHub@${process.env.AIONUI_HUB_TAG || DEFAULT_TAG}/`,
+  `https://raw.githubusercontent.com/mutvayzz-sys/gcaplabs-headmasterhub/${process.env.HEADMASTER_HUB_TAG || DEFAULT_TAG}/`,
+  `https://cdn.jsdelivr.net/gh/mutvayzz-sys/gcaplabs-headmasterhub@${process.env.HEADMASTER_HUB_TAG || DEFAULT_TAG}/`,
 ];
 
 // ---------------------------------------------------------------------------
@@ -94,12 +94,12 @@ function downloadUrl(url, destPath) {
 // ---------------------------------------------------------------------------
 
 async function prepareHubResources() {
-  if (process.env.AIONUI_HUB_SKIP === '1') {
-    console.log('[hub] Skipping hub resource preparation (AIONUI_HUB_SKIP=1)');
+  if (process.env.HEADMASTER_HUB_SKIP === '1') {
+    console.log('[hub] Skipping hub resource preparation (HEADMASTER_HUB_SKIP=1)');
     return { skipped: true };
   }
 
-  const tag = process.env.AIONUI_HUB_TAG || DEFAULT_TAG;
+  const tag = process.env.HEADMASTER_HUB_TAG || DEFAULT_TAG;
   console.log(`[hub] Preparing hub resources from tag: ${tag}`);
 
   // Clean and create target directory
@@ -115,7 +115,13 @@ async function prepareHubResources() {
   console.log(`[hub] index.json downloaded from ${indexUrl}`);
 
   // Step 2: Parse index and download all extension zips
-  const index = JSON.parse(fs.readFileSync(indexPath, 'utf-8'));
+  const rawIndex = fs.readFileSync(indexPath, 'utf-8')
+    .replace(/Headmaster/g, 'Headmaster')
+    .replace(/Adonis Core/g, 'Adonis Core')
+    .replace(/mutvayzz-sys\/Headmaster/g, 'GCAPLabs/Headmaster')
+    .replace(/aionui\.com/g, 'gcaplabs.com');
+  fs.writeFileSync(indexPath, rawIndex);
+  const index = JSON.parse(rawIndex);
   const extensions = index.extensions || {};
   const names = Object.keys(extensions);
 

@@ -130,6 +130,6 @@
     "loading": "PPT önizlemesi başlatılıyor...",
     "installing": "Önizleme bileşeni yükleniyor...",
     "startFailed": "PPT önizlemesi başlatılamadı",
-    "installHint": "OfficeCLI'yi resmi iOfficeAI/OfficeCli releases sayfasından yükleyin"
+    "installHint": "OfficeCLI'yi resmi GCAP Labs Office Tools releases sayfasından yükleyin"
   }
 }

@@ -29,7 +29,7 @@
   "export.typeLabel": "Тип",
   "export.noMessages": "Немає повідомлень",
   "export.userLabel": "Користувач",
-  "export.assistantLabel": "Асистент",
+  "export.specialistLabel": "Асистент",
   "export.systemLabel": "Система",
   "export.menuTitle": "Експорт діалогу",
   "export.menuHint": "Виберіть спосіб експорту поточної розмови",

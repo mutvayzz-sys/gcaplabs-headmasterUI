@@ -12,12 +12,12 @@
     "clearWorkspace": "Projeyi kaldır",
     "openFolder": "Klasör Aç",
     "none": "Hiçbiri",
-    "quickActionsTitle": "AionUi neler yapabilir?",
+    "quickActionsTitle": "Headmaster neler yapabilir?",
     "quickActionFeedback": "Sorun Bildir",
     "quickActionStar": "Bizi beğendiniz mi? Yıldız verin!",
-    "skillsMarket": "AionUi Skills Market",
-    "skillsMarketDesc": "Topluluk Skills'lerini ihtiyaç duyduğunuzda arayın ve etkinleştirin. Bir kez yapılandırın, tüm Agent'larda kullanılabilir.",
-    "skillsMarketDetails": "Ayrıntılar >>"
+    "agencyMarket": "The Agency",
+    "agencyMarketDesc": "Topluluk Agency'lerini ihtiyaç duyduğunuzda arayın ve etkinleştirin. Bir kez yapılandırın, tüm Agent'larda kullanılabilir.",
+    "agencyMarketDetails": "Ayrıntılar >>"
   },
   "history": {
     "recents": "Son",
@@ -107,29 +107,29 @@
       "send_feedback": "Ekibin inceleyebilmesi için günlüklerle birlikte geri bildirim gönderin."
     },
     "ownership": {
-      "aionui": "Uygulama",
+      "headmaster": "Uygulama",
       "user_agent": "Ajan",
       "user_llm_provider": "Model sağlayıcı",
       "unknown_upstream": "Üst hizmet"
     },
     "codes": {
-      "AIONUI_STREAM_BROKEN": {
+      "HEADMASTER_STREAM_BROKEN": {
         "title": "Yanıt akışı kesildi",
         "body": "Uygulama mesajınızı aldı ancak yanıt akışı beklenmedik şekilde sona erdi. Yeniden deneyin; tekrarlanırsa geri bildirim gönderin."
       },
-      "AIONUI_STATE_INCONSISTENT": {
+      "HEADMASTER_STATE_INCONSISTENT": {
         "title": "Konuşma durumu eşitlenmemiş",
         "body": "Konuşma durumu eşitlenmemiş. Yeniden denemeden önce bu sohbeti yeniden başlatın veya uygulamayı yenileyin."
       },
-      "AIONUI_PERMISSION_ERROR": {
+      "HEADMASTER_PERMISSION_ERROR": {
         "title": "İstenen kaynağa erişilemedi",
         "body": "Yerel izin veya dosya sistemi denetimi başarısız oldu. Proje yolunu ve uygulama izinlerini kontrol edip yeniden deneyin."
       },
-      "AIONUI_INTERNAL_ERROR": {
+      "HEADMASTER_INTERNAL_ERROR": {
         "title": "İstek uygulamada başarısız oldu",
         "body": "Uygulama isteği işlerken hata oluştu. Bir kez yeniden deneyin; tekrarlanırsa geri bildirim gönderin."
       },
-      "AIONUI_CONVERSATION_BUSY": {
+      "HEADMASTER_CONVERSATION_BUSY": {
         "title": "Konuşma meşgul",
         "body": "Başka bir yanıt hâlâ çalışıyor. Yeni mesaj göndermeden önce bitmesini bekleyin."
       },
@@ -449,7 +449,7 @@
   },
   "dropdown": {
     "cliAgents": "CLI Agents",
-    "presetAssistants": "Preset Assistants"
+    "presetSpecialists": "Your Council"
   },
   "noAgentsAvailable": "No agents available",
   "noModelConfigured": "No model configured. Please configure in settings.",
@@ -463,7 +463,7 @@
     "complete": "Düşünme tamamlandı",
     "label": "Düşünüyor..."
   },
-  "skills": {
+  "agency": {
     "loaded": "Yüklenen Beceriler"
   },
   "mcp": {

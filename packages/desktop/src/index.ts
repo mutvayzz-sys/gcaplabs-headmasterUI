@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 Headmaster (gcaplabs.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -29,6 +29,9 @@ import type { BackendStartupFailureInfo } from './common/types/platform/electron
 import { registerWindowMaximizeListeners } from '@process/bridge';
 import { BackendLifecycleManager } from '@aionui/web-host';
 import { resolveBinaryPath } from '@process/backend';
+import { HermesBootstrap } from '@process/backend/hermesBootstrap';
+import { setHermesBootstrap } from '@process/utils/hermesBootstrapSingleton';
+import { initBridges } from '@process/utils/initBridge';
 import './process/bridge/feedbackBridge';
 import { wasLaunchedAtLogin } from '@process/bridge/applicationBridge';
 import { onLanguageChanged } from './process/bridge/systemSettingsBridge';
@@ -77,12 +80,12 @@ import electronSquirrelStartup from 'electron-squirrel-startup';
 // Acquire lock early so the second instance quits before doing unnecessary work.
 // When a second instance starts (e.g. from protocol URL), it sends its data
 // to the first instance via second-instance event, then quits.
-const isE2ETestMode = process.env.AIONUI_E2E_TEST === '1';
-const skipSingleInstanceLock = isE2ETestMode || process.env.AIONUI_MULTI_INSTANCE === '1';
+const isE2ETestMode = process.env.HEADMASTER_E2E_TEST === '1';
+const skipSingleInstanceLock = isE2ETestMode || process.env.HEADMASTER_MULTI_INSTANCE === '1';
 const deepLinkFromArgv = process.argv.find((arg) => arg.startsWith(`${PROTOCOL_SCHEME}://`));
 const gotTheLock = skipSingleInstanceLock ? true : app.requestSingleInstanceLock({ deepLinkUrl: deepLinkFromArgv });
 if (!gotTheLock) {
-  console.warn('[AionUi] Another instance is already running; current process will exit.');
+  console.warn('[Headmaster] Another instance is already running; current process will exit.');
   app.quit();
 } else {
   app.on('second-instance', (_event, argv, _workingDirectory, additionalData) => {
@@ -105,7 +108,7 @@ if (!gotTheLock) {
       showOrCreateMainWindow({
         mainWindow,
         createWindow: () => {
-          console.log('[AionUi] second-instance received with no active main window, recreating main window');
+          console.log('[Headmaster] second-instance received with no active main window, recreating main window');
           createWindow();
         },
       });
@@ -198,6 +201,19 @@ const backendManager = new BackendLifecycleManager(
   },
   resolveBinaryPath
 );
+
+// Hermes Python dashboard bootstrap. This is the primary Headmaster runtime:
+// Headmaster is a white-label/product shell on top of the real Hermes desktop
+// backend surface (`/api/*`, `/api/ws`, `/v1/*`). The legacy aioncore process is
+// retained only as a fallback for old builds that do not have Hermes installed.
+const hermesBootstrap = new HermesBootstrap({
+  version: app.getVersion(),
+  isPackaged: app.isPackaged,
+  resourcesPath: process.resourcesPath,
+  userDataPath: app.getPath('userData'),
+});
+setHermesBootstrap(hermesBootstrap);
+initBridges({ hermesBootstrap });
 let disposeCronResumeListener: (() => void) | null = null;
 
 // Flag tracking whether the backend subprocess started successfully. Read by
@@ -210,7 +226,15 @@ let backendMigrationsScheduled = false;
 let ensureAdminUserPromise: Promise<void> | null = null;
 
 ipcMain.on('get-backend-port', (event) => {
-  event.returnValue = backendManager.port;
+  event.returnValue =
+    (globalThis as typeof globalThis & { __backendPort?: number }).__backendPort ?? hermesBootstrap.port ?? backendManager.port;
+});
+
+ipcMain.on('get-hermes-session-token', (event) => {
+  event.returnValue =
+    (globalThis as typeof globalThis & { __hermesSessionToken?: string }).__hermesSessionToken ??
+    hermesBootstrap.sessionToken ??
+    '';
 });
 
 ipcMain.on('get-initial-language', (event) => {
@@ -225,23 +249,101 @@ ipcMain.on('get-backend-startup-failure', (event) => {
   event.returnValue = backendStartupFailureInfo;
 });
 
+// ---------------------------------------------------------------------------
+// runtime:get-status — single-round-trip snapshot of Hermes surface readiness
+// for the Settings → Runtime page. The renderer could probe each endpoint
+// directly, but doing it from the main process (where the session token lives)
+// avoids 8 separate CORS-token round-trips and keeps latency consistent.
+// ---------------------------------------------------------------------------
+
+const RUNTIME_STATUS_ENDPOINTS: Array<{ id: string; endpoint: string; countKey: string }> = [
+  { id: 'runtime.status', endpoint: '/api/status', countKey: '' },
+  { id: 'runtime.sessions', endpoint: '/api/sessions', countKey: 'sessions' },
+  { id: 'runtime.models', endpoint: '/api/model/options', countKey: 'options' },
+  { id: 'runtime.skills', endpoint: '/api/skills', countKey: 'skills' },
+  { id: 'runtime.mcp', endpoint: '/api/mcp/servers', countKey: 'servers' },
+  { id: 'runtime.cron', endpoint: '/api/cron/jobs', countKey: 'jobs' },
+  { id: 'runtime.providers', endpoint: '/api/providers/oauth', countKey: 'providers' },
+  { id: 'runtime.platforms', endpoint: '/api/messaging/platforms', countKey: 'platforms' },
+];
+
+ipcMain.handle('runtime:get-status', async () => {
+  const port =
+    (globalThis as typeof globalThis & { __backendPort?: number }).__backendPort ??
+    hermesBootstrap.port ??
+    backendManager.port;
+  const token =
+    (globalThis as typeof globalThis & { __hermesSessionToken?: string }).__hermesSessionToken ??
+    hermesBootstrap.sessionToken ??
+    '';
+
+  if (!port) {
+    return {
+      generatedAt: Date.now(),
+      porting: RUNTIME_STATUS_ENDPOINTS.map((e) => ({
+        id: e.id,
+        endpoint: e.endpoint,
+        readiness: 'unavailable' as const,
+        detail: 'Runtime not started',
+      })),
+    };
+  }
+
+  const headers: Record<string, string> = token ? { 'X-Hermes-Session-Token': token } : {};
+
+  const probeResults = await Promise.all(
+    RUNTIME_STATUS_ENDPOINTS.map(async (entry) => {
+      try {
+        const res = await fetch(`http://127.0.0.1:${port}${entry.endpoint}`, { headers });
+        if (res.status === 404) {
+          return { id: entry.id, endpoint: entry.endpoint, readiness: 'unavailable' as const, detail: 'Not exposed by this runtime build' };
+        }
+        if (!res.ok) {
+          return { id: entry.id, endpoint: entry.endpoint, readiness: 'unavailable' as const, detail: `HTTP ${res.status}` };
+        }
+        const ct = res.headers.get('content-type') || '';
+        if (!ct.includes('application/json')) {
+          return { id: entry.id, endpoint: entry.endpoint, readiness: 'partial' as const, detail: `Unexpected content-type: ${ct}` };
+        }
+        const data = (await res.json()) as Record<string, unknown>;
+        let detail = 'OK';
+        if (entry.countKey) {
+          const list = data[entry.countKey];
+          if (Array.isArray(list)) {
+            detail = `${list.length} record${list.length === 1 ? '' : 's'}`;
+          }
+        }
+        return { id: entry.id, endpoint: entry.endpoint, readiness: 'ready' as const, detail };
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        return { id: entry.id, endpoint: entry.endpoint, readiness: 'unavailable' as const, detail: msg };
+      }
+    })
+  );
+
+  return { generatedAt: Date.now(), porting: probeResults };
+});
+
 function markBackendStartupFailed(error: unknown): void {
   backendStartupFailed = true;
   backendStartupFailureInfo = classifyBackendStartupFailure(error);
   (globalThis as typeof globalThis & { __backendStartupFailed?: boolean }).__backendStartupFailed = true;
 }
 
-function registerCronResumeBridge(backendPort: number): void {
+function registerCronResumeBridge(backendPort: number, runtime: 'hermes' | 'aioncore' = 'hermes'): void {
   disposeCronResumeListener?.();
 
   const onResume = () => {
+    // Hermes Agent has no aioncore-internal resume route. Keep the hook only
+    // for legacy aioncore fallback so sleep/wake doesn't spam 404s.
+    if (runtime !== 'aioncore') return;
     void fetch(`http://127.0.0.1:${backendPort}/api/cron/internal/system-resume`, {
       method: 'POST',
       headers: {
         'x-aionui-internal': '1',
       },
     }).catch((error) => {
-      console.error('[AionUi] Failed to notify backend about system resume:', error);
+      console.error('[Headmaster] Failed to notify backend about system resume:', error);
     });
   };
 
@@ -264,9 +366,9 @@ const scheduleBackendMigrations = (): void => {
     try {
       const { runBackendMigrations } = await import('./process/utils/runBackendMigrations');
       await runBackendMigrations(ProcessConfig);
-      console.info('[AionUi] runBackendMigrations completed');
+      console.info('[Headmaster] runBackendMigrations completed');
     } catch (error) {
-      console.error('[AionUi] Backend migration hook threw:', error);
+      console.error('[Headmaster] Backend migration hook threw:', error);
     }
   })();
 };
@@ -293,21 +395,23 @@ function ensureAdminUserOnce(backendPort: number): Promise<void> {
   return ensureAdminUserPromise;
 }
 
-function markBackendReady(backendPort: number, source: string): void {
+function markBackendReady(backendPort: number, source: string, runtime: 'hermes' | 'aioncore' = 'hermes'): void {
   if (backendStartedOk) return;
-  console.log(`[AionUi] ${source} ready (port=${backendPort})`);
+  console.log(`[Headmaster] ${source} ready (port=${backendPort})`);
   exposeBackendPort(backendPort);
-  registerCronResumeBridge(backendPort);
+  registerCronResumeBridge(backendPort, runtime);
   backendStartedOk = true;
   backendStartupFailed = false;
   backendStartupFailureInfo = null;
   (globalThis as typeof globalThis & { __backendStartupFailed?: boolean }).__backendStartupFailed = false;
-  void ensureAdminUserOnce(backendPort);
-  scheduleBackendMigrations();
+  if (runtime === 'aioncore') {
+    void ensureAdminUserOnce(backendPort);
+    scheduleBackendMigrations();
+  }
 }
 
 const createWindow = ({ showOnReady = true }: { showOnReady?: boolean } = {}): void => {
-  console.log('[AionUi] Creating main window...');
+  console.log('[Headmaster] Creating main window...');
   const { x: windowX, y: windowY, width: windowWidth, height: windowHeight } = resolveInitialBounds();
 
   // Get app icon for development mode (Windows/Linux need icon in BrowserWindow)
@@ -356,7 +460,7 @@ const createWindow = ({ showOnReady = true }: { showOnReady?: boolean } = {}): v
       webviewTag: true, // 启用 webview 标签用于 HTML 预览 / Enable webview tag for HTML preview
     },
   });
-  console.log(`[AionUi] Main window created (id=${mainWindow.id})`);
+  console.log(`[Headmaster] Main window created (id=${mainWindow.id})`);
 
   scheduleStartupLogReport(mainWindow);
 
@@ -366,18 +470,18 @@ const createWindow = ({ showOnReady = true }: { showOnReady?: boolean } = {}): v
   if (showOnReady) {
     const showWindow = () => {
       if (!mainWindow.isDestroyed() && !mainWindow.isVisible()) {
-        console.log('[AionUi] Showing main window');
+        console.log('[Headmaster] Showing main window');
         mainWindow.show();
         mainWindow.focus();
       }
     };
     mainWindow.once('ready-to-show', () => {
-      console.log('[AionUi] Window ready-to-show');
+      console.log('[Headmaster] Window ready-to-show');
       showWindow();
     });
     // Belt-and-suspenders: also show on did-finish-load in case ready-to-show already fired
     mainWindow.webContents.once('did-finish-load', () => {
-      console.log('[AionUi] Renderer did-finish-load');
+      console.log('[Headmaster] Renderer did-finish-load');
       showWindow();
       scheduleBackendMigrations();
     });
@@ -400,7 +504,7 @@ const createWindow = ({ showOnReady = true }: { showOnReady?: boolean } = {}): v
   // 初始化自动更新服务（通过环境变量禁用时跳过，例如 E2E / CI 场景）
   const isCiRuntime = process.env.CI === 'true' || process.env.CI === '1' || process.env.GITHUB_ACTIONS === 'true';
   const disableAutoUpdater =
-    process.env.AIONUI_DISABLE_AUTO_UPDATE === '1' || process.env.AIONUI_E2E_TEST === '1' || isCiRuntime;
+    process.env.HEADMASTER_DISABLE_AUTO_UPDATE === '1' || process.env.HEADMASTER_E2E_TEST === '1' || isCiRuntime;
   if (!disableAutoUpdater) {
     Promise.all([import('./process/services/autoUpdaterService'), import('./process/bridge/updateBridge')])
       .then(([{ autoUpdaterService }, { createAutoUpdateStatusBroadcast }]) => {
@@ -417,7 +521,7 @@ const createWindow = ({ showOnReady = true }: { showOnReady?: boolean } = {}): v
         console.error('[App] Failed to initialize autoUpdaterService:', error);
       });
   } else {
-    console.log('[AionUi] Auto-updater disabled via env/CI guard');
+    console.log('[Headmaster] Auto-updater disabled via env/CI guard');
   }
 
   // Load the renderer: dev server URL in development, built HTML file in production
@@ -425,51 +529,51 @@ const createWindow = ({ showOnReady = true }: { showOnReady?: boolean } = {}): v
   const fallbackFile = path.join(__dirname, '../renderer/index.html');
 
   if (!app.isPackaged && rendererUrl) {
-    console.log(`[AionUi] Loading renderer URL: ${rendererUrl}`);
+    console.log(`[Headmaster] Loading renderer URL: ${rendererUrl}`);
     mainWindow.loadURL(rendererUrl).catch((error) => {
-      console.error('[AionUi] loadURL failed, falling back to file:', error.message || error);
+      console.error('[Headmaster] loadURL failed, falling back to file:', error.message || error);
       mainWindow.loadFile(fallbackFile).catch((e2) => {
-        console.error('[AionUi] loadFile fallback also failed:', e2.message || e2);
+        console.error('[Headmaster] loadFile fallback also failed:', e2.message || e2);
       });
     });
   } else {
-    console.log(`[AionUi] Loading renderer file: ${fallbackFile}`);
+    console.log(`[Headmaster] Loading renderer file: ${fallbackFile}`);
     mainWindow.loadFile(fallbackFile).catch((error) => {
-      console.error('[AionUi] loadFile failed:', error.message || error);
+      console.error('[Headmaster] loadFile failed:', error.message || error);
     });
   }
 
   mainWindow.webContents.on('did-fail-load', (_event, errorCode, errorDescription, validatedURL, isMainFrame) => {
-    console.error('[AionUi] did-fail-load:', { errorCode, errorDescription, validatedURL, isMainFrame });
+    console.error('[Headmaster] did-fail-load:', { errorCode, errorDescription, validatedURL, isMainFrame });
   });
 
   mainWindow.webContents.on('render-process-gone', (_event, details) => {
-    console.error('[AionUi] render-process-gone:', details);
+    console.error('[Headmaster] render-process-gone:', details);
 
     // Reload the renderer to recover from the crash.
     // The isDestroyed() guard in adapter/main.ts prevents further sends
     // to the dead webContents while the reload is in progress.
     if (!mainWindow.isDestroyed()) {
-      console.log('[AionUi] Attempting to recover from renderer crash by reloading...');
+      console.log('[Headmaster] Attempting to recover from renderer crash by reloading...');
 
       if (!app.isPackaged && rendererUrl) {
         mainWindow.loadURL(rendererUrl).catch((error) => {
-          console.error('[AionUi] Recovery loadURL failed:', error.message || error);
+          console.error('[Headmaster] Recovery loadURL failed:', error.message || error);
         });
       } else {
         mainWindow.loadFile(fallbackFile).catch((error) => {
-          console.error('[AionUi] Recovery loadFile failed:', error.message || error);
+          console.error('[Headmaster] Recovery loadFile failed:', error.message || error);
         });
       }
     }
   });
 
   mainWindow.webContents.on('unresponsive', () => {
-    console.warn('[AionUi] Renderer became unresponsive');
+    console.warn('[Headmaster] Renderer became unresponsive');
   });
 
   mainWindow.on('closed', () => {
-    console.log('[AionUi] Main window closed');
+    console.log('[Headmaster] Main window closed');
   });
 
   // DevTools is no longer auto-opened at startup.
@@ -497,7 +601,7 @@ const createWindow = ({ showOnReady = true }: { showOnReady?: boolean } = {}): v
 
 const handleAppReady = async (): Promise<void> => {
   const t0 = performance.now();
-  const mark = (label: string) => console.log(`[AionUi:ready] ${label} +${Math.round(performance.now() - t0)}ms`);
+  const mark = (label: string) => console.log(`[Headmaster:ready] ${label} +${Math.round(performance.now() - t0)}ms`);
   mark('start');
 
   if (!app.isPackaged) {
@@ -545,11 +649,29 @@ const handleAppReady = async (): Promise<void> => {
     return;
   }
 
-  // Start aioncore only after initializeProcess(). initStorage may open
-  // the legacy Electron SQLite catalog for a one-shot v26 migration and must
-  // close it before the backend touches the same file.
+  // Start the real Hermes dashboard runtime first. Headmaster is a white-label
+  // shell over Hermes Desktop/Workspace surfaces, so packaged builds should not
+  // require the legacy bundled aioncore binary.
+  const hermesStartup = await hermesBootstrap.start({ installIfMissing: false });
+  if (hermesStartup.ok && hermesStartup.port) {
+    (globalThis as typeof globalThis & { __hermesPort?: number; __hermesSessionToken?: string }).__hermesPort =
+      hermesStartup.port;
+    (globalThis as typeof globalThis & { __hermesSessionToken?: string }).__hermesSessionToken =
+      hermesBootstrap.sessionToken;
+    markBackendReady(hermesStartup.port, 'hermes.dashboard', 'hermes');
+    mark('hermesBootstrap.start');
+  } else {
+    console.warn('[Headmaster] Hermes dashboard bootstrap failed; falling back to legacy aioncore:', hermesStartup.error);
+  }
+
+  // Legacy fallback: start aioncore only when the Hermes dashboard is not
+  // available. This keeps old/dev installs usable but removes the packaging
+  // dependency on a missing Adonis Core release asset.
   const backendStartup = await startBackendOrExit({
     startBackend: async () => {
+      if (backendStartedOk) {
+        return (globalThis as typeof globalThis & { __backendPort?: number }).__backendPort ?? hermesStartup.port ?? 0;
+      }
       assertStartupArchitectureCompatible({
         arch: process.arch,
         isPackaged: app.isPackaged,
@@ -577,15 +699,16 @@ const handleAppReady = async (): Promise<void> => {
             await captureBackendStartupFailure(error);
           },
           onReady: (backendPort) => {
-            markBackendReady(backendPort, 'backendManager.lateReady');
+            markBackendReady(backendPort, 'backendManager.lateReady', 'aioncore');
           },
         }
       );
     },
     onStarted: (backendPort) => {
       exposeBackendPort(backendPort);
+      if (hermesStartup.ok) return;
       if (backendManager.status === 'running') {
-        markBackendReady(backendPort, 'backendManager.start');
+        markBackendReady(backendPort, 'backendManager.start', 'aioncore');
         return;
       }
       mark(`backendManager.start pending health (port=${backendPort})`);
@@ -604,6 +727,7 @@ const handleAppReady = async (): Promise<void> => {
     }
   }
 
+
   // One-shot WebUI admin credential migration. Must run after the backend is
   // up (__backendPort set) and before any mode branch below that might log the
   // user in. Swallows its own errors; the next boot retries.
@@ -621,7 +745,7 @@ const handleAppReady = async (): Promise<void> => {
     initializeZoomFactor(await ProcessConfig.get('ui.zoomFactor'));
     mark('initializeZoomFactor');
   } catch (error) {
-    console.error('[AionUi] Failed to restore zoom factor:', error);
+    console.error('[Headmaster] Failed to restore zoom factor:', error);
     initializeZoomFactor(undefined);
   }
 
@@ -629,7 +753,7 @@ const handleAppReady = async (): Promise<void> => {
     loadSavedWindowBounds(await ProcessConfig.get('window.bounds'));
     mark('restoreWindowBounds');
   } catch (error) {
-    console.error('[AionUi] Failed to restore window bounds:', error);
+    console.error('[Headmaster] Failed to restore window bounds:', error);
     loadSavedWindowBounds(undefined);
   }
 
@@ -653,7 +777,7 @@ const handleAppReady = async (): Promise<void> => {
     const resolvedPort = resolveWebUIPort(userConfigInfo.config, getSwitchValue);
     const allowRemote = resolveRemoteAccess(userConfigInfo.config, isRemoteMode);
     try {
-      // Inside Electron (`AionUi --webui` or packaged `aionui-web` mode that
+      // Inside Electron (`Headmaster --webui` or packaged `aionui-web` mode that
       // launches via the Electron shell), reuse the desktop app's data-dir so
       // that conversations / cron jobs created in any path show up everywhere.
       // Matches the desktop IPC path at line 493 above.
@@ -677,7 +801,7 @@ const handleAppReady = async (): Promise<void> => {
         allowRemote,
         dataDir: getDataPath(),
         logDir: sysDirWebUI.logDir,
-        // Expose the same AIONUI_{CACHE,WORK,LOG}_DIR env the desktop IPC path
+        // Expose the same HEADMASTER_{CACHE,WORK,LOG}_DIR env the desktop IPC path
         // passes at line 493, so /api/system/info reports the symlink workDir
         // instead of the path-with-spaces userData root.
         dirs: {
@@ -806,7 +930,7 @@ const handleAppReady = async (): Promise<void> => {
 };
 
 // ============ Protocol Registration ============
-// Register aionui:// as the default protocol client
+// Register headmaster:// as the default protocol client
 if (process.defaultApp) {
   // Dev mode: need to pass execPath explicitly
   app.setAsDefaultProtocolClient(PROTOCOL_SCHEME, process.execPath, [path.resolve(process.argv[1])]);
@@ -814,7 +938,7 @@ if (process.defaultApp) {
   app.setAsDefaultProtocolClient(PROTOCOL_SCHEME);
 }
 
-// macOS: handle aionui:// URLs via the open-url event
+// macOS: handle headmaster:// URLs via the open-url event
 app.on('open-url', (event, url) => {
   event.preventDefault();
   handleDeepLinkUrl(url);
@@ -834,7 +958,7 @@ void app
   .then(handleAppReady)
   .catch((error) => {
     // App initialization failed
-    console.error('[AionUi] App initialization failed:', error);
+    console.error('[Headmaster] App initialization failed:', error);
     app.quit();
   });
 
@@ -895,11 +1019,11 @@ installQuitCleanup({
 });
 
 app.on('will-quit', () => {
-  console.log('[AionUi] will-quit — all cleanup should be complete');
+  console.log('[Headmaster] will-quit — all cleanup should be complete');
 });
 
 app.on('quit', (_event, exitCode) => {
-  console.log(`[AionUi] quit (exitCode=${exitCode})`);
+  console.log(`[Headmaster] quit (exitCode=${exitCode})`);
 });
 
 // In this file you can include the rest of your app's specific main process

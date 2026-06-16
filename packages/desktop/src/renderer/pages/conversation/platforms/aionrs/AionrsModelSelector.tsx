@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 Headmaster (gcaplabs.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -68,7 +68,7 @@ const AionrsModelSelector: React.FC<{
       // Desktop: leave default container so click events reach Menu.Item normally.
       {...(isMobileHeaderCompact ? { getPopupContainer: () => document.body } : {})}
       droplist={
-        <Menu className='aion-model-menu--sticky-group'>
+        <Menu className='headmaster-model-menu--sticky-group'>
           {providers.map((provider) => {
             const models = getAvailableModels(provider);
             if (!models.length) return null;

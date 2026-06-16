@@ -1,7 +1,7 @@
 {
   "sider": {
     "title": "Equipes",
-    "createTeam": "Nova Equipe",
+    "createCouncil": "Nova Equipe",
     "pin": "Fixar",
     "unpin": "Desafixar",
     "rename": "Renomear",

@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 Headmaster (gcaplabs.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -26,11 +26,11 @@ export interface AionSelectProps extends NativeSelectProps {
 
 /**
  * 基础样式类名
- * 注意：主题相关样式（背景色、边框色）在 arco-override.css 的 .aion-select 类中定义
- * Note: Theme-related styles (background, border colors) are defined in .aion-select class in arco-override.css
+ * 注意：主题相关样式（背景色、边框色）在 arco-override.css 的 .headmaster-select 类中定义
+ * Note: Theme-related styles (background, border colors) are defined in .headmaster-select class in arco-override.css
  */
 const BASE_CLASS = classNames(
-  'aion-select',
+  'headmaster-select',
   '[&_.arco-select-view]:rounded-[4px]',
   '[&_.arco-select-view]:border',
   '[&_.arco-select-view]:border-solid',
@@ -97,7 +97,7 @@ const defaultGetPopupContainer = (): HTMLElement => {
  * </AionSelect>
  * ```
  *
- * @see arco-override.css for theme-related styles (.aion-select)
+ * @see arco-override.css for theme-related styles (.headmaster-select)
  */
 const mapSizeToNative = (size?: AionSelectSize): NativeSelectSize | undefined => {
   if (!size) return undefined;

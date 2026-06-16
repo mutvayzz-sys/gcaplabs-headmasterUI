@@ -87,6 +87,12 @@ export type ConfigKeyMap = {
   // `migrateProviders` / `migrateAssistantsToBackend` (ELECTRON-1KT).
   'migration.providersMigrated_v1': boolean | undefined;
   'migration.assistantsMigrated_v1': boolean | undefined;
+  // URLs used by the Settings → Memory screen. Pointers to where the
+  // OpenConcho web UI (memory screen) and the upstream Honcho dashboard
+  // are hosted. Both default to safe values; the user can change either
+  // from the Memory settings tab.
+  'memory.openconchoUrl': string | undefined;
+  'memory.honchoUrl': string | undefined;
 };
 
 export type ConfigKey = keyof ConfigKeyMap;

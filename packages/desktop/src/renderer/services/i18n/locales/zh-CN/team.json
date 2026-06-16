@@ -1,7 +1,7 @@
 {
   "sider": {
     "title": "团队",
-    "createTeam": "新建团队",
+    "createCouncil": "新建团队",
     "pin": "置顶",
     "unpin": "取消置顶",
     "rename": "重命名",

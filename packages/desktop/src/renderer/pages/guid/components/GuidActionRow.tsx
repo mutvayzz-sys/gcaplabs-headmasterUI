@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 Headmaster (gcaplabs.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -16,7 +16,7 @@ import type { AvailableAgent } from '../types';
 import type { Assistant } from '@/common/types/agent/assistantTypes';
 import PresetAgentTag, { type AgentSwitcherItem } from './PresetAgentTag';
 import { Button, Checkbox, Dropdown, Menu, Message, Tooltip } from '@arco-design/web-react';
-import { ArrowUp, Lightning, Plus, Shield, UploadOne } from '@icon-park/react';
+import { ArrowUp, Lightning, Plus, Shield, UploadSimple } from '@phosphor-icons/react';
 import React, { useCallback, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import styles from '../index.module.css';
@@ -163,13 +163,13 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
         <>
           <Menu.Item key='file'>
             <div className='flex items-center gap-8px'>
-              <UploadOne theme='outline' size='16' fill={iconColors.secondary} style={{ lineHeight: 0 }} />
+              <UploadSimple size={16} weight='regular' color={iconColors.secondary} style={{ lineHeight: 0 }} />
               <span>{t('common.fileAttach.addFiles')}</span>
             </div>
           </Menu.Item>
           <Menu.Item key='device'>
             <div className='flex items-center gap-8px'>
-              <UploadOne theme='outline' size='16' fill={iconColors.secondary} style={{ lineHeight: 0 }} />
+              <UploadSimple size={16} weight='regular' color={iconColors.secondary} style={{ lineHeight: 0 }} />
               <span>{t('common.fileAttach.myDevice')}</span>
             </div>
           </Menu.Item>
@@ -177,7 +177,7 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
       ) : (
         <Menu.Item key='file'>
           <div className='flex items-center gap-8px'>
-            <UploadOne theme='outline' size='16' fill={iconColors.secondary} style={{ lineHeight: 0 }} />
+            <UploadSimple size={16} weight='regular' color={iconColors.secondary} style={{ lineHeight: 0 }} />
             <span>{t('common.fileAttach.addFiles')}</span>
           </div>
         </Menu.Item>
@@ -187,7 +187,7 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
           key='skills'
           title={
             <div className='flex items-center gap-8px'>
-              <Lightning theme='filled' size='16' fill={iconColors.primary} style={{ lineHeight: 0 }} />
+              <Lightning size={16} weight='fill' color={iconColors.primary} style={{ lineHeight: 0 }} />
               <span>
                 {t('settings.capabilitiesTab.skills')} ({activeSkillCount}/{allSkills.length})
               </span>
@@ -225,7 +225,7 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
           key='mcp'
           title={
             <div className='flex items-center gap-8px'>
-              <Shield theme='outline' size='16' fill={iconColors.primary} style={{ lineHeight: 0 }} />
+              <Shield size={16} weight='regular' color={iconColors.primary} style={{ lineHeight: 0 }} />
               <span>
                 {t('mcp.label')} ({activeMcpCount}/{mcpServers.length})
               </span>
@@ -274,7 +274,7 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
                 type='secondary'
                 shape='circle'
                 className={isPlusDropdownOpen ? styles.plusButtonRotate : ''}
-                icon={<Plus theme='outline' size='14' strokeWidth={2} fill={iconColors.primary} />}
+                icon={<Plus size={14} weight='bold' color={iconColors.primary} />}
                 loading={uploading}
                 disabled={uploading}
                 data-testid='file-upload-btn'
@@ -311,7 +311,7 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
                 compact
                 initialMode={selectedMode}
                 onModeSelect={onModeSelect}
-                compactLeadingIcon={<Shield theme='outline' size='14' fill={iconColors.secondary} />}
+                compactLeadingIcon={<Shield size={14} weight='regular' color={iconColors.secondary} />}
                 modeLabelFormatter={getModeDisplayLabel}
               />
             )}
@@ -343,7 +343,7 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
             backgroundColor: isButtonDisabled ? undefined : '#000000',
             borderColor: isButtonDisabled ? undefined : '#000000',
           }}
-          icon={<ArrowUp theme='filled' size='14' fill='white' strokeWidth={5} />}
+          icon={<ArrowUp size={14} weight='bold' color='white' />}
           onClick={onSend}
           data-testid='guid-send-btn'
         />

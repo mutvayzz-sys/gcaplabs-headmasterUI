@@ -1,7 +1,7 @@
 {
   "sider": {
-    "title": "Teams",
-    "createTeam": "New Team",
+    "title": "The Council",
+    "createCouncil": "New Council",
     "pin": "置頂",
     "unpin": "取消置頂",
     "rename": "重新命名",
@@ -24,11 +24,11 @@
     "placeholder": "向調度 Agent 發訊息..."
   },
   "create": {
-    "title": "Create Team",
-    "namePlaceholder": "Team name",
+    "title": "Create Council",
+    "namePlaceholder": "Council name",
     "dispatchAgentPlaceholder": "選擇團隊 Leader",
     "subAgentsPlaceholder": "Select sub agents",
-    "confirm": "Create Team",
+    "confirm": "Create Council",
     "noSupportedAgents": "未偵測到支援的 Agent",
     "supportedAgentsHint": "目前支援 Claude 和 Codex，更多 Agent 適配中",
     "leaderDesc": "接收你的指令，拆解任務並分配給團隊中的 Agent",

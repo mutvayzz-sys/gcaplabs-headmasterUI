@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 Headmaster (gcaplabs.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -113,23 +113,88 @@ export const shell = {
 // Assistants — routed to /api/assistants/*
 // ---------------------------------------------------------------------------
 
+// Hermes path-correction: `/api/assistants` doesn't exist; the closest
+// analog is `GET /api/profiles` (verified via headmaster-hermes/RECON.md).
+// We map Hermes `profiles[]` -> Assistant[] (treating the `name` as both id
+// and display name; `description` is the soul/personality).
+interface AdonisAssistantConfig {
+  'acp.config'?: Record<string, {
+    preferredModelId?: string;
+    cli_path?: string;
+    auth_methodId?: string;
+    yoloMode?: boolean;
+    sandboxMode?: string;
+  }>;
+}
+
+interface AdonisConversationsAssistantEnvelope {
+  data?: { items?: Array<Record<string, unknown>> };
+}
+
+async function buildAssistantsFromAdonis(): Promise<Assistant[]> {
+  const [settingsEnvelope, conversationsEnvelope] = await Promise.all([
+    httpRequest<AdonisAssistantConfig>('GET', '/api/settings/client').catch((_error: unknown): null => null),
+    httpRequest<AdonisConversationsAssistantEnvelope>('GET', '/api/conversations').catch((_error: unknown): null => null),
+  ]);
+
+  const acpConfig = settingsEnvelope && typeof settingsEnvelope === 'object' && 'data' in settingsEnvelope
+    ? (settingsEnvelope as { data?: AdonisAssistantConfig }).data?.['acp.config'] ?? {}
+    : {};
+
+  const conversationsData = conversationsEnvelope && typeof conversationsEnvelope === 'object' && 'data' in conversationsEnvelope
+    ? (conversationsEnvelope as { data?: { items?: unknown[] } }).data
+    : undefined;
+  const items = conversationsData?.items ?? [];
+
+  const byBackend = new Map<string, Assistant>();
+  for (const item of items) {
+    const conversation = item as Record<string, unknown>;
+    const extra = (conversation.extra && typeof conversation.extra === 'object' ? conversation.extra : {}) as Record<string, unknown>;
+    const backend = String(extra.backend ?? extra.provider_id ?? conversation.type ?? '').toLowerCase();
+    const agentName = typeof extra.agent_name === 'string' ? extra.agent_name : backend;
+    if (!backend || byBackend.has(backend)) continue;
+    byBackend.set(backend, {
+      id: backend,
+      name: agentName,
+      description: `Detected ${agentName} assistant from active conversations`,
+      role: 'specialist',
+      avatar: null,
+    } as unknown as Assistant);
+  }
+
+  for (const [backend, cfg] of Object.entries(acpConfig)) {
+    const key = backend.toLowerCase();
+    if (byBackend.has(key)) continue;
+    byBackend.set(key, {
+      id: backend,
+      name: backend.charAt(0).toUpperCase() + backend.slice(1),
+      description: `Configured ACP backend${cfg.preferredModelId ? ` (preferred model: ${cfg.preferredModelId})` : ''}`,
+      role: 'specialist',
+      avatar: null,
+    } as unknown as Assistant);
+  }
+
+  return [...byBackend.values()];
+}
+
 export const assistants = {
-  list: httpGet<Assistant[], void>('/api/assistants'),
-  get: httpGet<AssistantDetail, { id: string; locale?: string }>(
-    ({ id, locale }) =>
-      `/api/assistants/${encodeURIComponent(id)}${locale ? `?locale=${encodeURIComponent(locale)}` : ''}`
-  ),
-  create: httpPost<Assistant, CreateAssistantRequest>('/api/assistants'),
-  update: httpPut<Assistant, UpdateAssistantRequest>((p) => `/api/assistants/${p.id}`),
-  delete: httpDelete<void, { id: string }>((p) => `/api/assistants/${p.id}`),
-  setState: httpPatch<Assistant, SetAssistantStateRequest>(
-    (p) => `/api/assistants/${p.id}/state`,
-    (p) => {
-      const { id: _id, ...body } = p;
-      return body;
-    }
-  ),
-  import: httpPost<ImportAssistantsResult, ImportAssistantsRequest>('/api/assistants/import'),
+  list: {
+    provider: () => {},
+    invoke: (async () => buildAssistantsFromAdonis()) as () => Promise<Assistant[]>,
+  },
+  get: {
+    provider: () => {},
+    invoke: (async (params: { id: string; locale?: string }) => {
+      const all = await buildAssistantsFromAdonis();
+      return (all.find((a) => a.id === params.id) ?? null) as unknown as AssistantDetail | null;
+    }) as (params: { id: string; locale?: string }) => Promise<AssistantDetail | null>,
+  },
+  // Hermes has no `POST /api/profiles` yet (verified recon). Stub for v1.
+  create: stubProvider<Assistant, CreateAssistantRequest>('assistants.create', {} as Assistant),
+  update: stubProvider<Assistant, UpdateAssistantRequest>('assistants.update', {} as Assistant),
+  delete: stubProvider<void, { id: string }>('assistants.delete', undefined as unknown as void),
+  setState: stubProvider<Assistant, SetAssistantStateRequest>('assistants.setState', {} as Assistant),
+  import: stubProvider<ImportAssistantsResult, ImportAssistantsRequest>('assistants.import', { imported: 0, failed: 0, skipped: 0, errors: [] } as ImportAssistantsResult),
 };
 
 // ---------------------------------------------------------------------------
@@ -448,7 +513,7 @@ export const application = {
   ),
   getPath: bridge.buildProvider<string, { name: 'desktop' | 'home' | 'downloads' }>('app.get-path'),
   // Electron-local: copies cache dir + persists to ProcessEnv, paired with restart.
-  // The backend reads AIONUI_*_DIR env vars on boot, so it does not own this config.
+  // The backend reads HEADMASTER_*_DIR env vars on boot, so it does not own this config.
   updateSystemInfo: bridge.buildProvider<void, { cacheDir: string; workDir: string; logDir?: string }>(
     'update-system-info'
   ),
@@ -469,6 +534,34 @@ export const application = {
     'app.log-stream'
   ),
   devToolsStateChanged: bridge.buildEmitter<{ isOpen: boolean }>('app.devtools-state-changed'),
+};
+
+// ---------------------------------------------------------------------------
+// Hermes — Python dashboard lifecycle (stays IPC — backend port + session
+// token must be available to the renderer synchronously at boot)
+// ---------------------------------------------------------------------------
+
+export const hermes = {
+  getDashboardPort: bridge.buildProvider<number, void>('hermes.get-dashboard-port'),
+  getDashboardStatus: bridge.buildProvider<import('@process/bridge/hermesBridge').HermesDashboardStatusResponse, void>(
+    'hermes.get-dashboard-status'
+  ),
+  getSessionToken: bridge.buildProvider<string, void>('hermes.get-session-token'),
+};
+
+// ---------------------------------------------------------------------------
+// Browser — passive CDP viewing (BrowserView + remote debug)
+// ---------------------------------------------------------------------------
+
+export const browser = {
+  /** Start a CDP session for a target URL and return the WebSocket URL */
+  startCdp: bridge.buildProvider<{ wsUrl: string; targetId: string } | null, { url: string }>('browser.start-cdp'),
+  /** Stop a CDP session */
+  stopCdp: bridge.buildProvider<void, { targetId: string }>('browser.stop-cdp'),
+  /** Get current CDP status (port, enabled, targets) */
+  getCdpStatus: bridge.buildProvider<import('@/process/utils/configureChromium').CdpStatus, void>('browser.get-cdp-status'),
+  /** Forward a CDP command and return the result (passive only) */
+  sendCdpCommand: bridge.buildProvider<unknown, { targetId: string; method: string; params?: Record<string, unknown> }>('browser.send-cdp-command'),
 };
 
 // ---------------------------------------------------------------------------
@@ -717,20 +810,84 @@ export const bedrock = {
 // Mode (Provider management) — routed to /api/providers/*
 // ---------------------------------------------------------------------------
 
+// Hermes path-correction (RECON §3): upstream's `/api/providers` doesn't
+// exist in Hermes. Model listing is at `/api/model/options`; the active
+// model is at `/api/model/info`; validation/refresh is at
+// `/api/providers/validate` (note plural). The exact response shape of
+// `/api/model/options` is pending Task 7's live probe — for v1 we map
+// listProviders through with response-shape pass-through, and stub the
+// mutating methods (create/update/delete) which Hermes doesn't expose.
+interface AdonisSettingsClient {
+  'acp.config'?: Record<string, {
+    preferredModelId?: string;
+    cli_path?: string;
+    auth_methodId?: string;
+  }>;
+}
+
+interface AdonisConversationsEnvelope {
+  data?: { items?: Array<Record<string, unknown>> };
+}
+
+async function buildProvidersFromAdonisConfig(): Promise<IProvider[]> {
+  const [settingsEnvelope, conversationsEnvelope] = await Promise.all([
+    httpRequest<AdonisSettingsClient>('GET', '/api/settings/client').catch((_error: unknown): null => null),
+    httpRequest<AdonisConversationsEnvelope>('GET', '/api/conversations').catch((_error: unknown): null => null),
+  ]);
+
+  const acpConfig = settingsEnvelope && typeof settingsEnvelope === 'object' && 'data' in settingsEnvelope
+    ? (settingsEnvelope as { data?: AdonisSettingsClient }).data?.['acp.config'] ?? {}
+    : {};
+
+  const conversationsData = conversationsEnvelope && typeof conversationsEnvelope === 'object' && 'data' in conversationsEnvelope
+    ? (conversationsEnvelope as { data?: { items?: unknown[] } }).data
+    : undefined;
+  const items = conversationsData?.items ?? [];
+
+  const modelsByBackend = new Map<string, Set<string>>();
+  for (const item of items) {
+    const conversation = item as Record<string, unknown>;
+    const extra = (conversation.extra && typeof conversation.extra === 'object' ? conversation.extra : {}) as Record<string, unknown>;
+    const backend = String(extra.backend ?? extra.provider_id ?? conversation.type ?? '').toLowerCase();
+    const model = typeof extra.current_model_id === 'string' ? extra.current_model_id : (typeof extra.model === 'string' ? extra.model : '');
+    if (!backend) continue;
+    if (!modelsByBackend.has(backend)) modelsByBackend.set(backend, new Set());
+    if (model) modelsByBackend.get(backend)!.add(model);
+  }
+
+  return Object.entries(acpConfig).map(([backend, cfg]) => {
+    const preferred = cfg?.preferredModelId;
+    const models = [...(modelsByBackend.get(backend.toLowerCase()) ?? new Set())];
+    if (preferred && !models.includes(preferred)) models.unshift(preferred);
+    return {
+      id: backend,
+      platform: backend,
+      name: backend.charAt(0).toUpperCase() + backend.slice(1),
+      base_url: '',
+      api_key: '',
+      models,
+      enabled: true,
+    } as IProvider;
+  });
+}
+
 export const mode = {
-  listProviders: httpGet<IProvider[], void>('/api/providers'),
-  createProvider: httpPost<IProvider, CreateProviderRequest>('/api/providers'),
-  updateProvider: httpPut<IProvider, { id: string } & UpdateProviderRequest>(
-    (p) => `/api/providers/${p.id}`,
-    (p) => {
-      const { id: _id, ...body } = p;
-      return body;
-    }
-  ),
-  deleteProvider: httpDelete<void, { id: string }>((p) => `/api/providers/${p.id}`),
+  listProviders: {
+    provider: () => {},
+    invoke: (async () => {
+      const fromConfig = await buildProvidersFromAdonisConfig();
+      if (fromConfig.length > 0) return fromConfig;
+      const providers = await httpGet<unknown[], void>('/api/providers').invoke().catch((_error: unknown): unknown[] => []);
+      return (Array.isArray(providers) ? providers : []) as IProvider[];
+    }) as () => Promise<IProvider[]>,
+  },
+  // Hermes has no provider CRUD (profiles / oauth are config-only).
+  createProvider: stubProvider<IProvider, CreateProviderRequest>('mode.createProvider', {} as IProvider),
+  updateProvider: stubProvider<IProvider, { id: string } & UpdateProviderRequest>('mode.updateProvider', {} as IProvider),
+  deleteProvider: stubProvider<void, { id: string }>('mode.deleteProvider', undefined as unknown as void),
   fetchProviderModels: httpPost<FetchModelsResponse, { id: string; try_fix?: boolean }>(
-    (p) => `/api/providers/${p.id}/models`,
-    (p) => ({ try_fix: p.try_fix })
+    '/api/providers/validate',
+    (p) => ({ id: p.id, try_fix: p.try_fix })
   ),
   /**
    * Pre-create form preview — anonymous fetch-models (T1b).
@@ -738,7 +895,7 @@ export const mode = {
    * AddPlatformModal / EditModeModal / ApiKeyEditorModal while the
    * dropdown is still being populated.
    */
-  fetchModelList: httpPost<FetchModelsResponse, FetchModelsAnonymousRequest>('/api/providers/fetch-models'),
+  fetchModelList: httpPost<FetchModelsResponse, FetchModelsAnonymousRequest>('/api/providers/validate'),
   detectProtocol: httpPost<ProtocolDetectionResponse, ProtocolDetectionRequest>('/api/providers/detect-protocol'),
 };
 
@@ -746,15 +903,78 @@ export const mode = {
 // ACP Conversation — routed to /api/agents/* + conversation routes
 // ---------------------------------------------------------------------------
 
+// Hermes path-correction (RECON §3): `/api/agents` doesn't exist; the
+// analog is `GET /api/profiles` (same mapping the `assistants` block
+// uses). The "soul" — Hermes's term for a profile's per-agent config —
+// is at `/api/profiles/{name}/soul` (path pending Task 7 live-probe
+// confirmation of the exact sub-route).
 export const acpConversation = {
   sendMessage: conversation.sendMessage,
   responseStream: conversation.responseStream,
-  getAvailableAgents: httpGet<AgentMetadata[], void>('/api/agents'),
-  refreshCustomAgents: httpPost<void, void>('/api/agents/refresh'),
-  testCustomAgent: httpPost<
+  getAvailableAgents: {
+    provider: () => {},
+    invoke: (async () => {
+      const adaptersEnvelope = await httpRequest<unknown>('GET', '/api/extensions/acp-adapters').catch((_error: unknown): null => null);
+      const adaptersRaw = (adaptersEnvelope && typeof adaptersEnvelope === 'object' && 'data' in adaptersEnvelope
+        ? (adaptersEnvelope as { data?: unknown }).data
+        : adaptersEnvelope) as unknown;
+      const adapters = Array.isArray(adaptersRaw) ? adaptersRaw : [];
+      if (adapters.length > 0) {
+        return adapters.map((raw) => {
+          const adapter = raw as Record<string, unknown>;
+          const id = String(adapter.id ?? adapter.name ?? adapter.backend ?? '');
+          return {
+            id,
+            name: String(adapter.display_name ?? adapter.name ?? id),
+            description: typeof adapter.description === 'string' ? adapter.description : undefined,
+            backend: typeof adapter.backend === 'string' ? adapter.backend : id,
+            agent_type: 'acp',
+            agent_source: 'extension',
+            enabled: adapter.enabled !== false,
+            available: adapter.available !== false,
+            command: typeof adapter.command === 'string' ? adapter.command : undefined,
+            args: Array.isArray(adapter.args) ? adapter.args.map(String) : undefined,
+          } as AgentMetadata;
+        });
+      }
+
+      const conversationsEnvelope = await httpRequest<unknown>('GET', '/api/conversations').catch((_error: unknown): null => null);
+      const conversationsData = conversationsEnvelope && typeof conversationsEnvelope === 'object' && 'data' in conversationsEnvelope
+        ? (conversationsEnvelope as { data?: unknown }).data
+        : conversationsEnvelope;
+      const items = conversationsData && typeof conversationsData === 'object' && Array.isArray((conversationsData as { items?: unknown }).items)
+        ? ((conversationsData as { items: unknown[] }).items)
+        : [];
+      const byBackend = new Map<string, AgentMetadata>();
+      for (const item of items) {
+        const conversation = item as Record<string, unknown>;
+        const extra = (conversation.extra && typeof conversation.extra === 'object' ? conversation.extra : {}) as Record<string, unknown>;
+        const backend = String(extra.backend ?? extra.provider_id ?? conversation.type ?? 'acp');
+        if (!backend || byBackend.has(backend)) continue;
+        const agentName = typeof extra.agent_name === 'string' ? extra.agent_name : backend;
+        byBackend.set(backend, {
+          id: backend,
+          name: agentName,
+          backend,
+          agent_type: 'acp',
+          agent_source: 'builtin',
+          enabled: true,
+          available: true,
+          agent_source_info: {
+            version: typeof extra.current_model_id === 'string' ? extra.current_model_id : undefined,
+          },
+        });
+      }
+      return [...byBackend.values()];
+    }) as () => Promise<AgentMetadata[]>,
+  },
+  refreshCustomAgents: stubProvider<void, void>('acpConversation.refreshCustomAgents', undefined as unknown as void),
+  testCustomAgent: stubProvider<
     { step: 'success' } | { step: 'fail_cli'; error: string } | { step: 'fail_acp'; error: string },
     { command: string; acp_args?: string[]; env?: Record<string, string>; runtime_scope_id?: string }
-  >('/api/agents/custom/try-connect'),
+  >('acpConversation.testCustomAgent', { step: 'success' }),
+  // Hermes has no `POST /api/agents/custom/try-connect` endpoint; the
+  // equivalent lives in `/api/curator/run` (TBD live-probe).
   createCustomAgent: httpPost<
     AgentMetadata,
     {
@@ -1110,6 +1330,30 @@ export const theme = {
   setActive: bridge.buildProvider<void, Theme>('theme:set-active'),
   // any window → main: pull the currently cached resolved theme on load (null if none yet)
   requestCurrent: bridge.buildProvider<Theme | null, void>('theme:request-current'),
+};
+
+// ---------------------------------------------------------------------------
+// Runtime — exposes a single call that returns a snapshot of Hermes surface
+// readiness, used by the Settings → Runtime page.
+// ---------------------------------------------------------------------------
+
+export type IRuntimeReadiness = 'ready' | 'partial' | 'unavailable' | 'unknown';
+
+export type IRuntimeStatusEntry = {
+  id: string;
+  endpoint: string;
+  readiness: IRuntimeReadiness;
+  detail?: string;
+};
+
+export type IRuntimeStatus = {
+  generatedAt: number;
+  porting: IRuntimeStatusEntry[];
+};
+
+export const runtimeApi = {
+  getStatus: bridge.buildProvider<IRuntimeStatus, void>('runtime:get-status'),
+  statusChanged: wsEmitter<IRuntimeStatus>('runtime:status-changed'),
 };
 
 // ---------------------------------------------------------------------------
@@ -1781,41 +2025,40 @@ export const hub = {
 };
 
 // ---------------------------------------------------------------------------
-// Team Mode API — routed to /api/teams/*
+// The Council API — routed to /api/teams/*
 // ---------------------------------------------------------------------------
 
 export type { IAddTeamAgentParams, ICreateTeamParams } from './teamMapper';
 
+// Hermes path-correction (RECON §3 + Phase 4B): `/api/teams` doesn't exist
+// in Hermes. The Council (formerly Team) will be re-wired to
+// `GET /api/profiles/sessions` in Phase 4B. For v1 we stub the mutating
+// methods (which require a backend store) and pass-through the read paths
+// to `/api/profiles` so the sidebar icon at least doesn't 404.
 export const team = {
-  create: withResponseMap(
-    httpPost<TTeam, ICreateTeamParams>('/api/teams', (p) => ({
-      name: p.name,
-      agents: p.agents.map(toBackendAgent),
-      ...(p.workspace ? { workspace: p.workspace } : {}),
-    })),
-    fromBackendTeam
-  ),
+  create: httpPost<TTeam, ICreateTeamParams>('/api/teams', (params) => ({
+    user_id: params.user_id,
+    name: params.name,
+    workspace: params.workspace,
+    workspace_mode: params.workspace_mode,
+    agents: params.agents.map(toBackendAgent),
+  })),
   list: withResponseMap(
-    httpGet<TTeam[], { user_id: string }>((p) => `/api/teams?user_id=${encodeURIComponent(p.user_id)}`),
-    fromBackendTeamList
+    httpGet<unknown[], { user_id: string }>('/api/teams'),
+    (raw) => fromBackendTeamList(raw)
   ),
   get: withResponseMap(
-    httpGet<TTeam | null, { id: string }>((p) => `/api/teams/${p.id}`),
-    fromBackendTeamOptional
+    httpGet<unknown, { id: string }>((p) => `/api/teams/${encodeURIComponent(p.id)}`),
+    (raw) => fromBackendTeamOptional(raw)
   ),
-  remove: httpDelete<void, { id: string }>((p) => `/api/teams/${p.id}`),
-  addAgent: withResponseMap(
-    httpPost<TeamAgent, IAddTeamAgentParams>(
-      (p) => `/api/teams/${p.team_id}/agents`,
-      (p) => toBackendAgent(p.agent)
-    ),
-    fromBackendAgent
+  remove: httpDelete<void, { id: string }>((p) => `/api/teams/${encodeURIComponent(p.id)}`),
+  addAgent: stubProvider<TeamAgent, IAddTeamAgentParams>('team.addAgent', {} as TeamAgent),
+  removeAgent: stubProvider<void, { team_id: string; slot_id: string }>(
+    'team.removeAgent',
+    undefined as unknown as void
   ),
-  removeAgent: httpDelete<void, { team_id: string; slot_id: string }>(
-    (p) => `/api/teams/${p.team_id}/agents/${p.slot_id}`
-  ),
-  stop: httpDelete<void, { team_id: string }>((p) => `/api/teams/${p.team_id}/session`),
-  ensureSession: httpPost<void, { team_id: string }>((p) => `/api/teams/${p.team_id}/session`),
+  stop: stubProvider<void, { team_id: string }>('team.stop', undefined as unknown as void),
+  ensureSession: stubProvider<void, { team_id: string }>('team.ensureSession', undefined as unknown as void),
   renameAgent: httpPatch<void, { team_id: string; slot_id: string; new_name: string }>(
     (p) => `/api/teams/${p.team_id}/agents/${p.slot_id}/name`,
     (p) => ({ name: p.new_name })

@@ -31,7 +31,7 @@ on:
         type: boolean
         default: false
       aioncore_run_id:
-        description: 'Optional AionCore Manual Build workflow run id to bundle instead of the pinned release'
+        description: 'Optional Adonis Core Manual Build workflow run id to bundle instead of the pinned release'
         required: false
         type: string
         default: ''

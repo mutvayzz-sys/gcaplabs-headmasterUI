@@ -14,11 +14,25 @@ const SystemSettings = React.lazy(() => import('@renderer/pages/settings/SystemS
 const WebuiSettings = React.lazy(() => import('@renderer/pages/settings/WebuiSettings'));
 const PetSettings = React.lazy(() => import('@renderer/pages/settings/PetSettings'));
 const ExtensionSettingsPage = React.lazy(() => import('@renderer/pages/settings/ExtensionSettingsPage'));
+const RuntimeSettings = React.lazy(() => import('@renderer/pages/settings/RuntimeSettings'));
+const MemorySettings = React.lazy(() => import('@renderer/pages/settings/MemorySettings'));
 const LoginPage = React.lazy(() => import('@renderer/pages/login'));
 const ComponentsShowcase = React.lazy(() => import('@renderer/pages/TestShowcase'));
 const ScheduledTasksPage = React.lazy(() => import('@renderer/pages/cron/ScheduledTasksPage'));
 const TaskDetailPage = React.lazy(() => import('@renderer/pages/cron/ScheduledTasksPage/TaskDetailPage'));
 const TeamIndex = React.lazy(() => import('@renderer/pages/team'));
+
+// Phase 2 stub pages
+const DashboardPage = React.lazy(() => import('@renderer/pages/dashboard'));
+const ActivityPage = React.lazy(() => import('@renderer/pages/activity'));
+const DocumentsPage = React.lazy(() => import('@renderer/pages/documents'));
+const MemoryPage = React.lazy(() => import('@renderer/pages/memory'));
+const WorkflowsPage = React.lazy(() => import('@renderer/pages/workflows'));
+const AgentsPage = React.lazy(() => import('@renderer/pages/agents'));
+const IntegrationsPage = React.lazy(() => import('@renderer/pages/integrations'));
+const KanbanPage = React.lazy(() => import('@renderer/pages/kanban'));
+const BrowserPage = React.lazy(() => import('@renderer/pages/browser'));
+const AssetsPage = React.lazy(() => import('@renderer/pages/assets'));
 
 const withRouteFallback = (Component: React.LazyExoticComponent<React.ComponentType>) => (
   <Suspense fallback={<AppLoader />}>
@@ -62,6 +76,8 @@ const PanelRoute: React.FC<{ layout: React.ReactElement }> = ({ layout }) => {
           <Route path='/settings/assistants' element={withRouteFallback(AssistantSettings)} />
           <Route path='/settings/agent' element={withRouteFallback(AgentSettings)} />
           <Route path='/settings/capabilities' element={withRouteFallback(CapabilitiesSettings)} />
+          <Route path='/settings/runtime' element={withRouteFallback(RuntimeSettings)} />
+          <Route path='/settings/memory' element={withRouteFallback(MemorySettings)} />
           {/* Legacy routes — redirect to the merged /settings/capabilities page */}
           <Route path='/settings/skills-hub' element={<Navigate to='/settings/capabilities?tab=skills' replace />} />
           <Route path='/settings/tools' element={<Navigate to='/settings/capabilities?tab=tools' replace />} />
@@ -76,6 +92,20 @@ const PanelRoute: React.FC<{ layout: React.ReactElement }> = ({ layout }) => {
           <Route path='/test/components' element={withRouteFallback(ComponentsShowcase)} />
           <Route path='/scheduled' element={withRouteFallback(ScheduledTasksPage)} />
           <Route path='/scheduled/:job_id' element={withRouteFallback(TaskDetailPage)} />
+          {/* Phase 2 routes — stubs for upcoming screens */}
+          <Route path='/dashboard' element={withRouteFallback(DashboardPage)} />
+          <Route path='/activity' element={withRouteFallback(ActivityPage)} />
+          <Route path='/documents' element={withRouteFallback(DocumentsPage)} />
+          <Route path='/memory' element={withRouteFallback(MemoryPage)} />
+          <Route path='/workflows' element={withRouteFallback(WorkflowsPage)} />
+          <Route path='/agents' element={withRouteFallback(AgentsPage)} />
+          <Route path='/integrations' element={withRouteFallback(IntegrationsPage)} />
+          <Route path='/kanban' element={withRouteFallback(KanbanPage)} />
+          <Route path='/browser' element={withRouteFallback(BrowserPage)} />
+          <Route path='/assets' element={withRouteFallback(AssetsPage)} />
+          {/* Aliases */}
+          <Route path='/automations' element={<Navigate to='/scheduled' replace />} />
+          <Route path='/council' element={<Navigate to='/team/:id' replace />} />
         </Route>
         <Route path='*' element={<Navigate to={status === 'authenticated' ? '/guid' : '/login'} replace />} />
       </Routes>

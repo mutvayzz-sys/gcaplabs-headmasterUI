@@ -2,7 +2,7 @@
  * Prepare aioncore binary for packaging.
  *
  * Resolution order:
- *  1. GitHub Actions artifact download when AIONUI_BACKEND_RUN_ID is set
+ *  1. GitHub Actions artifact download when HEADMASTER_BACKEND_RUN_ID is set
  *  2. GitHub release download (requires version or defaults to "latest")
  *
  * Output: {projectRoot}/resources/bundled-aioncore/{platform}-{arch}/
@@ -18,8 +18,8 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 
-const GITHUB_OWNER = 'iOfficeAI';
-const GITHUB_REPO = 'AionCore';
+const GITHUB_OWNER = 'mutvayzz-sys';
+const GITHUB_REPO = 'Adonis Core';
 
 const ACTIONS_ARTIFACT_TARGETS = {
   'darwin-arm64': {
@@ -100,9 +100,9 @@ function getActionsArtifactMissingMessage({ runId, platform, arch, expectedArtif
       ? availableArtifactNames.join(', ')
       : '(none)';
   return [
-    `AionCore run ${runId} does not contain artifact [ ${expectedArtifactName} ] required for [ ${platform}-${arch} ].`,
+    `Adonis Core run ${runId} does not contain artifact [ ${expectedArtifactName} ] required for [ ${platform}-${arch} ].`,
     `Available artifacts: ${available}.`,
-    `Re-run AionCore Manual Build with platform [ ${getActionsManualPlatform(platform, arch)} ] or all.`,
+    `Re-run Adonis Core Manual Build with platform [ ${getActionsManualPlatform(platform, arch)} ] or all.`,
   ].join(' ');
 }
 
@@ -120,7 +120,7 @@ function prepareManagedResources(binaryPath, targetDir) {
     stdio: 'inherit',
     env: {
       ...process.env,
-      AIONUI_BUNDLED_MANAGED_RESOURCES: '',
+      HEADMASTER_BUNDLED_MANAGED_RESOURCES: '',
     },
   });
 
@@ -321,7 +321,7 @@ function listActionsArtifacts(runId) {
 function downloadAndExtractActionsArtifact(platform, arch, runId) {
   const expectedArtifactName = getActionsArtifactName(platform, arch);
   if (!expectedArtifactName) {
-    throw new Error(`Unsupported AionCore Actions artifact target: ${platform}-${arch}`);
+    throw new Error(`Unsupported Adonis Core Actions artifact target: ${platform}-${arch}`);
   }
 
   const artifacts = listActionsArtifacts(runId);
@@ -353,13 +353,13 @@ function downloadAndExtractActionsArtifact(platform, arch, runId) {
   const downloadUrl =
     artifact.archive_download_url ||
     `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/actions/artifacts/${artifact.id}/zip`;
-  console.log(`  Downloading aioncore from AionCore run ${runId} artifact ${expectedArtifactName}`);
+  console.log(`  Downloading aioncore from Adonis Core run ${runId} artifact ${expectedArtifactName}`);
   downloadFileWithAuth(downloadUrl, artifactZipPath);
   extractArchive(artifactZipPath, artifactExtractDir, platform);
 
   const archivePath = findAioncoreArchiveInDir(artifactExtractDir);
   if (!archivePath) {
-    throw new Error(`AionCore artifact ${expectedArtifactName} from run ${runId} does not contain an aioncore archive`);
+    throw new Error(`Adonis Core artifact ${expectedArtifactName} from run ${runId} does not contain an aioncore archive`);
   }
 
   extractArchive(archivePath, binaryExtractDir, platform);
@@ -367,7 +367,7 @@ function downloadAndExtractActionsArtifact(platform, arch, runId) {
   const binaryName = getBinaryName(platform);
   const binaryPath = findBinaryInDir(binaryExtractDir, binaryName);
   if (!binaryPath) {
-    throw new Error(`Binary ${binaryName} not found in AionCore artifact ${expectedArtifactName} from run ${runId}`);
+    throw new Error(`Binary ${binaryName} not found in Adonis Core artifact ${expectedArtifactName} from run ${runId}`);
   }
 
   return {
@@ -422,7 +422,7 @@ function downloadAndExtract(platform, arch, tag) {
 function prepareAioncore(options) {
   const { projectRoot, platform, arch, version = 'latest' } = options;
   const runtimeKey = `${platform}-${arch}`;
-  const actionsRunId = (process.env.AIONUI_BACKEND_RUN_ID || '').trim();
+  const actionsRunId = (process.env.HEADMASTER_BACKEND_RUN_ID || '').trim();
 
   let tag = null;
   if (!actionsRunId) {

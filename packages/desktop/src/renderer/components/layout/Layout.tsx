@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 Headmaster (gcaplabs.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -16,6 +16,9 @@ import { LayoutContext } from '@renderer/hooks/context/LayoutContext';
 import { NavigationHistoryProvider } from '@renderer/hooks/context/NavigationHistoryContext';
 import { useDeepLink } from '@renderer/hooks/system/useDeepLink';
 import { useNotificationClick } from '@renderer/hooks/system/useNotificationClick';
+import { useDashboardStatus } from '@renderer/hooks/system/useDashboardStatus';
+import { HermesStatusBar } from './HermesStatusBar';
+import BottomComposer from './BottomComposer';
 import { useDirectorySelection } from '@renderer/hooks/file/useDirectorySelection';
 import { cleanupSiderTooltips } from '@renderer/utils/ui/siderTooltip';
 import { useConversationShortcuts } from '@renderer/hooks/ui/useConversationShortcuts';
@@ -110,6 +113,11 @@ const Layout: React.FC<{
   const { contextHolder: directorySelectionContextHolder } = useDirectorySelection();
   useDeepLink();
   useNotificationClick();
+  // Spin up the Hermes dashboard status poll. No-op when the dashboard
+  // isn't installed; side effect is that `window.__backendPort` +
+  // `window.__hermesSessionToken` get populated once the dashboard is ready
+  // (consumed by common/adapter/httpBridge.ts).
+  useDashboardStatus();
   const navigate = useNavigate();
   useConversationShortcuts({ navigate });
   const location = useLocation();
@@ -301,6 +309,7 @@ const Layout: React.FC<{
     <LayoutContext.Provider value={{ isMobile, siderCollapsed: collapsed, setSiderCollapsed: setCollapsed }}>
       <NavigationHistoryProvider>
         <div className='app-shell flex flex-col size-full min-h-0'>
+          <HermesStatusBar />
           <Titlebar workspaceAvailable={workspaceAvailable} />
           {/* 移动端左侧边栏蒙板 / Mobile left sider backdrop */}
           {isMobile && !collapsed && (
@@ -355,7 +364,7 @@ const Layout: React.FC<{
                     ></path>
                   </svg>
                 </div>
-                <div className='text-16px text-t-primary collapsed-hidden font-semibold'>AionUi</div>
+                <div className='text-16px text-t-primary collapsed-hidden font-semibold'>Headmaster</div>
                 {isMobile && !collapsed && (
                   <button
                     type='button'
@@ -411,6 +420,7 @@ const Layout: React.FC<{
               <Suspense fallback={null}>
                 <UpdateModal />
               </Suspense>
+              <BottomComposer />
             </ArcoLayout.Content>
           </ArcoLayout>
         </div>

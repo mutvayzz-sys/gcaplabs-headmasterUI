@@ -1,5 +1,5 @@
 import React from 'react';
-import { Robot } from '@icon-park/react';
+import { Robot } from '@phosphor-icons/react';
 import { getAgentLogo } from '@renderer/utils/model/agentLogo';
 import { CUSTOM_AVATAR_IMAGE_MAP } from '@renderer/pages/guid/constants';
 import type { AgentMetadata } from '@renderer/utils/model/agentTypes';
@@ -93,7 +93,7 @@ export const AgentOptionLabel: React.FC<{ agent: TeamAgentOption }> = ({ agent }
       ) : logo ? (
         <img src={logo} alt={agent.name} style={{ width: 16, height: 16, objectFit: 'contain' }} />
       ) : (
-        <Robot size='16' />
+        <Robot size={16} weight='duotone' />
       )}
       <span>{agent.name}</span>
     </div>

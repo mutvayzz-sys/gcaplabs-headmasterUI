@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 Headmaster (gcaplabs.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -19,10 +19,10 @@ import type { TProviderWithModel } from '@/common/config/storage';
 
 // Read provider config from environment variables
 function getProviderFromEnv(): TProviderWithModel | null {
-  const platform = process.env.AIONUI_IMG_PLATFORM;
-  const base_url = process.env.AIONUI_IMG_BASE_URL;
-  const api_key = process.env.AIONUI_IMG_API_KEY;
-  const model = process.env.AIONUI_IMG_MODEL;
+  const platform = process.env.HEADMASTER_IMG_PLATFORM;
+  const base_url = process.env.HEADMASTER_IMG_BASE_URL;
+  const api_key = process.env.HEADMASTER_IMG_API_KEY;
+  const model = process.env.HEADMASTER_IMG_MODEL;
 
   if (!platform || !model) {
     return null;
@@ -108,7 +108,7 @@ IMPORTANT: When user provides multiple images, ALWAYS pass ALL images to the ima
         };
       }
 
-      const proxy = process.env.AIONUI_IMG_PROXY || undefined;
+      const proxy = process.env.HEADMASTER_IMG_PROXY || undefined;
       const workspaceDir = workspace_dir || process.cwd();
 
       const result = await executeImageGeneration({ prompt, image_uris }, provider, workspaceDir, proxy);

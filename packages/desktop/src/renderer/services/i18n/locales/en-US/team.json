@@ -1,58 +1,58 @@
 {
   "sider": {
-    "title": "Teams",
-    "createTeam": "New Team",
+    "title": "The Council",
+    "createTeam": "New Council",
     "pin": "Pin",
     "unpin": "Unpin",
     "rename": "Rename",
     "delete": "Delete",
-    "renameTitle": "Rename Team",
-    "renamePlaceholder": "Team name",
-    "deleteConfirm": "Delete this team?",
+    "renameTitle": "Rename Council",
+    "renamePlaceholder": "Council name",
+    "deleteConfirm": "Delete this Council?",
     "deleteConfirmContent": "This action cannot be undone.",
     "deleteOk": "Delete",
     "deleteCancel": "Cancel",
     "renameOk": "Save",
     "renameCancel": "Cancel",
-    "renameSuccess": "Team renamed",
-    "deleteSuccess": "Team deleted"
+    "renameSuccess": "Council renamed",
+    "deleteSuccess": "Council deleted"
   },
-  "newAgent": "New Agent",
+  "newAgent": "New Specialist",
   "noMessages": "No messages yet.",
-  "agentNotConfigured": "Agent not configured yet.",
+  "agentNotConfigured": "Specialist not configured yet.",
   "sendBox": {
-    "placeholder": "Message dispatch agent..."
+    "placeholder": "Message the Council Leader..."
   },
   "create": {
-    "title": "Create Team",
-    "namePlaceholder": "Team name",
-    "dispatchAgentPlaceholder": "Select team leader",
-    "subAgentsPlaceholder": "Select sub agents",
-    "confirm": "Create Team",
-    "noSupportedAgents": "No supported agents installed",
-    "supportedAgentsHint": "Currently supports Claude and Codex. More agents coming soon.",
-    "leaderDesc": "Understands your goals and coordinates agents to complete tasks",
+    "title": "Create Council",
+    "namePlaceholder": "Council name",
+    "dispatchAgentPlaceholder": "Select Council Leader",
+    "subAgentsPlaceholder": "Select Council Members",
+    "confirm": "Create Council",
+    "noSupportedAgents": "No supported Specialists installed",
+    "supportedAgentsHint": "Currently supports Claude and Codex. More Specialists coming soon.",
+    "leaderDesc": "Understands your goals and coordinates Council Members to complete tasks",
     "step": {
-      "dispatch": "Team Leader",
-      "subAgents": "Sub Agents",
+      "dispatch": "Council Leader",
+      "subAgents": "Council Members",
       "workspace": "Project"
     },
-    "nameRequired": "Please enter a team name",
-    "leaderRequired": "Please select a team leader",
+    "nameRequired": "Please enter a Council name",
+    "leaderRequired": "Please select a Council Leader",
     "selectFolder": "Select folder",
     "recentLabel": "Recent",
     "chooseDifferentFolder": "Choose a different folder",
-    "error": "Failed to create team"
+    "error": "Failed to create Council"
   },
   "removeAgent": {
-    "confirmTitle": "Remove Team Member",
-    "confirmContent": "This member is currently active. Force remove?"
+    "confirmTitle": "Remove Council Member",
+    "confirmContent": "This Council Member is currently active. Force remove?"
   },
   "emptyState": {
-    "subtitle": "Describe your goal and I'll get the team working on it",
+    "subtitle": "Describe your goal and I'll get The Council working on it",
     "suggestions": {
-      "debate": "Organize a debate with agents taking different sides",
-      "interview": "Plan an in-depth interview between agents",
+      "debate": "Organize a debate with Council Members taking different sides",
+      "interview": "Plan an in-depth interview between Council Members",
       "expert_review": "Have multiple experts analyze the same problem"
     }
   }

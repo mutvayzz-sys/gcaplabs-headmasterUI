@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 Headmaster (aionui.com)
  * SPDX-License-Identifier: Apache-2.0
  *
  * Unit tests for renderer/hooks/assistant/useAssistantList.ts (A1 in N4a).
@@ -55,7 +55,7 @@ describe('useAssistantList', () => {
 
   it('preserves backend order instead of resorting client side', async () => {
     const mockList: Assistant[] = [
-      { id: 'cowork', name: 'Cowork', sort_order: 2000, source: 'builtin', enabled: true },
+      { id: 'cowork', name: 'Work Along', sort_order: 2000, source: 'builtin', enabled: true },
       { id: 'writer', name: 'Writer', sort_order: 1000, source: 'user', enabled: true },
     ];
     (ipcBridge.assistants.list.invoke as any).mockResolvedValue(mockList);

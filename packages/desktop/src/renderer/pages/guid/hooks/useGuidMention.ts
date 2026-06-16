@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 Headmaster (gcaplabs.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -62,7 +62,8 @@ export const useGuidMention = ({
     const agents = availableAgents || [];
     return agents.map((agent) => {
       const key = getAgentKey(agent);
-      const label = agent.name || agent.backend || agent.agent_type;
+      const rawLabel = agent.name || agent.backend || agent.agent_type;
+      const label = rawLabel.replace(/\s+/g, '').toLowerCase() === 'aioncli' ? 'Headmaster CLI' : rawLabel;
       const avatarValue = agent.custom_agent_id
         ? agent.avatar || customAgentAvatarMap.get(agent.custom_agent_id)
         : undefined;
@@ -127,7 +128,9 @@ export const useGuidMention = ({
     [stripMentionToken, setSelectedAgentKey, setInput]
   );
 
-  const selectedAgentLabel = selectedAgentInfo?.name || selectedAgentKey;
+  const selectedAgentLabelRaw = selectedAgentInfo?.name || selectedAgentKey;
+  const selectedAgentLabel =
+    selectedAgentLabelRaw.replace(/\s+/g, '').toLowerCase() === 'aioncli' ? 'Headmaster CLI' : selectedAgentLabelRaw;
   const mentionMenuActiveOption = filteredMentionOptions[mentionActiveIndex] || filteredMentionOptions[0];
   const mentionMenuSelectedKey =
     mentionOpen || mentionSelectorOpen ? mentionMenuActiveOption?.key || selectedAgentKey : selectedAgentKey;

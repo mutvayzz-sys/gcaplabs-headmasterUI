@@ -1,6 +1,6 @@
 # Changelog
 
-## [2.1.17](https://github.com/iOfficeAI/AionUi/compare/v2.1.16...v2.1.17) (2026-06-11)
+## [2.1.17](https://github.com/iOfficeAI/Headmaster/compare/v2.1.16...v2.1.17) (2026-06-11)
 
 ### Desktop
 
@@ -22,18 +22,18 @@
 
 - **model-selector:** sticky platform group titles in scrollable dropdown
 
-### Core ([v0.1.28](https://github.com/iOfficeAI/AionCore/releases/tag/v0.1.28))
+### Core ([v0.1.28](https://github.com/iOfficeAI/Adonis Core/releases/tag/v0.1.28))
 
 #### Bug Fixes
 
-- **auth:** allow same-origin framing on office preview proxy routes ([#454](https://github.com/iOfficeAI/AionCore/issues/454))
-- **file:** strip Windows verbatim prefix from /api/fs/browse paths ([#453](https://github.com/iOfficeAI/AionCore/issues/453))
-- **stt:** STT compatibility fixes for Groq Whisper and AionUI web frontend ([#400](https://github.com/iOfficeAI/AionCore/issues/400))
-- **stt:** treat blank base_url as unset and log malformed config ([#448](https://github.com/iOfficeAI/AionCore/issues/448))
+- **auth:** allow same-origin framing on office preview proxy routes ([#454](https://github.com/iOfficeAI/Adonis Core/issues/454))
+- **file:** strip Windows verbatim prefix from /api/fs/browse paths ([#453](https://github.com/iOfficeAI/Adonis Core/issues/453))
+- **stt:** STT compatibility fixes for Groq Whisper and Headmaster web frontend ([#400](https://github.com/iOfficeAI/Adonis Core/issues/400))
+- **stt:** treat blank base_url as unset and log malformed config ([#448](https://github.com/iOfficeAI/Adonis Core/issues/448))
 
 ---
 
-## [2.1.16](https://github.com/iOfficeAI/AionUi/compare/v2.1.15...v2.1.16) (2026-06-10)
+## [2.1.16](https://github.com/iOfficeAI/Headmaster/compare/v2.1.15...v2.1.16) (2026-06-10)
 
 ### Desktop
 
@@ -43,18 +43,18 @@
 - **http:** read error response body once to avoid double consumption (#3262)
 - **ci:** handle empty release prefix check (#3263)
 
-### Core ([v0.1.27](https://github.com/iOfficeAI/AionCore/releases/tag/v0.1.27))
+### Core ([v0.1.27](https://github.com/iOfficeAI/Adonis Core/releases/tag/v0.1.27))
 
 #### Bug Fixes
 
-- **ai-agent:** auto approve team mcp permissions ([#447](https://github.com/iOfficeAI/AionCore/issues/447))
-- **ai-agent:** trim stderr buffer at UTF-8 char boundary ([#443](https://github.com/iOfficeAI/AionCore/issues/443))
-- **office:** resolve officecli shim from node_modules/.bin after npm prefix install ([#440](https://github.com/iOfficeAI/AionCore/issues/440))
-- **office:** restore OfficeCLI installer resolution ([#444](https://github.com/iOfficeAI/AionCore/issues/444))
+- **ai-agent:** auto approve team mcp permissions ([#447](https://github.com/iOfficeAI/Adonis Core/issues/447))
+- **ai-agent:** trim stderr buffer at UTF-8 char boundary ([#443](https://github.com/iOfficeAI/Adonis Core/issues/443))
+- **office:** resolve officecli shim from node_modules/.bin after npm prefix install ([#440](https://github.com/iOfficeAI/Adonis Core/issues/440))
+- **office:** restore OfficeCLI installer resolution ([#444](https://github.com/iOfficeAI/Adonis Core/issues/444))
 
 ---
 
-## [2.1.15](https://github.com/iOfficeAI/AionUi/compare/v2.1.14...v2.1.15) (2026-06-09)
+## [2.1.15](https://github.com/iOfficeAI/Headmaster/compare/v2.1.14...v2.1.15) (2026-06-09)
 
 ### Desktop
 
@@ -72,21 +72,21 @@
 - **login:** move mobile language selector to its own row to avoid logo overlap
 - **desktop:** pass parent pid to bundled backend (#3250)
 
-### Core ([v0.1.26](https://github.com/iOfficeAI/AionCore/releases/tag/v0.1.26))
+### Core ([v0.1.26](https://github.com/iOfficeAI/Adonis Core/releases/tag/v0.1.26))
 
 #### Features
 
-- enforce agent runtime policy and turn-aware state ([#436](https://github.com/iOfficeAI/AionCore/issues/436))
+- enforce agent runtime policy and turn-aware state ([#436](https://github.com/iOfficeAI/Adonis Core/issues/436))
 
 #### Bug Fixes
 
-- **app:** use process synchronize access for parent watcher ([#438](https://github.com/iOfficeAI/AionCore/issues/438))
-- **acp:** preserve confirmed model selection ([#437](https://github.com/iOfficeAI/AionCore/issues/437))
-- **app:** stop backend when desktop exits ([#433](https://github.com/iOfficeAI/AionCore/issues/433))
+- **app:** use process synchronize access for parent watcher ([#438](https://github.com/iOfficeAI/Adonis Core/issues/438))
+- **acp:** preserve confirmed model selection ([#437](https://github.com/iOfficeAI/Adonis Core/issues/437))
+- **app:** stop backend when desktop exits ([#433](https://github.com/iOfficeAI/Adonis Core/issues/433))
 
 ---
 
-## [2.1.14](https://github.com/iOfficeAI/AionUi/compare/v2.1.13...v2.1.14) (2026-06-08)
+## [2.1.14](https://github.com/iOfficeAI/Headmaster/compare/v2.1.13...v2.1.14) (2026-06-08)
 
 ### Desktop
 
@@ -94,25 +94,25 @@
 
 - **bootstrap:** block wrong macOS package architecture at startup (#3232)
 
-### Core ([v0.1.24](https://github.com/iOfficeAI/AionCore/releases/tag/v0.1.24))
+### Core ([v0.1.24](https://github.com/iOfficeAI/Adonis Core/releases/tag/v0.1.24))
 
 #### Bug Fixes
 
-- **acp:** prefer config options catalogs ([#425](https://github.com/iOfficeAI/AionCore/issues/425))
-- expose managed resource preparation failure details ([#430](https://github.com/iOfficeAI/AionCore/issues/430))
-- handle Hermes yolo fallback correctly ([#428](https://github.com/iOfficeAI/AionCore/issues/428))
-- harden managed ACP bundle preparation and builtin CLI availability ([#426](https://github.com/iOfficeAI/AionCore/issues/426))
-- scope bundled ACP output under tool directories ([#431](https://github.com/iOfficeAI/AionCore/issues/431))
-- **shell:** support UNC paths in Windows terminal ([#411](https://github.com/iOfficeAI/AionCore/issues/411))
-- validate managed ACP packages via real entrypoints ([#429](https://github.com/iOfficeAI/AionCore/issues/429))
+- **acp:** prefer config options catalogs ([#425](https://github.com/iOfficeAI/Adonis Core/issues/425))
+- expose managed resource preparation failure details ([#430](https://github.com/iOfficeAI/Adonis Core/issues/430))
+- handle Hermes yolo fallback correctly ([#428](https://github.com/iOfficeAI/Adonis Core/issues/428))
+- harden managed ACP bundle preparation and builtin CLI availability ([#426](https://github.com/iOfficeAI/Adonis Core/issues/426))
+- scope bundled ACP output under tool directories ([#431](https://github.com/iOfficeAI/Adonis Core/issues/431))
+- **shell:** support UNC paths in Windows terminal ([#411](https://github.com/iOfficeAI/Adonis Core/issues/411))
+- validate managed ACP packages via real entrypoints ([#429](https://github.com/iOfficeAI/Adonis Core/issues/429))
 
 #### Refactoring
 
-- **app:** organize CLI command boundaries ([#423](https://github.com/iOfficeAI/AionCore/issues/423))
+- **app:** organize CLI command boundaries ([#423](https://github.com/iOfficeAI/Adonis Core/issues/423))
 
 ---
 
-## [2.1.13](https://github.com/iOfficeAI/AionUi/compare/v2.1.12...v2.1.13) (2026-06-07)
+## [2.1.13](https://github.com/iOfficeAI/Headmaster/compare/v2.1.12...v2.1.13) (2026-06-07)
 
 ### Desktop
 
@@ -134,26 +134,26 @@
 
 - stabilize conversation runtime view contract (#3224)
 
-### Core ([v0.1.23](https://github.com/iOfficeAI/AionCore/releases/tag/v0.1.23))
+### Core ([v0.1.23](https://github.com/iOfficeAI/Adonis Core/releases/tag/v0.1.23))
 
 #### Features
 
-- **cli:** canonicalize CLI and bootstrap boundary errors ([#417](https://github.com/iOfficeAI/AionCore/issues/417))
+- **cli:** canonicalize CLI and bootstrap boundary errors ([#417](https://github.com/iOfficeAI/Adonis Core/issues/417))
 
 #### Bug Fixes
 
-- **error:** canonicalize boundary errors ([#415](https://github.com/iOfficeAI/AionCore/issues/415))
-- **runtime:** report bundled resource installation failures ([#420](https://github.com/iOfficeAI/AionCore/issues/420))
-- **team:** inherit workspace for spawned agents ([#413](https://github.com/iOfficeAI/AionCore/issues/413))
+- **error:** canonicalize boundary errors ([#415](https://github.com/iOfficeAI/Adonis Core/issues/415))
+- **runtime:** report bundled resource installation failures ([#420](https://github.com/iOfficeAI/Adonis Core/issues/420))
+- **team:** inherit workspace for spawned agents ([#413](https://github.com/iOfficeAI/Adonis Core/issues/413))
 
 #### Refactoring
 
-- centralize agent runtime session context building ([#419](https://github.com/iOfficeAI/AionCore/issues/419))
-- centralize runtime turn lifecycle ([#421](https://github.com/iOfficeAI/AionCore/issues/421))
+- centralize agent runtime session context building ([#419](https://github.com/iOfficeAI/Adonis Core/issues/419))
+- centralize runtime turn lifecycle ([#421](https://github.com/iOfficeAI/Adonis Core/issues/421))
 
 ---
 
-## [2.1.12](https://github.com/iOfficeAI/AionUi/compare/v2.1.11...v2.1.12) (2026-06-05)
+## [2.1.12](https://github.com/iOfficeAI/Headmaster/compare/v2.1.11...v2.1.12) (2026-06-05)
 
 ### Desktop
 
@@ -167,22 +167,22 @@
 - **conversation:** align workspace path availability handling (#3207)
 - **preview:** dedupe @codemirror/language so markdown source highlight survives (#3206)
 
-### Core ([v0.1.22](https://github.com/iOfficeAI/AionCore/releases/tag/v0.1.22))
+### Core ([v0.1.22](https://github.com/iOfficeAI/Adonis Core/releases/tag/v0.1.22))
 
 #### Bug Fixes
 
-- **acp:** stabilize mode and model source of truth ([#409](https://github.com/iOfficeAI/AionCore/issues/409))
-- **conversation:** align workspace path availability handling ([#410](https://github.com/iOfficeAI/AionCore/issues/410))
-- **file:** lazy load browse roots ([#406](https://github.com/iOfficeAI/AionCore/issues/406))
-- prepare managed acp tools locally without cdn ([#408](https://github.com/iOfficeAI/AionCore/issues/408))
+- **acp:** stabilize mode and model source of truth ([#409](https://github.com/iOfficeAI/Adonis Core/issues/409))
+- **conversation:** align workspace path availability handling ([#410](https://github.com/iOfficeAI/Adonis Core/issues/410))
+- **file:** lazy load browse roots ([#406](https://github.com/iOfficeAI/Adonis Core/issues/406))
+- prepare managed acp tools locally without cdn ([#408](https://github.com/iOfficeAI/Adonis Core/issues/408))
 
 #### Refactoring
 
-- **error:** finish ApiError phase3 ([#398](https://github.com/iOfficeAI/AionCore/issues/398))
+- **error:** finish ApiError phase3 ([#398](https://github.com/iOfficeAI/Adonis Core/issues/398))
 
 ---
 
-## [2.1.11](https://github.com/iOfficeAI/AionUi/compare/v2.1.10...v2.1.11) (2026-06-04)
+## [2.1.11](https://github.com/iOfficeAI/Headmaster/compare/v2.1.10...v2.1.11) (2026-06-04)
 
 ### Desktop
 
@@ -198,21 +198,21 @@
 - **web-host:** use aioncore reported backend port (#3193)
 - **settings:** apply UI scale only on slider release (#3190)
 
-### Core ([v0.1.20](https://github.com/iOfficeAI/AionCore/releases/tag/v0.1.20))
+### Core ([v0.1.20](https://github.com/iOfficeAI/Adonis Core/releases/tag/v0.1.20))
 
 #### Bug Fixes
 
-- **app:** bind backend before startup services ([#397](https://github.com/iOfficeAI/AionCore/issues/397))
-- stabilize agent runtime terminal lifecycle ([#396](https://github.com/iOfficeAI/AionCore/pull/396))
+- **app:** bind backend before startup services ([#397](https://github.com/iOfficeAI/Adonis Core/issues/397))
+- stabilize agent runtime terminal lifecycle ([#396](https://github.com/iOfficeAI/Adonis Core/pull/396))
 
 #### Refactoring
 
-- **error:** ACP error classification ([#393](https://github.com/iOfficeAI/AionCore/issues/393))
-- **error:** migrate phase2 service errors ([#395](https://github.com/iOfficeAI/AionCore/issues/395))
+- **error:** ACP error classification ([#393](https://github.com/iOfficeAI/Adonis Core/issues/393))
+- **error:** migrate phase2 service errors ([#395](https://github.com/iOfficeAI/Adonis Core/issues/395))
 
 ---
 
-## [2.1.10](https://github.com/iOfficeAI/AionUi/compare/v2.1.9...v2.1.10) (2026-06-02)
+## [2.1.10](https://github.com/iOfficeAI/Headmaster/compare/v2.1.9...v2.1.10) (2026-06-02)
 
 ### Desktop
 
@@ -228,18 +228,18 @@
 - **acp:** fix model state sync after session recovery (#3162)
 - **desktop:** persist close-to-tray setting (#3150)
 
-### Core ([v0.1.19](https://github.com/iOfficeAI/AionCore/releases/tag/v0.1.19))
+### Core ([v0.1.19](https://github.com/iOfficeAI/Adonis Core/releases/tag/v0.1.19))
 
 #### Bug Fixes
 
-- **aionui-ai-agent:** classify aionrs API connection errors ([#389](https://github.com/iOfficeAI/AionCore/issues/389))
-- classify missing MCP launcher runtimes ([#387](https://github.com/iOfficeAI/AionCore/issues/387))
-- enforce workspace path whitespace errors across create and runtime ([#381](https://github.com/iOfficeAI/AionCore/issues/381))
-- **startup:** add startup phase diagnostics ([#388](https://github.com/iOfficeAI/AionCore/issues/388))
+- **headmaster-ai-agent:** classify aionrs API connection errors ([#389](https://github.com/iOfficeAI/Adonis Core/issues/389))
+- classify missing MCP launcher runtimes ([#387](https://github.com/iOfficeAI/Adonis Core/issues/387))
+- enforce workspace path whitespace errors across create and runtime ([#381](https://github.com/iOfficeAI/Adonis Core/issues/381))
+- **startup:** add startup phase diagnostics ([#388](https://github.com/iOfficeAI/Adonis Core/issues/388))
 
 ---
 
-## [2.1.9](https://github.com/iOfficeAI/AionUi/compare/v2.1.8...v2.1.9) (2026-06-01)
+## [2.1.9](https://github.com/iOfficeAI/Headmaster/compare/v2.1.8...v2.1.9) (2026-06-01)
 
 ### Desktop
 
@@ -254,19 +254,19 @@
 
 - Allow importing skill folders and zip archives (#3144)
 
-### Core ([v0.1.18](https://github.com/iOfficeAI/AionCore/releases/tag/v0.1.18))
+### Core ([v0.1.18](https://github.com/iOfficeAI/Adonis Core/releases/tag/v0.1.18))
 
 #### Bug Fixes
 
-- **agent:** classify Bedrock 'model identifier is invalid' as model-not-found (AIO-12) ([#377](https://github.com/iOfficeAI/AionCore/issues/377))
-- **agent:** preserve process-group cleanup after leader exit ([#369](https://github.com/iOfficeAI/AionCore/issues/369))
-- **agent:** tighten send_error classifier (AIO-87, AIO-89, AIO-90) ([#375](https://github.com/iOfficeAI/AionCore/issues/375))
-- **aionui-ai-agent:** strip HTML body from sanitized error detail (AIO-13) ([#380](https://github.com/iOfficeAI/AionCore/issues/380))
-- recover deleted conversation workspaces ([#379](https://github.com/iOfficeAI/AionCore/issues/379))
+- **agent:** classify Bedrock 'model identifier is invalid' as model-not-found (AIO-12) ([#377](https://github.com/iOfficeAI/Adonis Core/issues/377))
+- **agent:** preserve process-group cleanup after leader exit ([#369](https://github.com/iOfficeAI/Adonis Core/issues/369))
+- **agent:** tighten send_error classifier (AIO-87, AIO-89, AIO-90) ([#375](https://github.com/iOfficeAI/Adonis Core/issues/375))
+- **headmaster-ai-agent:** strip HTML body from sanitized error detail (AIO-13) ([#380](https://github.com/iOfficeAI/Adonis Core/issues/380))
+- recover deleted conversation workspaces ([#379](https://github.com/iOfficeAI/Adonis Core/issues/379))
 
 ---
 
-## [2.1.8](https://github.com/iOfficeAI/AionUi/compare/v2.1.7...v2.1.8) (2026-05-30)
+## [2.1.8](https://github.com/iOfficeAI/Headmaster/compare/v2.1.7...v2.1.8) (2026-05-30)
 
 ### Desktop
 
@@ -276,15 +276,15 @@
 - **web-host:** enrich backend health timeout diagnostics (#3120)
 - **feedback:** preserve structured live error tips (#3116)
 
-### Core ([v0.1.17](https://github.com/iOfficeAI/AionCore/releases/tag/v0.1.17))
+### Core ([v0.1.17](https://github.com/iOfficeAI/Adonis Core/releases/tag/v0.1.17))
 
 #### Bug Fixes
 
-- **agent:** make codex sandbox sync non-fatal ([#370](https://github.com/iOfficeAI/AionCore/issues/370))
+- **agent:** make codex sandbox sync non-fatal ([#370](https://github.com/iOfficeAI/Adonis Core/issues/370))
 
 ---
 
-## [2.1.7](https://github.com/iOfficeAI/AionUi/compare/v2.1.6...v2.1.7) (2026-05-29)
+## [2.1.7](https://github.com/iOfficeAI/Headmaster/compare/v2.1.6...v2.1.7) (2026-05-29)
 
 ### Desktop
 
@@ -304,21 +304,21 @@
 - **web-host:** add health timeout diagnostics (#3102)
 - **settings:** avoid blue switch during image generation loading (#3091)
 
-### Core ([v0.1.16](https://github.com/iOfficeAI/AionCore/releases/tag/v0.1.16))
+### Core ([v0.1.16](https://github.com/iOfficeAI/Adonis Core/releases/tag/v0.1.16))
 
 #### Features
 
-- **agent:** classify structured agent send errors ([#356](https://github.com/iOfficeAI/AionCore/issues/356))
-- **mcp:** support session scoped MCP injection ([#363](https://github.com/iOfficeAI/AionCore/issues/363))
+- **agent:** classify structured agent send errors ([#356](https://github.com/iOfficeAI/Adonis Core/issues/356))
+- **mcp:** support session scoped MCP injection ([#363](https://github.com/iOfficeAI/Adonis Core/issues/363))
 
 #### Bug Fixes
 
-- channel reply stream cold start ([#366](https://github.com/iOfficeAI/AionCore/issues/366))
-- **mcp:** clean up stdio test process trees ([#368](https://github.com/iOfficeAI/AionCore/issues/368))
+- channel reply stream cold start ([#366](https://github.com/iOfficeAI/Adonis Core/issues/366))
+- **mcp:** clean up stdio test process trees ([#368](https://github.com/iOfficeAI/Adonis Core/issues/368))
 
 ---
 
-## [2.1.6](https://github.com/iOfficeAI/AionUi/compare/v2.1.5...v2.1.6) (2026-05-28)
+## [2.1.6](https://github.com/iOfficeAI/Headmaster/compare/v2.1.5...v2.1.6) (2026-05-28)
 
 ### Desktop
 
@@ -335,15 +335,15 @@
 - lazy-load full tool message content (#3086)
 - improve message startup latency (#3082)
 
-### Core ([v0.1.15](https://github.com/iOfficeAI/AionCore/releases/tag/v0.1.15))
+### Core ([v0.1.15](https://github.com/iOfficeAI/Adonis Core/releases/tag/v0.1.15))
 
 #### Bug Fixes
 
-- **agent:** add provider health check probe ([#358](https://github.com/iOfficeAI/AionCore/issues/358))
+- **agent:** add provider health check probe ([#358](https://github.com/iOfficeAI/Adonis Core/issues/358))
 
 ---
 
-## [2.1.5](https://github.com/iOfficeAI/AionUi/compare/v2.1.4...v2.1.5) (2026-05-27)
+## [2.1.5](https://github.com/iOfficeAI/Headmaster/compare/v2.1.4...v2.1.5) (2026-05-27)
 
 ### Desktop
 
@@ -374,20 +374,20 @@
 - recover pending permission prompts (#3059)
 - preserve timezone for scheduled tasks (#3056)
 
-### Core ([v0.1.14](https://github.com/iOfficeAI/AionCore/releases/tag/v0.1.14))
+### Core ([v0.1.14](https://github.com/iOfficeAI/Adonis Core/releases/tag/v0.1.14))
 
 #### Bug Fixes
 
-- preserve cron timezone on legacy schedule updates ([#344](https://github.com/iOfficeAI/AionCore/issues/344))
-- **startup:** add backend readiness diagnostics ([#346](https://github.com/iOfficeAI/AionCore/issues/346))
+- preserve cron timezone on legacy schedule updates ([#344](https://github.com/iOfficeAI/Adonis Core/issues/344))
+- **startup:** add backend readiness diagnostics ([#346](https://github.com/iOfficeAI/Adonis Core/issues/346))
 
 #### Refactoring
 
-- four-layer architecture (connect / conv / biz) ([#349](https://github.com/iOfficeAI/AionCore/issues/349))
+- four-layer architecture (connect / conv / biz) ([#349](https://github.com/iOfficeAI/Adonis Core/issues/349))
 
 ---
 
-## [2.1.4](https://github.com/iOfficeAI/AionUi/compare/v2.1.3...v2.1.4) (2026-05-27)
+## [2.1.4](https://github.com/iOfficeAI/Headmaster/compare/v2.1.3...v2.1.4) (2026-05-27)
 
 ### Desktop
 

@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 Headmaster (headmaster.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -83,7 +83,7 @@ function hasBackendStartupFailed(): boolean {
 }
 
 function isBackendStartupFailureEvent(event: { tags?: Record<string, unknown> }): boolean {
-  return event.tags?.['aionui.failure'] === 'backend_startup';
+  return event.tags?.['headmaster.failure'] === 'backend_startup';
 }
 
 function isBackendStartupSecondaryEvent(event: { tags?: Record<string, unknown> }, haystacks: string[]): boolean {
@@ -229,66 +229,66 @@ export async function captureBackendStartupFailure(error: unknown): Promise<void
   });
   const autoUpdateDiagnostics = readAutoUpdateDiagnostics(app.getPath('userData'));
   Sentry.withScope((scope) => {
-    scope.setTag('aionui.failure', 'backend_startup');
-    scope.setTag('aionui.backend_startup.reason', failureInfo.reason);
+    scope.setTag('headmaster.failure', 'backend_startup');
+    scope.setTag('headmaster.backend_startup.reason', failureInfo.reason);
     if (failureInfo.runtime) {
-      scope.setTag('aionui.backend_startup.runtime', failureInfo.runtime);
+      scope.setTag('headmaster.backend_startup.runtime', failureInfo.runtime);
     }
     if (failureInfo.packageArch) {
-      scope.setTag('aionui.backend_startup.package_arch', failureInfo.packageArch);
+      scope.setTag('headmaster.backend_startup.package_arch', failureInfo.packageArch);
     }
     if (failureInfo.deviceArch) {
-      scope.setTag('aionui.backend_startup.device_arch', failureInfo.deviceArch);
+      scope.setTag('headmaster.backend_startup.device_arch', failureInfo.deviceArch);
     }
     if (failureInfo.expectedDownloadArch) {
-      scope.setTag('aionui.backend_startup.expected_download_arch', failureInfo.expectedDownloadArch);
+      scope.setTag('headmaster.backend_startup.expected_download_arch', failureInfo.expectedDownloadArch);
     }
     if (typeof failureInfo.isRosettaTranslated === 'boolean') {
-      scope.setTag('aionui.backend_startup.rosetta_translated', getBooleanTagValue(failureInfo.isRosettaTranslated));
+      scope.setTag('headmaster.backend_startup.rosetta_translated', getBooleanTagValue(failureInfo.isRosettaTranslated));
     }
     if (typeof details?.stage === 'string') {
-      scope.setTag('aionui.backend_startup.stage', details.stage);
+      scope.setTag('headmaster.backend_startup.stage', details.stage);
     }
     if (failureInfo.incompleteInstallationKind) {
-      scope.setTag('aionui.backend_startup.incomplete_installation_kind', failureInfo.incompleteInstallationKind);
+      scope.setTag('headmaster.backend_startup.incomplete_installation_kind', failureInfo.incompleteInstallationKind);
     }
     for (const [tag, value] of [
-      ['aionui.backend_startup.missing_bundled_dir', getBooleanTagValue(failureInfo.missingBundledAioncoreDir)],
-      ['aionui.backend_startup.missing_runtime_dir', getBooleanTagValue(failureInfo.missingRuntimeDir)],
-      ['aionui.backend_startup.missing_binary', getBooleanTagValue(failureInfo.missingBackendBinary)],
-      ['aionui.backend_startup.missing_hub_dir', getBooleanTagValue(failureInfo.missingHubDir)],
-      ['aionui.backend_startup.missing_pet_states_dir', getBooleanTagValue(failureInfo.missingPetStatesDir)],
-      ['aionui.backend_startup.missing_pwa_dir', getBooleanTagValue(failureInfo.missingPwaDir)],
-      ['aionui.backend_startup.install_path_kind', getInstallPathKind(details?.resourcesPath)],
-      ['aionui.backend_startup.last_update_status', getString(autoUpdateDiagnostics?.lastEvent?.status)],
+      ['headmaster.backend_startup.missing_bundled_dir', getBooleanTagValue(failureInfo.missingBundledAioncoreDir)],
+      ['headmaster.backend_startup.missing_runtime_dir', getBooleanTagValue(failureInfo.missingRuntimeDir)],
+      ['headmaster.backend_startup.missing_binary', getBooleanTagValue(failureInfo.missingBackendBinary)],
+      ['headmaster.backend_startup.missing_hub_dir', getBooleanTagValue(failureInfo.missingHubDir)],
+      ['headmaster.backend_startup.missing_pet_states_dir', getBooleanTagValue(failureInfo.missingPetStatesDir)],
+      ['headmaster.backend_startup.missing_pwa_dir', getBooleanTagValue(failureInfo.missingPwaDir)],
+      ['headmaster.backend_startup.install_path_kind', getInstallPathKind(details?.resourcesPath)],
+      ['headmaster.backend_startup.last_update_status', getString(autoUpdateDiagnostics?.lastEvent?.status)],
       [
-        'aionui.backend_startup.health_polling_delayed',
+        'headmaster.backend_startup.health_polling_delayed',
         getBooleanTagValue(
           typeof details?.healthCheckPollingDelayed === 'boolean' ? details.healthCheckPollingDelayed : undefined
         ),
       ],
-      ['aionui.backend_startup.health_attempts_bucket', getHealthAttemptBucket(details?.healthCheckAttempts)],
+      ['headmaster.backend_startup.health_attempts_bucket', getHealthAttemptBucket(details?.healthCheckAttempts)],
       [
-        'aionui.backend_startup.health_attempt_deficit_bucket',
+        'headmaster.backend_startup.health_attempt_deficit_bucket',
         getHealthAttemptBucket(details?.healthCheckAttemptDeficit),
       ],
-      ['aionui.backend_startup.health_timeout_overrun_bucket', getDurationBucket(details?.healthCheckTimeoutOverrunMs)],
-      ['aionui.backend_startup.health_max_attempt_gap_bucket', getDurationBucket(details?.healthCheckMaxAttemptGapMs)],
+      ['headmaster.backend_startup.health_timeout_overrun_bucket', getDurationBucket(details?.healthCheckTimeoutOverrunMs)],
+      ['headmaster.backend_startup.health_max_attempt_gap_bucket', getDurationBucket(details?.healthCheckMaxAttemptGapMs)],
       [
-        'aionui.backend_startup.seconds_since_quit_and_install',
+        'headmaster.backend_startup.seconds_since_quit_and_install',
         getSecondsSince(autoUpdateDiagnostics?.lastQuitAndInstallAt),
       ],
     ] as const) {
       if (value) scope.setTag(tag, value);
     }
     if (details) {
-      scope.setContext('aioncore_startup', details);
-      scope.setExtra('aioncore_startup', details);
+      scope.setContext('backend_startup', details);
+      scope.setExtra('backend_startup', details);
     }
-    scope.setContext('aioncore_startup_classification', { ...failureInfo });
-    scope.setExtra('aioncore_startup_classification', failureInfo);
-    scope.setContext('aioncore_install_diagnostics', installDiagnostics);
-    scope.setExtra('aioncore_install_diagnostics', installDiagnostics);
+    scope.setContext('backend_startup_classification', { ...failureInfo });
+    scope.setExtra('backend_startup_classification', failureInfo);
+    scope.setContext('backend_install_diagnostics', installDiagnostics);
+    scope.setExtra('backend_install_diagnostics', installDiagnostics);
     if (autoUpdateDiagnostics) {
       scope.setContext('auto_update_diagnostics', autoUpdateDiagnostics);
       scope.setExtra('auto_update_diagnostics', autoUpdateDiagnostics);

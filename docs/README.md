@@ -1,4 +1,4 @@
-# AionUi Docs
+# Headmaster Docs
 
 Documentation is organized by reader intent, not by document type.
 

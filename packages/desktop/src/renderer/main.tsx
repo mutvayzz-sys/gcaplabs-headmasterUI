@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 Headmaster (gcaplabs.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -291,7 +291,10 @@ const Main = () => {
 
 const App = HOC.Wrapper(Config)(Main);
 
-const BackendStartupFailureDialog: React.FC<{ failure: BackendStartupFailureInfo }> = ({ failure }) => {
+const BackendStartupFailureDialog: React.FC<{ failure: BackendStartupFailureInfo; onContinueAnyway?: () => void }> = ({
+  failure,
+  onContinueAnyway,
+}) => {
   const { t } = useTranslation();
 
   const isIncompatibleRuntime = failure.reason === 'backend_incompatible_runtime';
@@ -311,7 +314,7 @@ const BackendStartupFailureDialog: React.FC<{ failure: BackendStartupFailureInfo
   if (!isIncompatibleRuntime && !isPackageArchitectureMismatch) {
     return (
       <div className='min-h-screen bg-bg-1'>
-        <InstallationIntegrityModalHost description={description} />
+        <InstallationIntegrityModalHost description={description} onContinue={onContinueAnyway} />
       </div>
     );
   }
@@ -324,7 +327,7 @@ const BackendStartupFailureDialog: React.FC<{ failure: BackendStartupFailureInfo
           closable={false}
           maskClosable={false}
           title={t('common.backendStartup.packageArchitectureMismatch.title')}
-          {...getDownloadLatestModalActionProps(t)}
+          {...getDownloadLatestModalActionProps(t, onContinueAnyway)}
         >
           <InstallationIntegrityContent description={description} />
         </Modal>
@@ -334,7 +337,22 @@ const BackendStartupFailureDialog: React.FC<{ failure: BackendStartupFailureInfo
 
   return (
     <div className='min-h-screen bg-bg-1'>
-      <Modal visible closable={false} maskClosable={false} footer={null} title={title}>
+      <Modal
+        visible
+        closable={!onContinueAnyway}
+        maskClosable={!onContinueAnyway}
+        footer={!onContinueAnyway}
+        title={title}
+        {...(onContinueAnyway && {
+          okText: 'Continue Anyway',
+          onOk: onContinueAnyway,
+          cancelButtonProps: {
+            style: {
+              display: 'none',
+            },
+          },
+        })}
+      >
         <div className='text-t-1'>
           <Typography.Paragraph className='mb-0 text-t-secondary'>{description}</Typography.Paragraph>
           {requiredVersions ? (
@@ -350,23 +368,34 @@ const BackendStartupFailureDialog: React.FC<{ failure: BackendStartupFailureInfo
 
 void registerPwa();
 
-const root = createRoot(document.getElementById('root')!);
-const backendStartupFailure = window.__backendStartupFailure;
-const shouldShowBackendStartupFailureDialog =
-  backendStartupFailure?.reason === 'backend_incompatible_runtime' ||
-  backendStartupFailure?.reason === 'backend_incomplete_installation' ||
-  backendStartupFailure?.reason === 'backend_package_architecture_mismatch' ||
-  backendStartupFailure?.reason === 'backend_startup_failed';
-if (backendStartupFailure && shouldShowBackendStartupFailureDialog) {
-  root.render(
-    <Config>
-      <BackendStartupFailureDialog failure={backendStartupFailure} />
-    </Config>
-  );
-} else {
-  root.render(
+const AppWithBackendFailureDialog: React.FC = () => {
+  const [dismissedBackendError, setDismissedBackendError] = useState(false);
+  const backendStartupFailure = window.__backendStartupFailure;
+  const shouldShowBackendStartupFailureDialog =
+    !dismissedBackendError &&
+    backendStartupFailure &&
+    (backendStartupFailure.reason === 'backend_incompatible_runtime' ||
+      backendStartupFailure.reason === 'backend_incomplete_installation' ||
+      backendStartupFailure.reason === 'backend_package_architecture_mismatch' ||
+      backendStartupFailure.reason === 'backend_startup_failed');
+
+  if (shouldShowBackendStartupFailureDialog) {
+    return (
+      <Config>
+        <BackendStartupFailureDialog
+          failure={backendStartupFailure!}
+          onContinueAnyway={() => setDismissedBackendError(true)}
+        />
+      </Config>
+    );
+  }
+
+  return (
     <AppProviders>
       <App />
     </AppProviders>
   );
-}
+};
+
+const root = createRoot(document.getElementById('root')!);
+root.render(<AppWithBackendFailureDialog />);

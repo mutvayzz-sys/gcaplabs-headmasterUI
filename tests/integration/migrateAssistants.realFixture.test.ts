@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 Headmaster (aionui.com)
  * SPDX-License-Identifier: Apache-2.0
  *
  * Integration test for `migrateAssistantsToBackend` against a real
@@ -33,14 +33,14 @@ const describeIfFixtures = FIXTURES_AVAILABLE ? describe : describe.skip;
 
 function resolveBackendBinary(): string {
   const candidates = [
-    process.env.AIONUI_BACKEND_BINARY,
+    process.env.HEADMASTER_BACKEND_BINARY,
     path.join(os.homedir(), '.cargo', 'bin', 'aioncore'),
-    path.resolve(__dirname, '../../../AionCore/target/debug/aioncore'),
+    path.resolve(__dirname, '../../../Adonis Core/target/debug/aioncore'),
   ].filter((x): x is string => typeof x === 'string' && x.length > 0);
   for (const c of candidates) {
     if (existsSync(c)) return c;
   }
-  throw new Error('aioncore binary not found (set AIONUI_BACKEND_BINARY or build it)');
+  throw new Error('aioncore binary not found (set HEADMASTER_BACKEND_BINARY or build it)');
 }
 
 async function findFreePort(): Promise<number> {

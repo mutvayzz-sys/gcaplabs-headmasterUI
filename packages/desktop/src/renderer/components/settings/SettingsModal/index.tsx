@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 Headmaster (gcaplabs.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -19,7 +19,9 @@ import { useTranslation } from 'react-i18next';
 import AboutModalContent from './contents/AboutModalContent';
 import AgentModalContent from './contents/AgentModalContent';
 import ExtensionSettingsTabContent from './contents/ExtensionSettingsTabContent';
+import MemoryModalContent from './contents/MemoryModalContent';
 import ModelModalContent from './contents/ModelModalContent';
+import RuntimeSettings from '@/renderer/pages/settings/RuntimeSettings';
 import SystemModalContent from './contents/SystemModalContent';
 import ToolsModalContent from './contents/ToolsModalContent';
 import WebuiModalContent from './contents/WebuiModalContent';
@@ -55,7 +57,7 @@ const RESIZE_DEBOUNCE_DELAY = 150;
 /**
  * 内置设置标签页类型 / Built-in settings tab type
  */
-export type BuiltinSettingTab = 'model' | 'agent' | 'tools' | 'webui' | 'system' | 'about';
+export type BuiltinSettingTab = 'model' | 'agent' | 'tools' | 'webui' | 'runtime' | 'memory' | 'system' | 'about';
 
 /**
  * 设置标签页类型（内置 + 扩展）/ Settings tab type (built-in + extension)
@@ -216,6 +218,16 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onCancel, defaul
         label: t('settings.system'),
         icon: <Computer theme='outline' size='20' fill={iconColors.secondary} />,
       },
+      {
+        key: 'runtime',
+        label: t('settings.runtime.menuLabel', { defaultValue: 'Runtime' }),
+        icon: <LinkCloud theme='outline' size='20' fill={iconColors.secondary} />,
+      },
+      {
+        key: 'memory',
+        label: t('settings.memory.menuLabel', { defaultValue: 'Memory' }),
+        icon: <Puzzle theme='outline' size='20' fill={iconColors.secondary} />,
+      },
       { key: 'about', label: t('settings.about'), icon: <Info theme='outline' size='20' fill={iconColors.secondary} /> }
     );
 
@@ -310,6 +322,10 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onCancel, defaul
         return <WebuiModalContent />;
       case 'system':
         return <SystemModalContent />;
+      case 'runtime':
+        return <RuntimeSettings />;
+      case 'memory':
+        return <MemoryModalContent />;
       case 'about':
         return <AboutModalContent />;
       default:

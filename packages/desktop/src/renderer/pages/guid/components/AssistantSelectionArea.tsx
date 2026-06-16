@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 Headmaster (gcaplabs.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -199,7 +199,7 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
   return (
     <div className='mt-32px w-full'>
       <div className={`${styles.assistantPromptHint} text-center mb-12px`}>
-        {t('guid.selectAssistantHint', { defaultValue: 'Select an assistant to start a task' })}
+        {t('guid.selectSpecialistHint', { defaultValue: 'Select a specialist to start a task' })}
       </div>
       <div
         ref={scrollWrapRef}

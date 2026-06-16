@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 Headmaster (gcaplabs.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -26,7 +26,7 @@ export interface PresetAssistantInfo {
  * 处理向后兼容：
  * - preset_assistant_id: 新格式 'builtin-xxx'
  * - custom_agent_id: ACP 会话的旧格式
- * - enabled_skills: Gemini Cowork 会话的旧格式
+ * - enabled_skills: Gemini Work Along 会话的旧格式
  */
 /**
  * Resolve the assistant config ID (preserving original prefix like 'builtin-').

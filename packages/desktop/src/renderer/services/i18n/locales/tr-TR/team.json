@@ -1,7 +1,7 @@
 {
   "sider": {
-    "title": "Teams",
-    "createTeam": "New Team",
+    "title": "The Council",
+    "createCouncil": "New Council",
     "pin": "Sabitle",
     "unpin": "Sabitlemeyi Kaldır",
     "rename": "Yeniden Adlandır",
@@ -24,11 +24,11 @@
     "placeholder": "Dağıtım ajanına mesaj gönder..."
   },
   "create": {
-    "title": "Create Team",
-    "namePlaceholder": "Team name",
+    "title": "Create Council",
+    "namePlaceholder": "Council name",
     "dispatchAgentPlaceholder": "Takım liderini seçin",
     "subAgentsPlaceholder": "Select sub agents",
-    "confirm": "Create Team",
+    "confirm": "Create Council",
     "noSupportedAgents": "Desteklenen agent bulunamadı",
     "supportedAgentsHint": "Şu anda Claude ve Codex desteklenmektedir. Daha fazla agent yakında eklenecek.",
     "leaderDesc": "Hedeflerinizi anlayarak görevleri tamamlamak için ajanları koordine eder",

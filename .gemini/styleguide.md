@@ -1,8 +1,8 @@
-# AionUI Code Review Style Guide
+# Headmaster Code Review Style Guide
 
 ## Overview
 
-This document defines the coding standards and best practices for the AionUI project. The AI code reviewer should use these guidelines when reviewing pull requests.
+This document defines the coding standards and best practices for the Headmaster project. The AI code reviewer should use these guidelines when reviewing pull requests.
 
 ## Technology Stack
 

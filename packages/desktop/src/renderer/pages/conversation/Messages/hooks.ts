@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 Headmaster (gcaplabs.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -481,7 +481,7 @@ const classifyPersistedSendFailure = (
   if (persistedCode === 'INTERNAL_ERROR') {
     return {
       message,
-      code: 'AIONUI_INTERNAL_ERROR',
+      code: 'HEADMASTER_INTERNAL_ERROR',
       ownership: 'aionui',
       detail: message,
       retryable: true,
@@ -489,7 +489,7 @@ const classifyPersistedSendFailure = (
     };
   }
 
-  if (persistedCode?.startsWith('AIONUI_')) {
+  if (persistedCode?.startsWith('HEADMASTER_')) {
     return { message, code: persistedCode, ownership: 'aionui', detail: message, retryable: true };
   }
   if (persistedCode?.startsWith('USER_AGENT_')) {
@@ -519,7 +519,7 @@ const classifyPersistedSendFailure = (
   if (parsed.source === 'send_failed') {
     return {
       message,
-      code: 'AIONUI_INTERNAL_ERROR',
+      code: 'HEADMASTER_INTERNAL_ERROR',
       ownership: 'aionui',
       detail: message,
       retryable: true,

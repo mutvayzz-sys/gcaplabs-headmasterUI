@@ -6,7 +6,7 @@
   "autoSwitchToAgent": "Gemini não está configurado, alternando automaticamente para {{agent}}",
   "autoSwitchedAgent": "{{from}} não está disponível, alternou para {{to}}",
   "promptExamplesHint": "Experimente exemplos de prompt:",
-  "selectAssistantHint": "Selecione um assistente para iniciar uma tarefa",
+  "selectSpecialistHint": "Selecione um assistente para iniciar uma tarefa",
   "agentSwitcherLabel": "Agente",
   "switchedToAgent": "Alternou para {{agent}}",
   "workspace": {

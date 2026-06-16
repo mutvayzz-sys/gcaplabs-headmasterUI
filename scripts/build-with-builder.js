@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * Simplified build script for AionUi
+ * Simplified build script for Headmaster
  * Coordinates electron-vite (bundling) and electron-builder (packaging)
  *
  * Features:
@@ -455,19 +455,34 @@ try {
     return;
   }
 
-  // 5. Prepare aioncore binary (for packaged runtime usage)
-  const { prepareAioncore } = require('../packages/shared-scripts/src/prepare-aioncore.js');
-  const { resolveAioncoreVersion } = require('./resolveAioncoreVersion.js');
+  // 5. Prepare legacy aioncore only when explicitly requested.
+  // Headmaster now defaults to the real Hermes dashboard/runtime (`hermes dashboard`,
+  // `/api/*`, `/api/ws`, `/v1/*`) and white-labels on top of that. Requiring a
+  // bundled Adonis/aioncore release asset blocks packaging when that upstream
+  // release is missing, even though the runtime is no longer the default path.
   const projectRoot = path.resolve(__dirname, '..');
-  prepareAioncore({
-    projectRoot,
-    platform: process.platform,
-    arch: targetArch,
-    version: resolveAioncoreVersion(projectRoot),
-  });
+  const runtimeMode = (process.env.HEADMASTER_RUNTIME || 'hermes').toLowerCase();
+  if (runtimeMode === 'aioncore') {
+    const { prepareAioncore } = require('../packages/shared-scripts/src/prepare-aioncore.js');
+    const { resolveAioncoreVersion } = require('./resolveAioncoreVersion.js');
+    prepareAioncore({
+      projectRoot,
+      platform: process.platform,
+      arch: targetArch,
+      version: resolveAioncoreVersion(projectRoot),
+    });
+  } else {
+    console.log(`⏭️  Skipping bundled aioncore prepare (HEADMASTER_RUNTIME=${runtimeMode})`);
+  }
 
-  // 6. Prepare hub resources (index.json + extension zips for offline fallback)
-  execSync('node scripts/prepareHubResources.js', { stdio: 'inherit', env: process.env });
+  // 6. Prepare hub resources (index.json + extension zips for offline fallback).
+  // The white-label hub repo can be absent/private during local Hermes-runtime
+  // builds. Treat it as optional unless explicitly requested.
+  if (runtimeMode === 'aioncore' || process.env.HEADMASTER_HUB_REQUIRED === '1') {
+    execSync('node scripts/prepareHubResources.js', { stdio: 'inherit', env: process.env });
+  } else {
+    console.log(`⏭️  Skipping hub resource prepare (HEADMASTER_RUNTIME=${runtimeMode})`);
+  }
 
   // 6. 运行 electron-builder 生成分发包（DMG/ZIP/EXE等）
   // Run electron-builder to create distributables (DMG/ZIP/EXE, etc.)
@@ -533,14 +548,14 @@ try {
     const winUnpackedDir = path.join(outDir, 'win-unpacked');
     let cleaned = tryRemoveDir(winUnpackedDir);
     if (!cleaned) {
-      const aionRunning = isProcessRunningWindows('AionUi.exe');
+      const aionRunning = isProcessRunningWindows('Headmaster.exe');
       const electronRunning = isProcessRunningWindows('electron.exe');
       if (aionRunning || electronRunning) {
-        console.log('⚠️  Detected running AionUi/Electron process. Attempting to close...');
-        killWindowsProcesses(['AionUi.exe', 'electron.exe']);
+        console.log('⚠️  Detected running Headmaster/Electron process. Attempting to close...');
+        killWindowsProcesses(['Headmaster.exe', 'electron.exe']);
         cleaned = tryRemoveDir(winUnpackedDir);
         if (!cleaned) {
-          console.log('⚠️  Directory still locked. Please close any running AionUi/Electron processes and retry.');
+          console.log('⚠️  Directory still locked. Please close any running Headmaster/Electron processes and retry.');
         }
       }
     }
@@ -555,7 +570,7 @@ try {
   try {
     buildWithDmgRetry(builderCommand, targetArch);
   } catch (error) {
-    const winExePath = path.join(outDir, 'win-unpacked', 'AionUi.exe');
+    const winExePath = path.join(outDir, 'win-unpacked', 'Headmaster.exe');
     const firstError = formatExecError(error);
     const canRetryWithoutExecutableEdit =
       process.platform === 'win32' && isWindowsBuild && process.env.CI !== 'true' && fs.existsSync(winExePath);
@@ -564,7 +579,7 @@ try {
       throw error;
     }
 
-    console.log('⚠️  Windows local build failed after AionUi.exe was produced.');
+    console.log('⚠️  Windows local build failed after Headmaster.exe was produced.');
     if (firstError) {
       console.log('   First failure summary:');
       console.log(
@@ -577,7 +592,7 @@ try {
     }
     console.log('   Retrying local build with win.signAndEditExecutable=false...');
     console.log('   This fallback is intended for transient rcedit / file-lock failures on developer machines.');
-    killWindowsProcesses(['AionUi.exe', 'electron.exe']);
+    killWindowsProcesses(['Headmaster.exe', 'electron.exe']);
     cleanupWindowsPackOutput();
 
     try {

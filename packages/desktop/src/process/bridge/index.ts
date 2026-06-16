@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 Headmaster (gcaplabs.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -12,11 +12,19 @@ import { initWindowControlsBridge } from './windowControlsBridge';
 import { initNotificationBridge } from './notificationBridge';
 import { initWebuiBridge } from './webuiBridge';
 import { initThemeBridge } from './themeBridge';
+import { initHermesBridge } from './hermesBridge';
+import { initBrowserBridge } from './browserBridge';
+import type { HermesBootstrap } from '@process/backend/hermesBootstrap';
 
-export type BridgeDependencies = Record<string, never>;
+export interface BridgeDependencies {
+  hermesBootstrap?: HermesBootstrap;
+}
 
-export function initAllBridges(_deps: BridgeDependencies = {}): void {
+export function initAllBridges(deps: BridgeDependencies = {}): void {
   initDialogBridge();
+  if (deps.hermesBootstrap) {
+    initHermesBridge(deps.hermesBootstrap);
+  }
   initApplicationBridge();
   initWindowControlsBridge();
   initUpdateBridge();
@@ -24,6 +32,7 @@ export function initAllBridges(_deps: BridgeDependencies = {}): void {
   initNotificationBridge();
   initWebuiBridge();
   initThemeBridge();
+  initBrowserBridge();
 }
 
 export {

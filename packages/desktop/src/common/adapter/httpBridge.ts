@@ -4,6 +4,12 @@
  *
  * Exported helpers produce objects with the same shape as @office-ai/platform bridge,
  * so existing renderer code works without changes.
+ *
+ * NOTE (Phase 1): this module reads `window.__backendPort` (the aioncore port).
+ * The new Hermes dashboard port is exposed as `window.__hermesPort` via the
+ * `useDashboardStatus` hook and consumed by Phase 2 code paths that migrate
+ * endpoints to the Hermes REST surface. During Phase 1, `httpBridge.ts` must NOT
+ * read `__hermesPort` — that would silently redirect aioncore calls to Hermes.
  */
 
 // ---------------------------------------------------------------------------
@@ -13,31 +19,60 @@
 declare global {
   interface Window {
     __backendPort?: number;
+    __hermesPort?: number;
+    __hermesSessionToken?: string;
+    __hermesHome?: string;
   }
 }
 
 /**
  * Resolve the backend port, honoring both renderer and main-process contexts.
  *
- * - Renderer (Electron): the preload bridge writes `window.__backendPort` before
- *   the first HTTP call, so reading from window is authoritative.
+ * The renderer hook `useDashboardStatus` (renderer/hooks/system/useDashboardStatus.ts)
+ * populates `window.__backendPort` from the Hermes dashboard status once
+ * the dashboard is `ready`. Before that, the fallback applies.
+ *
+ * - Renderer (Electron): the hook writes `window.__backendPort` before the
+ *   first HTTP call, so reading from window is authoritative.
  * - Renderer (WebUI browser): no preload, so `window.__backendPort` is missing.
  *   Requests must go to the same origin that served the page; web-host's
  *   static-server reverse-proxies `/api/*` and upgrades `/ws` to the backend
  *   port. See getBaseUrl / getWsUrl below for the WebUI branch.
  * - Main process: `window` is undefined. `src/index.ts` writes the port to
- *   `globalThis.__backendPort` immediately after `backendManager.start()`
+ *   `globalThis.__backendPort` immediately after `hermesBootstrap.start()`
  *   resolves, so any main-process ipcBridge caller (e.g. the one-shot
  *   assistant migration hook) hits the correct port.
- * - Fallback `13400` only applies when neither is initialized — the request
- *   will still fail cleanly with ECONNREFUSED rather than masking the bug.
+ * - Fallback `9119` (Hermes dashboard default) when neither is initialized —
+ *   matches the `--port` default at `hermes_cli/subcommands/dashboard.py:26`.
+ *   The request will still fail cleanly with ECONNREFUSED rather than masking
+ *   the bug.
  */
 function getBackendPort(): number {
-  if (typeof window !== 'undefined' && (window as Window).__backendPort) {
-    return (window as Window).__backendPort as number;
+  if (typeof window !== 'undefined') {
+    const w = (window as Window).__backendPort;
+    // 0 means "Hermes not ready"; don't fall through to globalThis.__backendPort
+    // which would be the stale aioncore port.
+    if (w !== undefined) return w;
   }
   const g = globalThis as typeof globalThis & { __backendPort?: number };
-  return g.__backendPort ?? 13400;
+  return g.__backendPort ?? 9119;
+}
+
+/**
+ * Read the per-launch session token that the Hermes dashboard uses to auth
+ * REST + WS calls. Set by `useDashboardStatus` once the dashboard is ready.
+ *
+ * In the WebUI browser path, the same-origin reverse proxy in web-host
+ * strips the header / query param so the renderer doesn't need to know
+ * about the token at all. The fallback `''` keeps the call site simple
+ * (it'll fail upstream if the token is required and missing).
+ */
+function getSessionToken(): string {
+  if (typeof window !== 'undefined' && (window as Window).__hermesSessionToken) {
+    return (window as Window).__hermesSessionToken as string;
+  }
+  const g = globalThis as typeof globalThis & { __hermesSessionToken?: string };
+  return g.__hermesSessionToken ?? '';
 }
 
 /**
@@ -46,7 +81,7 @@ function getBackendPort(): number {
  * proxy / WS upgrade to the backend.
  */
 function isWebUiBrowserMode(): boolean {
-  return typeof window !== 'undefined' && typeof document !== 'undefined' && !(window as Window).__backendPort;
+  return typeof window !== 'undefined' && typeof document !== 'undefined' && !window.electronAPI;
 }
 
 export function getBaseUrl(): string {
@@ -63,7 +98,13 @@ function getWsUrl(): string {
     const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     return `${proto}//${window.location.host}/ws`;
   }
-  return `ws://127.0.0.1:${getBackendPort()}/ws`;
+  // Hermes dashboard: WS path is `/api/ws`; auth is via `?token=` query param
+  // (verified at hermes-agent/apps/desktop/electron/gateway-ws-probe.cjs:39).
+  const token = getSessionToken();
+  const params = new URLSearchParams();
+  if (token) params.set('token', token);
+  const qs = params.toString();
+  return `ws://127.0.0.1:${getBackendPort()}/api/ws${qs ? `?${qs}` : ''}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -181,6 +222,15 @@ export async function httpRequest<T>(
 
   if (body !== undefined) {
     headers['Content-Type'] = 'application/json';
+  }
+
+  // Inject the Hermes session token for REST calls. Header name is
+  // `X-Hermes-Session-Token` (verified at hermes_cli/web_server.py:186 —
+  // NOT `Authorization: Bearer`). Skipped in the WebUI browser path where
+  // the same-origin reverse proxy already attaches the token.
+  if (!isWebUiBrowserMode()) {
+    const token = getSessionToken();
+    if (token) headers['X-Hermes-Session-Token'] = token;
   }
 
   console.debug(
@@ -339,16 +389,54 @@ let ws: WebSocket | null = null;
 let wsReconnectTimer: ReturnType<typeof setTimeout> | null = null;
 let wsReconnectAttempt = 0;
 
+let wsUnsupported = false;
+let wsSupportChecked = false;
+
+async function checkWsSupport(): Promise<boolean> {
+  if (wsSupportChecked) return !wsUnsupported;
+  wsSupportChecked = true;
+  try {
+    const url = `${getBaseUrl()}/api/ws`;
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 2000);
+    const response = await fetch(url, { method: 'HEAD', signal: controller.signal });
+    clearTimeout(timer);
+    // 404 means the active backend (Adonis Core/aioncore) doesn't expose /api/ws.
+    if (response.status === 404) {
+      wsUnsupported = true;
+      console.debug('[ensureWs] /api/ws returned 404; marking WebSocket unsupported for this backend');
+      return false;
+    }
+    return true;
+  } catch {
+    // Network/timout: still attempt WebSocket; don't permanently block.
+    return true;
+  }
+}
+
 function ensureWs(): void {
   if (typeof window === 'undefined') {
     console.debug('[ensureWs] skipped: no window');
+    return;
+  }
+  if (wsUnsupported) {
+    console.debug('[ensureWs] skipped: /api/ws is unsupported on this backend');
     return;
   }
   if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
     console.debug('[ensureWs] skipped: already open/connecting, readyState=', ws.readyState);
     return;
   }
+  if (wsSupportChecked) {
+    connectWs();
+    return;
+  }
+  void checkWsSupport().then((supported) => {
+    if (supported) connectWs();
+  });
+}
 
+function connectWs(): void {
   const url = getWsUrl();
   console.debug('[ensureWs] connecting to', url);
   try {

@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 Headmaster (aionui.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -129,14 +129,14 @@ describe('AssistantSelectionArea', () => {
           selectedAgentKey='custom:cowork'
           selectedAgentInfo={{
             agent_type: 'acp',
-            name: 'Cowork',
+            name: 'Work Along',
             custom_agent_id: 'cowork',
           }}
           assistants={[
             {
               id: 'cowork',
               source: 'builtin',
-              name: 'Cowork',
+              name: 'Work Along',
               name_i18n: {},
               description_i18n: {},
               enabled: true,
@@ -213,7 +213,7 @@ describe('AssistantSelectionArea', () => {
             {
               id: 'cowork',
               source: 'builtin',
-              name: 'Cowork',
+              name: 'Work Along',
               name_i18n: {},
               description_i18n: {},
               enabled: true,

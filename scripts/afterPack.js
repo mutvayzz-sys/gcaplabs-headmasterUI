@@ -18,7 +18,7 @@ const { verifyBundledAioncoreResources } = require('../packages/shared-scripts/s
 function resolveResourcesDir(electronPlatformName, appOutDir, packager) {
   if (electronPlatformName !== 'darwin') return path.join(appOutDir, 'resources');
 
-  const appName = packager?.appInfo?.productFilename || 'AionUi';
+  const appName = packager?.appInfo?.productFilename || 'Headmaster';
   return path.join(appOutDir, `${appName}.app`, 'Contents', 'Resources');
 }
 
@@ -72,7 +72,12 @@ module.exports = async function afterPack(context) {
       console.warn(`   ⚠️  app.asar.unpacked not found`);
     }
 
-    verifyBundledResources(resourcesDir, electronPlatformName, targetArch);
+    const runtimeMode = (process.env.HEADMASTER_RUNTIME || 'hermes').toLowerCase();
+    if (runtimeMode === 'aioncore') {
+      verifyBundledResources(resourcesDir, electronPlatformName, targetArch);
+    } else {
+      console.log(`   ✓ Bundled aioncore verification skipped (HEADMASTER_RUNTIME=${runtimeMode})`);
+    }
   } else {
     throw new Error(`resources directory not found: ${resourcesDir}`);
   }

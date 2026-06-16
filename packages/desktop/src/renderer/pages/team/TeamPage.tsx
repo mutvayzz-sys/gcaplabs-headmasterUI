@@ -1,5 +1,6 @@
 import { Message, Modal, Spin } from '@arco-design/web-react';
-import { CloseSmall, FullScreen, Left, OffScreen, Peoples, Right } from '@icon-park/react';
+import { CloseSmall } from '@icon-park/react';
+import { UsersThree, ArrowsOutSimple, ArrowsInSimple, CaretLeft, CaretRight } from '@phosphor-icons/react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import useSWR, { useSWRConfig } from 'swr';
@@ -132,7 +133,7 @@ const AgentChatSlot: React.FC<{
             className='shrink-0 cursor-pointer hover:bg-[var(--fill-3)] p-4px rd-4px text-[color:var(--color-text-3)] hover:text-[color:var(--color-text-1)] transition-colors'
             onClick={() => onToggleFullscreen?.()}
           >
-            {isFullscreen ? <OffScreen size='16' fill='currentColor' /> : <FullScreen size='16' fill='currentColor' />}
+            {isFullscreen ? <ArrowsInSimple size={16} weight='bold' className='text-t-primary' /> : <ArrowsOutSimple size={16} weight='bold' className='text-t-primary' />}
           </div>
         </div>
       </div>
@@ -359,7 +360,7 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onRenameTeam })
         onRenameTitle={onRenameTeam}
         headerLeading={
           <span className='inline-flex w-16px h-16px items-center justify-center shrink-0 leading-none text-t-primary'>
-            <Peoples theme='outline' size='16' fill='currentColor' style={{ lineHeight: 0 }} />
+            <UsersThree size={16} weight='duotone' className='text-t-primary' style={{ lineHeight: 0 }} />
           </span>
         }
       >
@@ -395,7 +396,7 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onRenameTeam })
                     className='w-32px h-32px rd-full flex items-center justify-center'
                     style={{ background: 'rgba(0,0,0,0.5)', lineHeight: 0 }}
                   >
-                    <Left size='24' fill='#fff' />
+                    <CaretLeft size={24} weight='bold' className='text-t-primary' />
                   </div>
                 </div>
               )}
@@ -448,7 +449,7 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onRenameTeam })
                     className='w-32px h-32px rd-full flex items-center justify-center'
                     style={{ background: 'rgba(0,0,0,0.5)', lineHeight: 0 }}
                   >
-                    <Right size='24' fill='#fff' />
+                    <CaretRight size={24} weight='bold' className='text-t-primary' />
                   </div>
                 </div>
               )}

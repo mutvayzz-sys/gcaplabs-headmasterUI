@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 Headmaster (gcaplabs.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -8,11 +8,11 @@ import type { ConfigKeyMap } from './configKeys';
 import type { IProvider } from './storage';
 
 export const IMAGE_GEN_ENV_KEYS = {
-  providerId: 'AIONUI_IMG_PROVIDER_ID',
-  platform: 'AIONUI_IMG_PLATFORM',
-  baseUrl: 'AIONUI_IMG_BASE_URL',
-  apiKey: 'AIONUI_IMG_API_KEY',
-  model: 'AIONUI_IMG_MODEL',
+  providerId: 'HEADMASTER_IMG_PROVIDER_ID',
+  platform: 'HEADMASTER_IMG_PLATFORM',
+  baseUrl: 'HEADMASTER_IMG_BASE_URL',
+  apiKey: 'HEADMASTER_IMG_API_KEY',
+  model: 'HEADMASTER_IMG_MODEL',
 } as const;
 
 type ImageGenerationSelection = Partial<ConfigKeyMap['tools.imageGenerationModel']>;

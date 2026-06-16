@@ -1,9 +1,9 @@
 <p align="center">
-  <img src="../../resources/aionui-banner-1.png" alt="AionUi - Спільна робота з AI-агентами" width="100%">
+  <img src="../../resources/headmaster-banner-1.png" alt="Headmaster - Спільна робота з AI-агентами" width="100%">
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/github/v/release/iOfficeAI/AionUi?style=flat-square&color=32CD32" alt="Версія">
+  <img src="https://img.shields.io/github/v/release/iOfficeAI/Headmaster?style=flat-square&color=32CD32" alt="Версія">
   &nbsp;
   <img src="https://img.shields.io/badge/license-Apache--2.0-32CD32?style=flat-square&logo=apache&logoColor=white" alt="Ліцензія">
   &nbsp;
@@ -24,17 +24,17 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/iOfficeAI/AionUi/releases">
+  <a href="https://github.com/iOfficeAI/Headmaster/releases">
     <img src="https://img.shields.io/badge/⬇️%20Завантажити-Останній%20реліз-32CD32?style=for-the-badge&logo=github&logoColor=white" alt="Завантажити останній реліз" height="50">
   </a>
 </p>
 
 <p align="center">
-  <a href="../../readme.md">English</a> | <a href="./readme_ch.md">简体中文</a> | <a href="./readme_tw.md">繁體中文</a> | <a href="./readme_jp.md">日本語</a> | <a href="./readme_ko.md">한국어</a> | <a href="./readme_es.md">Español</a> | <a href="./readme_pt.md">Português</a> | <a href="./readme_tr.md">Türkçe</a> | <a href="./readme_ru.md">Русский</a> | <strong>Українська</strong> | <a href="https://www.aionui.com" target="_blank">Офіційний сайт</a>
+  <a href="../../readme.md">English</a> | <a href="./readme_ch.md">简体中文</a> | <a href="./readme_tw.md">繁體中文</a> | <a href="./readme_jp.md">日本語</a> | <a href="./readme_ko.md">한국어</a> | <a href="./readme_es.md">Español</a> | <a href="./readme_pt.md">Português</a> | <a href="./readme_tr.md">Türkçe</a> | <a href="./readme_ru.md">Русский</a> | <strong>Українська</strong> | <a href="https://www.gcaplabs.com" target="_blank">Офіційний сайт</a>
 </p>
 
 <p align="center">
-  <strong>💬 Спільнота:</strong> <a href="https://discord.gg/2QAwJn7Egx" target="_blank">Discord (English)</a> | <a href="../../resources/wx-11.png" target="_blank">微信 (中文群)</a> | <a href="https://twitter.com/AionUI" target="_blank">Twitter</a>
+  <strong>💬 Спільнота:</strong> <a href="https://discord.gg/2QAwJn7Egx" target="_blank">Discord (English)</a> | <a href="../../resources/wx-11.png" target="_blank">微信 (中文群)</a> | <a href="https://twitter.com/Headmaster" target="_blank">Twitter</a>
 </p>
 
 ---
@@ -43,8 +43,8 @@
 
 <p align="center">
 
-[✨ Cowork у дії](#-cowork-у-дії) ·
-[🤔 Чому варто обрати AionUi?](#-чому-варто-обрати-aionui-замість-claude-cowork) ·
+[✨ Work Along у дії](#-cowork-у-дії) ·
+[🤔 Чому варто обрати Headmaster?](#-чому-варто-обрати-headmaster-замість-claude-cowork) ·
 [🚀 Швидкий старт](#-швидкий-старт) ·
 [💬 Спільнота](#-спільнота--підтримка)
 
@@ -52,11 +52,11 @@
 
 ---
 
-## Cowork — AI-агенти, що працюють разом із вами
+## Work Along — AI-агенти, що працюють разом із вами
 
-**AionUi — це більше, ніж просто чат-клієнт.** Це платформа для спільної роботи (Cowork), де AI-агенти працюють пліч-о-пліч із вами на вашому комп'ютері: читають файли, пишуть код, шукають в інтернеті та автоматизують завдання. Ви бачите все, що робить агент, і завжди зберігаєте контроль.
+**Headmaster — це більше, ніж просто чат-клієнт.** Це платформа для спільної роботи (Work Along), де AI-агенти працюють пліч-о-пліч із вами на вашому комп'ютері: читають файли, пишуть код, шукають в інтернеті та автоматизують завдання. Ви бачите все, що робить агент, і завжди зберігаєте контроль.
 
-|                                    | Традиційні AI чат-клієнти | **AionUi (Cowork)**                                                                                                  |
+|                                    | Традиційні AI чат-клієнти | **Headmaster (Work Along)**                                                                                                  |
 | :--------------------------------- | :------------------------ | :------------------------------------------------------------------------------------------------------------------- |
 | AI може працювати з вашими файлами | Обмежено або ні           | **Так — вбудований агент із повним доступом до файлів**                                                              |
 | AI може виконувати багато кроків   | Обмежено                  | **Так — автономно за вашим підтвердженням**                                                                          |
@@ -66,19 +66,19 @@
 | Ціна                               | Безкоштовно / Платно      | **Безкоштовно та з відкритим кодом**                                                                                 |
 
 <p align="center">
-  <img src="../../resources/offica-ai BANNER-function.png" alt="AionUi Cowork Platform" width="800">
+  <img src="../../resources/offica-ai BANNER-function.png" alt="Headmaster Work Along Platform" width="800">
 </p>
 
 ---
 
 ## Вбудований агент — Встанови та працюй, Нуль налаштувань
 
-AionUi постачається з повноцінним рушієм AI-агентів. На відміну від інструментів, що вимагають окремого встановлення CLI-агентів, **AionUi працює одразу після встановлення**.
+Headmaster постачається з повноцінним рушієм AI-агентів. На відміну від інструментів, що вимагають окремого встановлення CLI-агентів, **Headmaster працює одразу після встановлення**.
 
 - **Не потрібно встановлювати CLI-інструменти** — рушій агента вже вбудований
 - **Жодних складних налаштувань** — додайте будь-який API ключ, щоб почати
 - **Повні можливості агента** — читання/запис файлів, веб-пошук, генерація зображень, MCP інструменти
-- **Готові до використання асистенти** — 21 вбудований професійний асистент (Cowork, PPT Creator, Word Creator, Word Form Creator, Excel Creator, Morph PPT, Morph PPT 3D, Pitch Deck Creator, Dashboard Creator, Academic Paper Writer, Financial Model Creator та інші)
+- **Готові до використання асистенти** — 21 вбудований професійний асистент (Work Along, PPT Creator, Word Creator, Word Form Creator, Excel Creator, Morph PPT, Morph PPT 3D, Pitch Deck Creator, Dashboard Creator, Academic Paper Writer, Financial Model Creator та інші)
 
 <p align="center">
   <img src="../../resources/homepage.png" alt="Вбудовані агенти" width="800">
@@ -140,9 +140,9 @@ AionUi постачається з повноцінним рушієм AI-аге
 
 ## Мульти-агентний режим — Вже маєте CLI-агентів? Додайте їх
 
-Якщо ви вже використовуєте Claude Code, Codex, Hermes Agent або OpenClaw, AionUi автоматично виявить їх і дозволить працювати з усіма ними разом із вбудованим агентом.
+Якщо ви вже використовуєте Claude Code, Codex, Hermes Agent або OpenClaw, Headmaster автоматично виявить їх і дозволить працювати з усіма ними разом із вбудованим агентом.
 
-**Підтримувані агенти:** Вбудований агент • Claude Code • Codex • Qwen Code • Goose AI • OpenClaw • Augment Code • CodeBuddy • Kimi CLI • OpenCode • Factory Droid • GitHub Copilot • Qoder CLI • Mistral Vibe • Nanobot • Aion CLI (aionrs, Rust-бекенд-сервіс, що постачається з AionUi) • Snow CLI • Hermes Agent • Cursor Agent та інші
+**Підтримувані агенти:** Вбудований агент • Claude Code • Codex • Qwen Code • Goose AI • OpenClaw • Augment Code • CodeBuddy • Kimi CLI • OpenCode • Factory Droid • GitHub Copilot • Qoder CLI • Mistral Vibe • Nanobot • Aion CLI (aionrs, Rust-бекенд-сервіс, що постачається з Headmaster) • Snow CLI • Hermes Agent • Cursor Agent та інші
 
 <p align="center">
   <img src="../../resources/multi-agent支持openclaw.gif" alt="Мульти-агентний режим" width="800">
@@ -154,20 +154,20 @@ AionUi постачається з повноцінним рушієм AI-аге
 - **Єдине керування MCP** — налаштуйте інструменти MCP один раз, і вони автоматично синхронізуються для всіх агентів
 - **YOLO Mode** (автопідтвердження всіх дій агента без ручного підтвердження) / **Повністю автоматичний режим** — одним кліком пропускайте запити на дозвіл; всі агенти підтримують повністю автоматичний режим для роботи без нагляду
 
-### Team Mode — Скоординована мульти-агентна співпраця
+### The Council — Скоординована мульти-агентна співпраця
 
 Запускайте кілька AI-агентів як організовану команду: агент **Leader** отримує ваші інструкції, ділить їх на підзадачі і делегує агентам **Teammate** через вбудований Team MCP Server. Teammate-агенти виконують завдання паралельно, обмінюються результатами через асинхронну поштову скриньку та записують у спільну дошку завдань.
 
 <p align="center">
-  <img src="../../resources/AionUi_team.gif" alt="Team Mode overview" width="800">
+  <img src="../../resources/Headmaster_team.gif" alt="The Council overview" width="800">
 </p>
 
-- **Паралельне виконання кількох агентів** — Leader ділить завдання на підзадачі і делегує паралельно працюючим Teammate-агентам; кожен Teammate використовує свою модель через ACP (Agent Communication Protocol, шар координації мульти-агентності AionUi), Gemini або Aionrs
+- **Паралельне виконання кількох агентів** — Leader ділить завдання на підзадачі і делегує паралельно працюючим Teammate-агентам; кожен Teammate використовує свою модель через ACP (Agent Communication Protocol, шар координації мульти-агентності Headmaster), Gemini або Aionrs
 - **Оркестрація Leader** — Leader призначає, відстежує та агрегує результати; підтримувані бекенди: Claude Code, Codex, Hermes Agent, Gemini, Snow CLI, Aion CLI
 - **Ізольований робочий простір команди** — всі агенти спільно використовують одну папку; кожен має свій діалог підтвердження дозволів із значком на бічній панелі для очікуваних підтверджень
 
 <details>
-<summary><strong>🔍 Деталі Team Mode ▶️</strong></summary>
+<summary><strong>🔍 Деталі The Council ▶️</strong></summary>
 
 <br>
 
@@ -181,19 +181,19 @@ AionUi постачається з повноцінним рушієм AI-аге
 
 ---
 
-## Будь-який API ключ, Повна потужність Cowork
+## Будь-який API ключ, Повна потужність Work Along
 
-Інші додатки дають лише вікно чату. **AionUi дає повноцінного агента для спільної роботи.**
+Інші додатки дають лише вікно чату. **Headmaster дає повноцінного агента для спільної роботи.**
 
 | Ваш API ключ                  | Що ви отримуєте             |
 | :---------------------------- | :-------------------------- |
-| Gemini API                    | Cowork агент на базі Gemini |
-| OpenAI API                    | Cowork агент на базі GPT    |
-| Anthropic API                 | Cowork агент на базі Claude |
-| Ollama / LM Studio (локально) | Локальний Cowork агент      |
+| Gemini API                    | Work Along агент на базі Gemini |
+| OpenAI API                    | Work Along агент на базі GPT    |
+| Anthropic API                 | Work Along агент на базі Claude |
+| Ollama / LM Studio (локально) | Локальний Work Along агент      |
 | Шлюз NewAPI                   | Доступ до 20+ моделей       |
 
-Ті ж самі можливості — читання/запис файлів, веб-пошук, генерація зображень — незалежно від того, яка модель використовується. AionUi підтримує **30+ AI-платформ**.
+Ті ж самі можливості — читання/запис файлів, веб-пошук, генерація зображень — незалежно від того, яка модель використовується. Headmaster підтримує **30+ AI-платформ**.
 
 <p align="center">
   <img src="../../resources/llm_newapi.png" alt="Підтримка багатьох моделей" width="800">
@@ -221,7 +221,7 @@ AionUi постачається з повноцінним рушієм AI-аге
 _Система асистентів із 21 вбудованим професіоналом та трирівневою системою навичок. Створюйте та керуйте власними асистентами та навичками._
 
 - **Створюйте власних асистентів** — визначте правила та можливості
-- **Трирівневі навички** — вбудовані навички (поставляються з AionUi), власні навички (ваші особисті) та Extension-навички (від сторонніх розширень); вмикайте/вимикайте для кожної розмови з індикатором навичок
+- **Трирівневі навички** — вбудовані навички (поставляються з Headmaster), власні навички (ваші особисті) та Extension-навички (від сторонніх розширень); вмикайте/вимикайте для кожної розмови з індикатором навичок
 - **Контроль для кожної розмови** — індикатор навичок у заголовку чату показує активні навички поточної розмови
 
 <p align="center">
@@ -235,7 +235,7 @@ _Система асистентів із 21 вбудованим професі
 
 Включено **21 професійний асистент**:
 
-- **🤝 Cowork** — Автономне виконання завдань (файли, документи, планування)
+- **🤝 Work Along** — Автономне виконання завдань (файли, документи, планування)
 - **📊 PPT Creator / Morph PPT / Morph PPT 3D** — Генерація та анімація PPTX-презентацій із Morph-переходами
 - **📐 Pitch Deck Creator** — Генерація презентації для інвесторів
 - **📊 Dashboard Creator** — Генерація інформаційних панелей даних
@@ -255,13 +255,13 @@ _Система асистентів із 21 вбудованим професі
 - **🔧 OpenClaw Setup** — Налаштування інтеграції з OpenClaw
 - **📖 Story Roleplay** — Рольові ігри (сумісно з SillyTavern)
 
-**Навички**: навички з трьох джерел — вбудовані (поставляються з AionUi), власні (ваші особисті) та Extension (через Extension SDK). Вбудовані: `pptx`, `docx`, `pdf`, `xlsx`, `mermaid` та інші.
+**Навички**: навички з трьох джерел — вбудовані (поставляються з Headmaster), власні (ваші особисті) та Extension (через Extension SDK). Вбудовані: `pptx`, `docx`, `pdf`, `xlsx`, `mermaid` та інші.
 
 </details>
 
 ---
 
-## Cowork звідусіль
+## Work Along звідусіль
 
 _Ваш AI-помічник 24/7 — доступ з будь-якого пристрою._
 
@@ -279,9 +279,9 @@ _Ваш AI-помічник 24/7 — доступ з будь-якого при�
 
 ---
 
-## ✨ Cowork у дії
+## ✨ Work Along у дії
 
-### **Завдання за розкладом — Cowork на автопілоті**
+### **Завдання за розкладом — Work Along на автопілоті**
 
 _Налаштуйте один раз, і AI-агент працюватиме автоматично за розкладом._
 
@@ -315,7 +315,7 @@ _Налаштуйте один раз, і AI-агент працюватиме �
 - **Прив'язка до розмови** — кожне завдання прив'язане до розмови, зберігаючи контекст та історію
 - **Автоматичне виконання** — завдання виконуються автоматично у запланований час, надсилаючи повідомлення до розмови
 - **Просте керування** — створюйте, змінюйте, вмикайте/вимикайте, видаляйте та переглядайте заплановані завдання у будь-який час
-- **Режим без сну** — AionUi автоматично запобігає переходу системи у сплячий режим, поки активні завдання, та визначає пропущені тригери після пробудження
+- **Режим без сну** — Headmaster автоматично запобігає переходу системи у сплячий режим, поки активні завдання, та визначає пропущені тригери після пробудження
 - **Розширена конфігурація** — кожне завдання може мати власні налаштування моделі, робочого каталогу та інтенсивності міркувань
 
 </details>
@@ -337,16 +337,16 @@ _10+ форматів: PDF, Word, Excel, PPT, код, Markdown, зображен
 _Пакетне перейменування, автоматичне впорядкування, розумна класифікація та злиття файлів._
 
 <p align="center">
-  <img src="../../resources/aionui sort file 2.gif" alt="Керування файлами" width="800">
+  <img src="../../resources/headmaster sort file 2.gif" alt="Керування файлами" width="800">
 </p>
 
 ---
 
-## 🤔 Чому варто обрати AionUi замість Claude Cowork?
+## 🤔 Чому варто обрати Headmaster замість Claude Work Along?
 
-AionUi — це **безкоштовний Multi-AI Agent десктоп**. На відміну від Claude Cowork, який працює лише на macOS і обмежений лише Claude, AionUi — це версія з підтримкою всіх моделей та платформ.
+Headmaster — це **безкоштовний Multi-AI Agent десктоп**. На відміну від Claude Work Along, який працює лише на macOS і обмежений лише Claude, Headmaster — це версія з підтримкою всіх моделей та платформ.
 
-| Параметр      | Claude Cowork | AionUi                                                |
+| Параметр      | Claude Work Along | Headmaster                                                |
 | :------------ | :------------ | :---------------------------------------------------- |
 | ОС            | Тільки macOS  | macOS / Windows / Linux                               |
 | Моделі        | Тільки Claude | Gemini, Claude, DeepSeek, OpenAI, Ollama, ...         |
@@ -361,7 +361,7 @@ AionUi — це **безкоштовний Multi-AI Agent десктоп**. На
 ### Встановлення
 
 <p>
-  <a href="https://github.com/iOfficeAI/AionUi/releases">
+  <a href="https://github.com/iOfficeAI/Headmaster/releases">
     <img src="https://img.shields.io/badge/Завантажити-Останній%20реліз-32CD32?style=for-the-badge&logo=github&logoColor=white" alt="Завантажити останній реліз" height="50">
   </a>
 </p>
@@ -370,12 +370,12 @@ AionUi — це **безкоштовний Multi-AI Agent десктоп**. На
 
 ```bash
 # Або macOS через Homebrew
-brew install aionui
+brew install headmaster
 ```
 
 ### Початок роботи за 3 кроки
 
-1. **Встановіть** AionUi
+1. **Встановіть** Headmaster
 2. **Додайте** будь-який API ключ, щоб почати
 3. **Почніть працювати** — вбудований агент уже готовий до дії
 
@@ -386,13 +386,13 @@ brew install aionui
 **Ваші ідеї важливі!** Ми цінуємо кожен відгук.
 
 <p align="center">
-  <a href="https://x.com/AionUi" target="_blank">
+  <a href="https://x.com/Headmaster" target="_blank">
     <img src="../../resources/contactus-x.png" alt="Зв'яжіться з нами в X" width="600">
   </a>
 </p>
 
-- [GitHub Discussions](https://github.com/iOfficeAI/AionUi/discussions) — діліться ідеями
-- [Повідомити про проблему](https://github.com/iOfficeAI/AionUi/issues) — баги та запити функцій
+- [GitHub Discussions](https://github.com/iOfficeAI/Headmaster/discussions) — діліться ідеями
+- [Повідомити про проблему](https://github.com/iOfficeAI/Headmaster/issues) — баги та запити функцій
 - [Discord](https://discord.gg/2QAwJn7Egx) — англомовна спільнота
 
 ### Внесок у проект
@@ -420,8 +420,8 @@ bun run test       # запустити юніт-тести
 ## Contributors
 
 <p align="center">
-  <a href="https://github.com/iOfficeAI/AionUi/graphs/contributors">
-    <img src="https://contrib.rocks/image?repo=iOfficeAI/AionUi&max=100" alt="Contributors" />
+  <a href="https://github.com/iOfficeAI/Headmaster/graphs/contributors">
+    <img src="https://contrib.rocks/image?repo=iOfficeAI/Headmaster&max=100" alt="Contributors" />
   </a>
 </p>
 

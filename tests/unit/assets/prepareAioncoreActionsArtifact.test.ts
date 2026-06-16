@@ -17,7 +17,7 @@ describe('prepare-aioncore GitHub Actions artifact resolver', () => {
     expect(getActionsArtifactName(platform, arch)).toBe(artifactName);
   });
 
-  it('explains which AionCore manual artifact is missing for the requested platform', () => {
+  it('explains which Adonis Core manual artifact is missing for the requested platform', () => {
     expect(
       getActionsArtifactMissingMessage({
         runId: '27319522909',
@@ -28,9 +28,9 @@ describe('prepare-aioncore GitHub Actions artifact resolver', () => {
       })
     ).toBe(
       [
-        'AionCore run 27319522909 does not contain artifact [ aioncore-manual-windows-x64 ] required for [ win32-x64 ].',
+        'Adonis Core run 27319522909 does not contain artifact [ aioncore-manual-windows-x64 ] required for [ win32-x64 ].',
         'Available artifacts: aioncore-manual-macos-arm64, aioncore-manual-linux-x64.',
-        'Re-run AionCore Manual Build with platform [ windows-x64 ] or all.',
+        'Re-run Adonis Core Manual Build with platform [ windows-x64 ] or all.',
       ].join(' ')
     );
   });

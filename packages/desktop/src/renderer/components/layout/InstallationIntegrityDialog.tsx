@@ -3,10 +3,10 @@ import type { TFunction } from 'i18next';
 import React, { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 
-const AIONUI_DOWNLOAD_URL = 'https://www.aionui.com/';
+const HEADMASTER_DOWNLOAD_URL = 'https://gcaplabs.com/';
 
 export function openDownloadLatest(): void {
-  window.open(AIONUI_DOWNLOAD_URL, '_blank', 'noopener,noreferrer');
+  window.open(HEADMASTER_DOWNLOAD_URL, '_blank', 'noopener,noreferrer');
 }
 
 export function getInstallationIntegrityTitle(t: TFunction): string {
@@ -25,23 +25,31 @@ export function getInstallationIntegrityDownloadText(t: TFunction): string {
   return t('common.backendStartup.incompleteInstallation.downloadLatest');
 }
 
-export function getDownloadLatestModalActionProps(t: TFunction): {
-  cancelButtonProps: {
-    style: {
-      display: 'none';
+export function getDownloadLatestModalActionProps(t: TFunction, onContinue?: () => void): {
+  cancelButtonProps?: {
+    style?: {
+      display?: string;
     };
   };
   okText: string;
   onOk: () => void;
+  cancelText?: string;
+  onCancel?: () => void;
 } {
   return {
     okText: getInstallationIntegrityDownloadText(t),
     onOk: openDownloadLatest,
-    cancelButtonProps: {
-      style: {
-        display: 'none',
+    ...(onContinue && {
+      cancelText: 'Continue Anyway',
+      onCancel: onContinue,
+    }),
+    ...(!onContinue && {
+      cancelButtonProps: {
+        style: {
+          display: 'none',
+        },
       },
-    },
+    }),
   };
 }
 
@@ -56,18 +64,22 @@ type InstallationIntegrityModalController = ReturnType<typeof Modal.useModal>[0]
 export function showInstallationIntegrityModal(
   modal: InstallationIntegrityModalController,
   t: TFunction,
-  description: string
+  description: string,
+  onContinue?: () => void
 ): void {
   modal.error({
     title: getInstallationIntegrityTitle(t),
     content: <InstallationIntegrityContent description={description} />,
-    ...getDownloadLatestModalActionProps(t),
-    closable: false,
-    maskClosable: false,
+    ...getDownloadLatestModalActionProps(t, onContinue),
+    closable: Boolean(onContinue),
+    maskClosable: Boolean(onContinue),
   });
 }
 
-export const InstallationIntegrityModalHost: React.FC<{ description: string }> = ({ description }) => {
+export const InstallationIntegrityModalHost: React.FC<{ description: string; onContinue?: () => void }> = ({
+  description,
+  onContinue,
+}) => {
   const [modal, modalContextHolder] = Modal.useModal();
   const { t } = useTranslation();
   const shownRef = useRef(false);
@@ -75,8 +87,8 @@ export const InstallationIntegrityModalHost: React.FC<{ description: string }> =
   useEffect(() => {
     if (shownRef.current) return;
     shownRef.current = true;
-    showInstallationIntegrityModal(modal, t, description);
-  }, [description, modal, t]);
+    showInstallationIntegrityModal(modal, t, description, onContinue);
+  }, [description, modal, t, onContinue]);
 
   return <>{modalContextHolder}</>;
 };

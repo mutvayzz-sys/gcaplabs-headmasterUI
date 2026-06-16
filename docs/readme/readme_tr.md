@@ -1,9 +1,9 @@
 <p align="center">
-  <img src="../../resources/aionui-banner-1.png" alt="AionUi - Cowork with AI Agents" width="100%">
+  <img src="../../resources/headmaster-banner-1.png" alt="Headmaster - Work Along with AI Specialists" width="100%">
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/github/v/release/iOfficeAI/AionUi?style=flat-square&color=32CD32" alt="Version">
+  <img src="https://img.shields.io/github/v/release/iOfficeAI/Headmaster?style=flat-square&color=32CD32" alt="Version">
   &nbsp;
   <img src="https://img.shields.io/badge/license-Apache--2.0-32CD32?style=flat-square&logo=apache&logoColor=white" alt="License">
   &nbsp;
@@ -19,22 +19,22 @@
 ---
 
 <p align="center">
-  <strong>AI Agents ile ücretsiz, açık kaynaklı Cowork uygulaması</strong><br>
+  <strong>AI Agents ile ücretsiz, açık kaynaklı Work Along uygulaması</strong><br>
   <em>Yerleşik Agent | Sıfır Kurulum | Herhangi bir API Anahtarı | Çoklu Agent | Uzaktan Erişim | Çapraz Platform | 7/24 Otomasyon</em>
 </p>
 
 <p align="center">
-  <a href="https://github.com/iOfficeAI/AionUi/releases">
+  <a href="https://github.com/iOfficeAI/Headmaster/releases">
     <img src="https://img.shields.io/badge/⬇️%20Şimdi%20İndir-En%20Son%20Sürüm-32CD32?style=for-the-badge&logo=github&logoColor=white" alt="En Son Sürümü İndir" height="50">
   </a>
 </p>
 
 <p align="center">
-  <a href="../../readme.md">English</a> | <a href="./readme_ch.md">简体中文</a> | <a href="./readme_tw.md">繁體中文</a> | <a href="./readme_jp.md">日本語</a> | <a href="./readme_ko.md">한국어</a> | <a href="./readme_es.md">Español</a> | <a href="./readme_pt.md">Português</a> | <strong>Türkçe</strong> | <a href="./readme_ru.md">Русский</a> | <a href="./readme_uk.md">Українська</a> | <a href="https://www.aionui.com" target="_blank">Resmi Web Sitesi</a>
+  <a href="../../readme.md">English</a> | <a href="./readme_ch.md">简体中文</a> | <a href="./readme_tw.md">繁體中文</a> | <a href="./readme_jp.md">日本語</a> | <a href="./readme_ko.md">한국어</a> | <a href="./readme_es.md">Español</a> | <a href="./readme_pt.md">Português</a> | <strong>Türkçe</strong> | <a href="./readme_ru.md">Русский</a> | <a href="./readme_uk.md">Українська</a> | <a href="https://www.gcaplabs.com" target="_blank">Resmi Web Sitesi</a>
 </p>
 
 <p align="center">
-  <strong>💬 Topluluk:</strong> <a href="https://discord.gg/2QAwJn7Egx" target="_blank">Discord (English)</a> | <a href="../../resources/wx-11.png" target="_blank">微信 (中文群)</a> | <a href="https://twitter.com/AionUI" target="_blank">Twitter</a>
+  <strong>💬 Topluluk:</strong> <a href="https://discord.gg/2QAwJn7Egx" target="_blank">Discord (English)</a> | <a href="../../resources/wx-11.png" target="_blank">微信 (中文群)</a> | <a href="https://twitter.com/Headmaster" target="_blank">Twitter</a>
 </p>
 
 ---
@@ -43,8 +43,8 @@
 
 <p align="center">
 
-[✨ Cowork Eylemde](#-cowork-eylemde) ·
-[🤔 Neden AionUi'yi Seçmelisiniz?](#-neden-aionui-claude-cowork-yerine) ·
+[✨ Work Along Eylemde](#-cowork-eylemde) ·
+[🤔 Neden Headmaster'yi Seçmelisiniz?](#-neden-headmaster-claude-cowork-yerine) ·
 [🚀 Hızlı Başlangıç](#-hızlı-başlangıç) ·
 [💬 Topluluk](#-topluluk-ve-destek)
 
@@ -52,11 +52,11 @@
 
 ---
 
-## Cowork — Sizinle Çalışan AI Agents
+## Work Along — Sizinle Çalışan AI Agents
 
-**AionUi sadece bir sohbet istemcisi değil.** AI Agents'ın bilgisayarınızda sizinle çalıştığı bir Cowork platformudur — dosya okuma, kod yazma, web'de gezinme ve görevleri otomatikleştirme. Agent'ın yaptığı her şeyi görürsünüz ve her zaman kontrol sizdedir.
+**Headmaster sadece bir sohbet istemcisi değil.** AI Agents'ın bilgisayarınızda sizinle çalıştığı bir Work Along platformudur — dosya okuma, kod yazma, web'de gezinme ve görevleri otomatikleştirme. Agent'ın yaptığı her şeyi görürsünüz ve her zaman kontrol sizdedir.
 
-|                                        | Geleneksel AI Sohbet İstemcileri | **AionUi (Cowork)**                                                                                                             |
+|                                        | Geleneksel AI Sohbet İstemcileri | **Headmaster (Work Along)**                                                                                                             |
 | :------------------------------------- | :------------------------------- | :------------------------------------------------------------------------------------------------------------------------------ |
 | AI dosyalarınızda işlem yapabilir      | Sınırlı veya Yok                 | **Evet — tam dosya erişimi ile yerleşik Agent**                                                                                 |
 | AI çok adımlı görevleri çalıştırabilir | Sınırlı                          | **Evet — onayınızla özerk**                                                                                                     |
@@ -66,19 +66,19 @@
 | Fiyat                                  | Ücretsiz / Ücretli               | **Ücretsiz ve Açık Kaynak**                                                                                                     |
 
 <p align="center">
-  <img src="../../resources/offica-ai BANNER-function.png" alt="AionUi Cowork Platform" width="800">
+  <img src="../../resources/offica-ai BANNER-function.png" alt="Headmaster Work Along Platform" width="800">
 </p>
 
 ---
 
 ## Yerleşik Agent — Kur ve Kullan, Sıfır Yapılandırma
 
-AionUi tam bir AI Agent motoru ile birlikte gelir. CLI Agent'ları ayrı olarak kurmanızı gerektiren araçların aksine, **AionUi kurduğunuz anda çalışır**.
+Headmaster tam bir AI Agent motoru ile birlikte gelir. CLI Agent'ları ayrı olarak kurmanızı gerektiren araçların aksine, **Headmaster kurduğunuz anda çalışır**.
 
 - **Kurulacak CLI araçları yok** — Agent motoru yerleşiktir
 - **Karmaşık kurulum yok** — başlamak için herhangi bir API anahtarı yapıştırın
 - **Tam Agent yetenekleri** — dosya okuma/yazma, web arama, görüntü oluşturma, MCP araçları
-- **Kullanıma hazır asistanlar** — 21 yerleşik profesyonel asistan (Cowork, PPT Creator, Morph PPT, Morph PPT 3D, Word Creator, Word Form Creator, Excel Creator, Pitch Deck Creator, Dashboard Creator, Academic Paper Writer, Financial Model Creator ve daha fazlası) hemen kullanıma hazır
+- **Kullanıma hazır asistanlar** — 21 yerleşik profesyonel asistan (Work Along, PPT Creator, Morph PPT, Morph PPT 3D, Word Creator, Word Form Creator, Excel Creator, Pitch Deck Creator, Dashboard Creator, Academic Paper Writer, Financial Model Creator ve daha fazlası) hemen kullanıma hazır
 
 <p align="center">
   <img src="../../resources/homepage.png" alt="Built-in Agents" width="800">
@@ -88,34 +88,34 @@ AionUi tam bir AI Agent motoru ile birlikte gelir. CLI Agent'ları ayrı olarak 
 
 ## Çoklu Agent Modu — Zaten CLI Agent'larınız var mı? Getirin
 
-Zaten Claude Code, Codex, Hermes Agent veya OpenClaw kullanıyorsanız, AionUi bunları otomatik olarak algılar ve hepsiyle Cowork yapmanıza izin verir — yerleşik Agent ile birlikte.
+Zaten Claude Code, Codex, Hermes Agent veya OpenClaw kullanıyorsanız, Headmaster bunları otomatik olarak algılar ve hepsiyle Work Along yapmanıza izin verir — yerleşik Agent ile birlikte.
 
-**Desteklenen Agents:** Yerleşik Agent (sıfır kurulum) • Claude Code • Codex • Qwen Code • Goose AI • OpenClaw • Augment Code • CodeBuddy • Kimi CLI • OpenCode • Factory Droid • GitHub Copilot • Qoder CLI • Mistral Vibe • Nanobot • Aion CLI (aionrs, AionUi ile birlikte dağıtılan Rust tabanlı arka uç servisi) • Snow CLI • Hermes Agent • Cursor Agent ve daha fazlası
+**Desteklenen Agents:** Yerleşik Agent (sıfır kurulum) • Claude Code • Codex • Qwen Code • Goose AI • OpenClaw • Augment Code • CodeBuddy • Kimi CLI • OpenCode • Factory Droid • GitHub Copilot • Qoder CLI • Mistral Vibe • Nanobot • Aion CLI (aionrs, Headmaster ile birlikte dağıtılan Rust tabanlı arka uç servisi) • Snow CLI • Hermes Agent • Cursor Agent ve daha fazlası
 
 <p align="center">
-  <img src="../../resources/multi-agent支持openclaw.gif" alt="Multi-Agent Cowork" width="800">
+  <img src="../../resources/multi-agent支持openclaw.gif" alt="Multi-Agent Work Along" width="800">
 </p>
 
 - **Otomatik Algılama** — kurulu CLI araçlarını otomatik olarak tanır
-- **Birleşik Arayüz** — tüm AI Agent'larınız için tek bir Cowork platformu
+- **Birleşik Arayüz** — tüm AI Agent'larınız için tek bir Work Along platformu
 - **Paralel Oturumlar** — bağımsız bağlam ile birden fazla Agent'ı aynı anda çalıştırın
 - **MCP Birleşik Yönetimi** — MCP (Model Context Protocol) araçlarını bir kez yapılandırın, tüm Agent'lara otomatik olarak senkronize edilir — her Agent'ı ayrı ayrı yapılandırmanıza gerek yok
 - **YOLO Mode** (tüm Agent eylemlerini manuel onay olmadan otomatik onayla) / **Tam Otomatik Mod** — tek tıkla izin istemlerini atlayın; tüm Agent'lar gözetimsiz çalıştırma için tam otomatik modu destekler
 
-### Team Mode — Koordineli Çoklu Agent İşbirliği
+### The Council — Koordineli Çoklu Agent İşbirliği
 
 Birden fazla AI Agent'ı organize bir ekip olarak çalıştırın: bir **Leader** Agent talimatlarınızı alır, bunları alt görevlere böler ve yerleşik Team MCP Server aracılığıyla **Teammate** Agent'lara devreder. Teammate'ler paralel olarak çalışır, asenkron posta kutusu üzerinden sonuçları paylaşır ve paylaşılan görev panosuna yazar.
 
 <p align="center">
-  <img src="../../resources/AionUi_team.gif" alt="Team Mode overview" width="800">
+  <img src="../../resources/Headmaster_team.gif" alt="The Council overview" width="800">
 </p>
 
-- **Paralel çoklu agent çalıştırma** — Leader görevleri alt görevlere bölerek paralel çalışan Teammate Agent'lara devreder; her Teammate ACP (Agent Communication Protocol, AionUi'nin çoklu agent koordinasyon katmanı), Gemini veya Aionrs aracılığıyla kendi modelini kullanır
+- **Paralel çoklu agent çalıştırma** — Leader görevleri alt görevlere bölerek paralel çalışan Teammate Agent'lara devreder; her Teammate ACP (Agent Communication Protocol, Headmaster'nin çoklu agent koordinasyon katmanı), Gemini veya Aionrs aracılığıyla kendi modelini kullanır
 - **Leader orkestrasyonu** — Leader atar, izler ve sonuçları toplar; desteklenen arka uçlar: Claude Code, Codex, Hermes Agent, Gemini, Snow CLI ve Aion CLI
 - **Ekip izole çalışma alanı** — tüm Agent'lar aynı klasörü paylaşır; her birinin bekleyen onaylar için kenar çubuğu rozeti ile kendi izin onay iletişim kutusu vardır
 
 <details>
-<summary><strong>🔍 Team Mode Detaylarını Görüntüle ▶️</strong></summary>
+<summary><strong>🔍 The Council Detaylarını Görüntüle ▶️</strong></summary>
 
 <br>
 
@@ -129,19 +129,19 @@ Birden fazla AI Agent'ı organize bir ekip olarak çalıştırın: bir **Leader*
 
 ---
 
-## Herhangi bir API Anahtarı, Tam Cowork Agent Gücü
+## Herhangi bir API Anahtarı, Tam Work Along Agent Gücü
 
-Diğer AI uygulamaları size API anahtarınızla bir sohbet kutusu verir. **AionUi size tam bir Cowork Agent verir.**
+Diğer AI uygulamaları size API anahtarınızla bir sohbet kutusu verir. **Headmaster size tam bir Work Along Agent verir.**
 
 | API Anahtarınız            | Ne Alırsınız                 |
 | :------------------------- | :--------------------------- |
-| Gemini API Anahtarı        | Gemini destekli Cowork Agent |
-| OpenAI API Anahtarı        | GPT destekli Cowork Agent    |
-| Anthropic API Anahtarı     | Claude destekli Cowork Agent |
-| Ollama / LM Studio (yerel) | Yerel model Cowork Agent     |
+| Gemini API Anahtarı        | Gemini destekli Work Along Agent |
+| OpenAI API Anahtarı        | GPT destekli Work Along Agent    |
+| Anthropic API Anahtarı     | Claude destekli Work Along Agent |
+| Ollama / LM Studio (yerel) | Yerel model Work Along Agent     |
 | NewAPI Gateway             | 20+ modele birleşik erişim   |
 
-Aynı Agent yetenekleri — dosya okuma/yazma, web arama, görüntü oluşturma, araç kullanımı — hangi modelin güç verdiğine bakılmaksızın. AionUi bulut hizmetleri ve yerel dağıtımlar dahil **30+ AI platformunu** destekler.
+Aynı Agent yetenekleri — dosya okuma/yazma, web arama, görüntü oluşturma, araç kullanımı — hangi modelin güç verdiğine bakılmaksızın. Headmaster bulut hizmetleri ve yerel dağıtımlar dahil **30+ AI platformunu** destekler.
 
 <p align="center">
   <img src="../../resources/llm_newapi.png" alt="Multi-Model Support" width="800">
@@ -160,7 +160,7 @@ Aynı Agent yetenekleri — dosya okuma/yazma, web arama, görüntü oluşturma,
 - **Uluslararası Platformlar** — DeepSeek, MiniMax, Novita, OpenRouter, SiliconFlow, xAI, Ark (Volcengine), Poe
 - **Yerel Modeller** — Ollama, LM Studio (yerel API uç noktası ile özel platform aracılığıyla)
 
-AionUi ayrıca [NewAPI](https://github.com/QuantumNous/new-api) ağ geçidi hizmetini destekler — çeşitli LLM'leri toplayan ve dağıtan birleşik bir AI model merkezi. Çeşitli görev gereksinimlerini karşılamak için aynı arayüzde farklı modeller arasında esnek bir şekilde geçiş yapın.
+Headmaster ayrıca [NewAPI](https://github.com/QuantumNous/new-api) ağ geçidi hizmetini destekler — çeşitli LLM'leri toplayan ve dağıtan birleşik bir AI model merkezi. Çeşitli görev gereksinimlerini karşılamak için aynı arayüzde farklı modeller arasında esnek bir şekilde geçiş yapın.
 
 </details>
 
@@ -171,7 +171,7 @@ AionUi ayrıca [NewAPI](https://github.com/QuantumNous/new-api) ağ geçidi hizm
 _21 yerleşik profesyonel asistan ve üç katmanlı beceri sistemi ile genişletilebilir asistan sistemi. Kendi asistanlarınızı ve becerilerinizi oluşturun ve yönetin._
 
 - **Özel Asistanlar Oluştur** — Özel kurallar ve yeteneklerle kendi asistanlarınızı tanımlayın
-- **Üç katmanlı Beceriler** — Yerleşik beceriler (AionUi ile birlikte gelen), özel beceriler (kendinizinkiler) ve Extension becerileri (üçüncü taraf uzantılar tarafından katkıda bulunulan); beceri göstergesi ile konuşma başına etkinleştirin/devre dışı bırakın
+- **Üç katmanlı Beceriler** — Yerleşik beceriler (Headmaster ile birlikte gelen), özel beceriler (kendinizinkiler) ve Extension becerileri (üçüncü taraf uzantılar tarafından katkıda bulunulan); beceri göstergesi ile konuşma başına etkinleştirin/devre dışı bırakın
 - **Konuşma Başına Kontrol** — Sohbet başlığındaki beceri göstergesi aktif becerileri gösterir; ihtiyaç halinde becerileri arayın ve hariç tutun
 
 <p align="center">
@@ -183,9 +183,9 @@ _21 yerleşik profesyonel asistan ve üç katmanlı beceri sistemi ile genişlet
 
 <br>
 
-AionUi önceden tanımlanmış yeteneklere sahip **21 profesyonel asistan** içerir, özel beceriler aracılığıyla genişletilebilir:
+Headmaster önceden tanımlanmış yeteneklere sahip **21 profesyonel asistan** içerir, özel beceriler aracılığıyla genişletilebilir:
 
-- **🤝 Cowork** — Özerk görev yürütme (dosya işlemleri, belge işleme, iş akışı planlama)
+- **🤝 Work Along** — Özerk görev yürütme (dosya işlemleri, belge işleme, iş akışı planlama)
 - **📊 PPT Creator / Morph PPT / Morph PPT 3D** — Morph geçişleri ile PPTX sunumları oluşturur ve canlandırır
 - **📐 Pitch Deck Creator** — Yatırımcıya hazır sunum destesi oluşturma
 - **📊 Dashboard Creator** — Veri panosu oluşturma
@@ -205,7 +205,7 @@ AionUi önceden tanımlanmış yeteneklere sahip **21 profesyonel asistan** içe
 - **🔧 OpenClaw Kurulumu** — OpenClaw entegrasyonu için kurulum ve yapılandırma asistanı
 - **📖 Hikaye Rol Oynama** — Karakter kartları ve dünya bilgisi ile sürükleyici hikaye rol oynama (SillyTavern uyumlu)
 
-**Özel Beceriler**: `skills/` dizininde beceriler oluşturun, AI yeteneklerini genişletmek için asistanlar için becerileri etkinleştirin/devre dışı bırakın. Beceriler üç kaynaktan gelir: yerleşik (AionUi ile birlikte gelen), özel (kendinizinkiler) ve Extension (Extension SDK aracılığıyla katkıda bulunulan). Yerleşik beceriler `pptx`, `docx`, `pdf`, `xlsx`, `mermaid` ve daha fazlasını içerir.
+**Özel Beceriler**: `skills/` dizininde beceriler oluşturun, AI yeteneklerini genişletmek için asistanlar için becerileri etkinleştirin/devre dışı bırakın. Beceriler üç kaynaktan gelir: yerleşik (Headmaster ile birlikte gelen), özel (kendinizinkiler) ve Extension (Extension SDK aracılığıyla katkıda bulunulan). Yerleşik beceriler `pptx`, `docx`, `pdf`, `xlsx`, `mermaid` ve daha fazlasını içerir.
 
 > 💡 Her asistan bir markdown dosyası ile tanımlanır. Örnekler için `assistant/` dizinine bakın.
 
@@ -213,20 +213,20 @@ AionUi önceden tanımlanmış yeteneklere sahip **21 profesyonel asistan** içe
 
 ---
 
-## Her Yerden Cowork
+## Her Yerden Work Along
 
-_7/24 AI asistanınız — AionUi'ye herhangi bir cihazdan, her yerden erişin._
+_7/24 AI asistanınız — Headmaster'ye herhangi bir cihazdan, her yerden erişin._
 
 - **WebUI Modu** — telefondan, tabletten veya herhangi bir bilgisayardan tarayıcı aracılığıyla erişin. LAN, çapraz ağ ve sunucu dağıtımını destekler. QR kod veya şifre girişi.
 
 - **Sohbet Platformu Entegrasyonu**
-  - **Telegram** — AI Agent'ınızla doğrudan Telegram'dan Cowork yapın
-  - **Lark (Feishu)** — Kurumsal işbirliği için Feishu botları aracılığıyla Cowork
+  - **Telegram** — AI Agent'ınızla doğrudan Telegram'dan Work Along yapın
+  - **Lark (Feishu)** — Kurumsal işbirliği için Feishu botları aracılığıyla Work Along
   - **DingTalk** — Otomatik geri dönüş ile AI Card akışı
   - **WeChat** — Kişisel WeChat hesabı entegrasyonu
   - **WeCom (企业微信), Slack, Discord** ve yakında daha fazla platform
 
-> **Kurulum:** AionUi Ayarları → WebUI Ayarları → Kanal, Bot Token'ı yapılandırın.
+> **Kurulum:** Headmaster Ayarları → WebUI Ayarları → Kanal, Bot Token'ı yapılandırın.
 
 <p align="center">
   <img src="../../resources/webui-remote.gif" alt="WebUI remote access demo" width="800">
@@ -234,11 +234,11 @@ _7/24 AI asistanınız — AionUi'ye herhangi bir cihazdan, her yerden erişin._
 
 <p align="center"><em>Agent'ınızı uzaktan kontrol edin ve izleyin — Claude, Gemini, Codex. Tarayıcı veya telefondan, Claude Code remote gibi.</em></p>
 
-> [Uzaktan İnternet Erişimi Öğreticisi](https://github.com/iOfficeAI/AionUi/wiki/Remote-Internet-Access-Guide-Chinese)
+> [Uzaktan İnternet Erişimi Öğreticisi](https://github.com/iOfficeAI/Headmaster/wiki/Remote-Internet-Access-Guide-Chinese)
 
-## ✨ Cowork Eylemde
+## ✨ Work Along Eylemde
 
-### **Zamanlanmış Görevler — Otomatik Pilotta Cowork**
+### **Zamanlanmış Görevler — Otomatik Pilotta Work Along**
 
 _Bir kez ayarlayın, AI Agent zamanlamaya göre otomatik olarak çalışır — gerçek 7/24 gözetimsiz işlem._
 
@@ -272,7 +272,7 @@ _Bir kez ayarlayın, AI Agent zamanlamaya göre otomatik olarak çalışır — 
 - **Konuşmaya Bağlı** — Her zamanlanmış görev bir konuşmaya bağlıdır, bağlamı ve geçmişi korur
 - **Otomatik Yürütme** — Görevler zamanlanmış saatlerde otomatik olarak çalışır, konuşmaya mesaj gönderir
 - **Kolay Yönetim** — Zamanlanmış görevleri istediğiniz zaman oluşturun, değiştirin, etkinleştirin/devre dışı bırakın, silin ve görüntüleyin
-- **Uyanık kal** — AionUi görevler aktifken sistem uyku moduna geçmeyi otomatik olarak önler ve uyandıktan sonra kaçırılan tetikleyicileri algılar
+- **Uyanık kal** — Headmaster görevler aktifken sistem uyku moduna geçmeyi otomatik olarak önler ve uyandıktan sonra kaçırılan tetikleyicileri algılar
 - **Gelişmiş yapılandırma** — her görevin kendi model, çalışma alanı dizini ve akıl yürütme eforu ayarları olabilir
 
 **Gerçek Dünya Örnekleri:**
@@ -318,10 +318,10 @@ _10+ format: PDF, Word, Excel, PPT, kod, Markdown, görüntüler, HTML, Diff —
 
 ### **Akıllı Dosya Yönetimi — Otomatik Dosya İşlemleri**
 
-_Toplu yeniden adlandırma, otomatik organizasyon, akıllı sınıflandırma, dosya birleştirme — Cowork Agent sizin için halleder._
+_Toplu yeniden adlandırma, otomatik organizasyon, akıllı sınıflandırma, dosya birleştirme — Work Along Agent sizin için halleder._
 
 <p align="center">
-  <img src="../../resources/aionui sort file 2.gif" alt="Smart File Management" width="800">
+  <img src="../../resources/headmaster sort file 2.gif" alt="Smart File Management" width="800">
 </p>
 
 <details>
@@ -393,7 +393,7 @@ _Gemini tarafından desteklenen akıllı görüntü oluşturma, düzenleme ve ta
 
 </details>
 
-> [Görüntü oluşturma modeli yapılandırma kılavuzu](https://github.com/iOfficeAI/AionUi/wiki/AionUi-Image-Generation-Tool-Model-Configuration-Guide)
+> [Görüntü oluşturma modeli yapılandırma kılavuzu](https://github.com/iOfficeAI/Headmaster/wiki/Headmaster-Image-Generation-Tool-Model-Configuration-Guide)
 
 ---
 
@@ -450,16 +450,16 @@ _Birden fazla konuşma açın, görevler karışmaz, bağımsız bellek, verimli
 
 ---
 
-## 🤔 Neden AionUi, Claude Cowork Yerine?
+## 🤔 Neden Headmaster, Claude Work Along Yerine?
 
 <details>
 <summary><strong>Detaylı karşılaştırmayı görmek için tıklayın</strong></summary>
 
 <br>
 
-AionUi **ücretsiz ve açık kaynaklı bir Çoklu AI Agent Masaüstü** uygulamasıdır. Sadece macOS'ta çalışan ve Claude'ye kilitli Claude Cowork ile karşılaştırıldığında, AionUi tam model, çapraz platform geliştirilmiş versiyonudur.
+Headmaster **ücretsiz ve açık kaynaklı bir Çoklu AI Agent Masaüstü** uygulamasıdır. Sadece macOS'ta çalışan ve Claude'ye kilitli Claude Work Along ile karşılaştırıldığında, Headmaster tam model, çapraz platform geliştirilmiş versiyonudur.
 
-| Boyut           | Claude Cowork | AionUi                                            |
+| Boyut           | Claude Work Along | Headmaster                                            |
 | :-------------- | :------------ | :------------------------------------------------ |
 | İşletim Sistemi | Sadece macOS  | macOS / Windows / Linux                           |
 | Model Desteği   | Sadece Claude | Gemini, Claude, DeepSeek, OpenAI, Ollama, ...     |
@@ -482,17 +482,17 @@ Derin AI Ofis Senaryosu Desteği:
 
 <details>
 <summary><strong>S: Önce Gemini CLI veya Claude Code'u kurmam gerekiyor mu?</strong></summary>
-C: <strong>Hayır.</strong> AionUi kurulumdan hemen sonra çalışan yerleşik bir AI Agent'a sahiptir. Başlamak için herhangi bir API anahtarı girmeniz yeterli. Ayrıca Claude Code veya Gemini CLI gibi CLI araçlarınız da kuruluysa, AionUi bunları otomatik olarak algılayacak ve daha fazla yetenek için entegre edecektir.
+C: <strong>Hayır.</strong> Headmaster kurulumdan hemen sonra çalışan yerleşik bir AI Agent'a sahiptir. Başlamak için herhangi bir API anahtarı girmeniz yeterli. Ayrıca Claude Code veya Gemini CLI gibi CLI araçlarınız da kuruluysa, Headmaster bunları otomatik olarak algılayacak ve daha fazla yetenek için entegre edecektir.
 </details>
 
 <details>
-<summary><strong>S: AionUi ile ne yapabilirim?</strong></summary>
-C: AionUi sizin <strong>özel Cowork çalışma alanınızdır</strong>. Yerleşik Agent klasörleri toplu olarak organize edebilir, Excel verilerini işleyebilir, belgeler oluşturabilir, web'de arama yapabilir ve görüntüler oluşturabilir. Çoklu Agent Modu ile aynı arayüz üzerinden Claude Code, Codex ve diğer güçlü CLI Agent'larından da yararlanabilirsiniz.
+<summary><strong>S: Headmaster ile ne yapabilirim?</strong></summary>
+C: Headmaster sizin <strong>özel Work Along çalışma alanınızdır</strong>. Yerleşik Agent klasörleri toplu olarak organize edebilir, Excel verilerini işleyebilir, belgeler oluşturabilir, web'de arama yapabilir ve görüntüler oluşturabilir. Çoklu Agent Modu ile aynı arayüz üzerinden Claude Code, Codex ve diğer güçlü CLI Agent'larından da yararlanabilirsiniz.
 </details>
 
 <details>
 <summary><strong>S: Ücretsiz mi?</strong></summary>
-C: AionUi tamamen ücretsiz ve açık kaynaklıdır. Yalnızca seçtiğiniz sağlayıcının API kullanımı için ödeme yaparsınız ve tercih ettiğiniz herhangi bir sağlayıcıdan API anahtarları kullanabilirsiniz.
+C: Headmaster tamamen ücretsiz ve açık kaynaklıdır. Yalnızca seçtiğiniz sağlayıcının API kullanımı için ödeme yaparsınız ve tercih ettiğiniz herhangi bir sağlayıcıdan API anahtarları kullanabilirsiniz.
 </details>
 
 <details>
@@ -502,7 +502,7 @@ C: Tüm veriler yerel olarak bir SQLite veritabanında saklanır. Hiçbir şey h
 
 ---
 
-## İnsanların AionUi'yi Nasıl Kullandığını Görün
+## İnsanların Headmaster'yi Nasıl Kullandığını Görün
 
 <p align="center">
   <a href="https://www.youtube.com/watch?v=vWxE6VO9TKo" target="_blank">
@@ -532,11 +532,11 @@ C: Tüm veriler yerel olarak bir SQLite veritabanında saklanır. Hiçbir şey h
 
 ### Topluluk Makaleleri
 
-- [Açık kaynak ücretsiz Cowork, tam model entegrasyonu + özerk dosya işlemleri](https://mp.weixin.qq.com/s/F3f-CCsVPaK3lK00jXhOOg) — Açık Kaynak AI Projesi Uygulaması
+- [Açık kaynak ücretsiz Work Along, tam model entegrasyonu + özerk dosya işlemleri](https://mp.weixin.qq.com/s/F3f-CCsVPaK3lK00jXhOOg) — Açık Kaynak AI Projesi Uygulaması
 - [Sıradan insanların Claude Code'u bir APP gibi kullanmasını sağlamak](https://mp.weixin.qq.com/s/TsMojSbkUUFvsd-HQCazZg) — Tembel Kedi Balık Sever
 - [5500 Stars: Açık Kaynak Anthropic'in AI Araç Setini Nasıl Kırıyor](https://mp.weixin.qq.com/s/saEk49cYV6MqBgw19Lw6Gw) — AI Silikon Anı
 
-> **AionUi hakkında bir video yaptınız mı?** [X'te bize bildirin](https://x.com/AionUi) ve burada öne çıkaralım!
+> **Headmaster hakkında bir video yaptınız mı?** [X'te bize bildirin](https://x.com/Headmaster) ve burada öne çıkaralım!
 
 ---
 
@@ -553,7 +553,7 @@ C: Tüm veriler yerel olarak bir SQLite veritabanında saklanır. Hiçbir şey h
 ### Kurulum
 
 <p>
-  <a href="https://github.com/iOfficeAI/AionUi/releases">
+  <a href="https://github.com/iOfficeAI/Headmaster/releases">
     <img src="https://img.shields.io/badge/İndir-En%20Son%20Sürüm-32CD32?style=for-the-badge&logo=github&logoColor=white" alt="En Son Sürümü İndir" height="50">
   </a>
 </p>
@@ -562,14 +562,14 @@ Releases sayfasına gitmek ve platformunuz için yükleyiciyi indirmek için yuk
 
 ```bash
 # Alternatively, macOS via Homebrew
-brew install aionui
+brew install headmaster
 ```
 
 ### 3 Adımda Başlayın
 
-1. **Kurun** AionUi
+1. **Kurun** Headmaster
 2. **Girin** başlamak için herhangi bir API anahtarı
-3. **Cowork'a başlayın** — yerleşik AI Agent kullanıma hazır
+3. **Work Along'a başlayın** — yerleşik AI Agent kullanıma hazır
 
 ### 📖 Detaylı Kılavuzlar
 
@@ -580,23 +580,23 @@ brew install aionui
 
 **🚀 Hızlı Başlangıç**
 
-- [📖 Tam Kurulum Kılavuzu](https://github.com/iOfficeAI/AionUi/wiki/Getting-Started) — İndirmeden yapılandırmaya kadar detaylı adımlar
-- [⚙️ LLM Yapılandırma Kılavuzu](https://github.com/iOfficeAI/AionUi/wiki/LLM-Configuration) — Çoklu platform AI model yapılandırması
-- [🤖 Çoklu Agent Modu Kurulumu](https://github.com/iOfficeAI/AionUi/wiki/ACP-Setup) — Terminal AI Agent'larını entegre edin
-- [🔌 MCP Araç Yapılandırması](https://github.com/iOfficeAI/AionUi/wiki/MCP-Configuration-Guide) — Model Context Protocol sunucu kurulumu
-- [🌐 WebUI Yapılandırma Kılavuzu](https://github.com/iOfficeAI/AionUi/wiki/WebUI-Configuration-Guide) — Tam WebUI kurulum ve yapılandırma öğreticisi
+- [📖 Tam Kurulum Kılavuzu](https://github.com/iOfficeAI/Headmaster/wiki/Getting-Started) — İndirmeden yapılandırmaya kadar detaylı adımlar
+- [⚙️ LLM Yapılandırma Kılavuzu](https://github.com/iOfficeAI/Headmaster/wiki/LLM-Configuration) — Çoklu platform AI model yapılandırması
+- [🤖 Çoklu Agent Modu Kurulumu](https://github.com/iOfficeAI/Headmaster/wiki/ACP-Setup) — Terminal AI Agent'larını entegre edin
+- [🔌 MCP Araç Yapılandırması](https://github.com/iOfficeAI/Headmaster/wiki/MCP-Configuration-Guide) — Model Context Protocol sunucu kurulumu
+- [🌐 WebUI Yapılandırma Kılavuzu](https://github.com/iOfficeAI/Headmaster/wiki/WebUI-Configuration-Guide) — Tam WebUI kurulum ve yapılandırma öğreticisi
 
 **🎯 Kullanım Senaryoları**
 
-- [📁 Dosya Yönetimi](https://github.com/iOfficeAI/AionUi/wiki/file-management) — Akıllı dosya organizasyonu
-- [📊 Excel İşleme](https://github.com/iOfficeAI/AionUi/wiki/excel-processing) — AI destekli veri işleme
-- [🎨 Görüntü Oluşturma](https://github.com/iOfficeAI/AionUi/wiki/AionUi-Image-Generation-Tool-Model-Configuration-Guide) — AI görüntü oluşturma
-- [📚 Daha Fazla Kullanım Senaryosu](https://github.com/iOfficeAI/AionUi/wiki/Use-Cases-Overview)
+- [📁 Dosya Yönetimi](https://github.com/iOfficeAI/Headmaster/wiki/file-management) — Akıllı dosya organizasyonu
+- [📊 Excel İşleme](https://github.com/iOfficeAI/Headmaster/wiki/excel-processing) — AI destekli veri işleme
+- [🎨 Görüntü Oluşturma](https://github.com/iOfficeAI/Headmaster/wiki/Headmaster-Image-Generation-Tool-Model-Configuration-Guide) — AI görüntü oluşturma
+- [📚 Daha Fazla Kullanım Senaryosu](https://github.com/iOfficeAI/Headmaster/wiki/Use-Cases-Overview)
 
 **❓ Destek ve Yardım**
 
-- [❓ SSS](https://github.com/iOfficeAI/AionUi/wiki/FAQ) — Sorular ve sorun giderme
-- [🔧 Yapılandırma ve Kullanım Öğreticileri](https://github.com/iOfficeAI/AionUi/wiki/Configuration-Guides) — Tam yapılandırma dokümantasyonu
+- [❓ SSS](https://github.com/iOfficeAI/Headmaster/wiki/FAQ) — Sorular ve sorun giderme
+- [🔧 Yapılandırma ve Kullanım Öğreticileri](https://github.com/iOfficeAI/Headmaster/wiki/Configuration-Guides) — Tam yapılandırma dokümantasyonu
 
 </details>
 
@@ -607,14 +607,14 @@ brew install aionui
 **Fikirleriniz önemli!** Her öneri ve geri bildirimi değerli görüyoruz.
 
 <p align="center">
-  <a href="https://x.com/AionUi" target="_blank">
+  <a href="https://x.com/Headmaster" target="_blank">
     <img src="../../resources/contactus-x.png" alt="Contact Us on X" width="600">
   </a>
 </p>
 
-- [GitHub Discussions](https://github.com/iOfficeAI/AionUi/discussions) — fikirleri paylaşın ve ipuçları alışverişi yapın
-- [Sorun Bildir](https://github.com/iOfficeAI/AionUi/issues) — hatalar ve özellik istekleri
-- [Sürüm Güncellemeleri](https://github.com/iOfficeAI/AionUi/releases) — en son sürümü alın
+- [GitHub Discussions](https://github.com/iOfficeAI/Headmaster/discussions) — fikirleri paylaşın ve ipuçları alışverişi yapın
+- [Sorun Bildir](https://github.com/iOfficeAI/Headmaster/issues) — hatalar ve özellik istekleri
+- [Sürüm Güncellemeleri](https://github.com/iOfficeAI/Headmaster/releases) — en son sürümü alın
 - [Discord Topluluğu](https://discord.gg/2QAwJn7Egx) — İngilizce topluluk
 - [WeChat Grubu](../../resources/wx-11.png) — Çince topluluk
 
@@ -647,16 +647,16 @@ Bu proje [Apache-2.0](../../LICENSE) lisansı altında lisanslanmıştır.
 ## Katkıda Bulunanlar
 
 <p align="center">
-  <a href="https://github.com/iOfficeAI/AionUi/graphs/contributors">
-    <img src="https://contrib.rocks/image?repo=iOfficeAI/AionUi&max=100" alt="Contributors" />
+  <a href="https://github.com/iOfficeAI/Headmaster/graphs/contributors">
+    <img src="https://contrib.rocks/image?repo=iOfficeAI/Headmaster&max=100" alt="Contributors" />
   </a>
 </p>
 
 ## Yıldız Geçmişi
 
 <p align="center">
-  <a href="https://www.star-history.com/#iOfficeAI/aionui&Date" target="_blank">
-    <img src="https://api.star-history.com/svg?repos=iOfficeAI/aionui&type=Date" alt="Star History" width="600">
+  <a href="https://www.star-history.com/#iOfficeAI/headmaster&Date" target="_blank">
+    <img src="https://api.star-history.com/svg?repos=iOfficeAI/headmaster&type=Date" alt="Star History" width="600">
   </a>
 </p>
 
@@ -664,6 +664,6 @@ Bu proje [Apache-2.0](../../LICENSE) lisansı altında lisanslanmıştır.
 
 **Beğendiyseniz, bize bir yıldız verin**
 
-[Hata Bildir](https://github.com/iOfficeAI/AionUi/issues) · [Özellik İste](https://github.com/iOfficeAI/AionUi/issues)
+[Hata Bildir](https://github.com/iOfficeAI/Headmaster/issues) · [Özellik İste](https://github.com/iOfficeAI/Headmaster/issues)
 
 </div>

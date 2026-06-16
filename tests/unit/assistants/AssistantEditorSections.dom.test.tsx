@@ -384,7 +384,7 @@ describe('AssistantEditorSections', () => {
         editor={createEditor({
           isCreating: false,
           profile: {
-            name: 'Cowork',
+            name: 'Work Along',
             setName: vi.fn(),
             description: 'Builtin desc',
             setDescription: vi.fn(),
@@ -426,7 +426,7 @@ describe('AssistantEditorSections', () => {
         })}
         activeAssistant={{
           id: 'cowork',
-          name: 'Cowork',
+          name: 'Work Along',
           sort_order: 1,
           source: 'builtin',
           enabled: true,

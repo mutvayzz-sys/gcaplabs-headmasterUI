@@ -1,13 +1,13 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 Headmaster (gcaplabs.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Tooltip } from '@arco-design/web-react';
-import { AlarmClock } from '@icon-park/react';
+import { Alarm } from '@phosphor-icons/react';
 import classNames from 'classnames';
 import type { SiderTooltipProps } from '@renderer/utils/ui/siderTooltip';
 
@@ -38,10 +38,9 @@ const SiderScheduledEntry: React.FC<SiderScheduledEntryProps> = ({
           )}
           onClick={onClick}
         >
-          <AlarmClock
-            theme='outline'
-            size='20'
-            fill='currentColor'
+          <Alarm
+            size={20}
+            weight='regular'
             className='block leading-none shrink-0'
             style={{ lineHeight: 0 }}
           />
@@ -61,10 +60,9 @@ const SiderScheduledEntry: React.FC<SiderScheduledEntryProps> = ({
         onClick={onClick}
       >
         <span className='size-22px flex items-center justify-center shrink-0 text-t-primary'>
-          <AlarmClock
-            theme='outline'
-            size='16'
-            fill='currentColor'
+          <Alarm
+            size={16}
+            weight='regular'
             className='block leading-none'
             style={{ lineHeight: 0 }}
           />

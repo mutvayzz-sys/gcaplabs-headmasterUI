@@ -1,7 +1,7 @@
 {
   "sider": {
-    "title": "Teams",
-    "createTeam": "New Team",
+    "title": "The Council",
+    "createCouncil": "New Council",
     "pin": "ピン留め",
     "unpin": "ピン留め解除",
     "rename": "名前変更",
@@ -24,11 +24,11 @@
     "placeholder": "ディスパッチエージェントにメッセージを送信..."
   },
   "create": {
-    "title": "Create Team",
-    "namePlaceholder": "Team name",
+    "title": "Create Council",
+    "namePlaceholder": "Council name",
     "dispatchAgentPlaceholder": "チームリーダーを選択",
     "subAgentsPlaceholder": "Select sub agents",
-    "confirm": "Create Team",
+    "confirm": "Create Council",
     "noSupportedAgents": "対応する Agent が見つかりません",
     "supportedAgentsHint": "現在 Claude と Codex に対応しています。他の Agent は順次対応予定です。",
     "leaderDesc": "目標を理解し、エージェントを調整してタスクを完了します",

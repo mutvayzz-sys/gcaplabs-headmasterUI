@@ -1,6 +1,6 @@
-# @aionui/web-host
+# @headmaster/web-host
 
-WebUI host package for AionUi - zero Electron dependency.
+WebUI host package for Headmaster - zero Electron dependency.
 
 ## Responsibilities
 
@@ -11,7 +11,7 @@ WebUI host package for AionUi - zero Electron dependency.
 ## Usage
 
 ```ts
-import { startWebHost } from '@aionui/web-host';
+import { startWebHost } from '@headmaster/web-host';
 
 const handle = await startWebHost({
   app: {

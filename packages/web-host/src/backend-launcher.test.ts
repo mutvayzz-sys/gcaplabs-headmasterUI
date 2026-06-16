@@ -149,9 +149,9 @@ describe('buildSpawnArgs', () => {
     expect(args).toContain('bundled');
   });
 
-  it('respects AIONUI_LOG_LEVEL override', () => {
-    const prev = process.env.AIONUI_LOG_LEVEL;
-    process.env.AIONUI_LOG_LEVEL = 'trace';
+  it('respects HEADMASTER_LOG_LEVEL override', () => {
+    const prev = process.env.HEADMASTER_LOG_LEVEL;
+    process.env.HEADMASTER_LOG_LEVEL = 'trace';
     try {
       const args = buildSpawnArgs({
         port: 1,
@@ -162,22 +162,22 @@ describe('buildSpawnArgs', () => {
       });
       expect(args).toContain('trace');
     } finally {
-      if (prev === undefined) delete process.env.AIONUI_LOG_LEVEL;
-      else process.env.AIONUI_LOG_LEVEL = prev;
+      if (prev === undefined) delete process.env.HEADMASTER_LOG_LEVEL;
+      else process.env.HEADMASTER_LOG_LEVEL = prev;
     }
   });
 });
 
 describe('buildSpawnEnv', () => {
-  it('merges process.env with AIONUI_* dir vars', () => {
+  it('merges process.env with HEADMASTER_* dir vars', () => {
     const env = buildSpawnEnv({
       cacheDir: '/c',
       workDir: '/w',
       logDir: '/l',
     });
-    expect(env.AIONUI_CACHE_DIR).toBe('/c');
-    expect(env.AIONUI_WORK_DIR).toBe('/w');
-    expect(env.AIONUI_LOG_DIR).toBe('/l');
+    expect(env.HEADMASTER_CACHE_DIR).toBe('/c');
+    expect(env.HEADMASTER_WORK_DIR).toBe('/w');
+    expect(env.HEADMASTER_LOG_DIR).toBe('/l');
     expect(env.PATH).toBe(process.env.PATH); // inherits
   });
 });
@@ -346,9 +346,9 @@ describe('BackendLifecycleManager.start (success path)', () => {
         '--local',
       ]);
       const opts = spawnCall[2] as { env: NodeJS.ProcessEnv };
-      expect(opts.env.AIONUI_CACHE_DIR).toBe('/c');
-      expect(opts.env.AIONUI_WORK_DIR).toBe('/w');
-      expect(opts.env.AIONUI_LOG_DIR).toBe('/l');
+      expect(opts.env.HEADMASTER_CACHE_DIR).toBe('/c');
+      expect(opts.env.HEADMASTER_WORK_DIR).toBe('/w');
+      expect(opts.env.HEADMASTER_LOG_DIR).toBe('/l');
       expect((spawnCall[2] as { detached?: boolean }).detached).toBe(process.platform !== 'win32');
 
       expect(fetchSpy).toHaveBeenCalled();

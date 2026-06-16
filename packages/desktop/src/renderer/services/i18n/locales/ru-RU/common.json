@@ -8,7 +8,7 @@
   "folder": "Папка",
   "upload": "Загрузить",
   "model": "Модель",
-  "skills": "Навыки",
+  "agency": "Навыки",
   "workspace": "Проект",
   "settings": "Настройки",
   "system": "Система",
@@ -59,10 +59,10 @@
   "more": "Ещё",
   "refresh": "Обновить",
   "readOnly": "Только чтение",
-  "tray.showWindow": "Показать AionUi",
+  "tray.showWindow": "Показать Headmaster",
   "tray.newChat": "Новый чат",
   "tray.closeToTray": "Свернуть в трей",
-  "tray.about": "О программе AionUi",
+  "tray.about": "О программе Headmaster",
   "tray.restart": "Перезапустить",
   "tray.quit": "Выход",
   "tray.runningTasks": "Запущенные задачи",
@@ -73,19 +73,19 @@
   "backendStartup": {
     "incompatibleRuntime": {
       "title": "Эта система не поддерживается встроенным backend",
-      "description": "AionUi открылся, но локальный backend AionCore не может работать в этой версии Linux. Обновитесь до поддерживаемого дистрибутива Linux и перезапустите AionUi.",
+      "description": "Headmaster открылся, но локальный backend Adonis Core не может работать в этой версии Linux. Обновитесь до поддерживаемого дистрибутива Linux и перезапустите Headmaster.",
       "requiredVersions": "Требуемые символы среды выполнения: {{versions}}"
     },
     "incompleteInstallation": {
-      "title": "Установка AionUi неполная",
-      "description": "В этой установке отсутствуют обязательные локальные ресурсы, поэтому AionCore не может запуститься. Загрузите и переустановите последнюю версию AionUi. Если проблема повторится после переустановки, проверьте, не поместило ли защитное или антивирусное ПО AionCore в карантин.",
+      "title": "Установка Headmaster неполная",
+      "description": "В этой установке отсутствуют обязательные локальные ресурсы, поэтому Adonis Core не может запуститься. Загрузите и переустановите последнюю версию Headmaster. Если проблема повторится после переустановки, проверьте, не поместило ли защитное или антивирусное ПО Adonis Core в карантин.",
       "downloadLatest": "Скачать последнюю версию",
       "sendDiagnostics": "Отправить диагностику",
-      "runtimeComponentDescription": "This installation is missing required bundled runtime components, so {{resource}} cannot start. Reinstall the latest AionUi package. If it still happens after reinstalling, check whether security or antivirus software quarantined AionUi components."
+      "runtimeComponentDescription": "This installation is missing required bundled runtime components, so {{resource}} cannot start. Reinstall the latest Headmaster package. If it still happens after reinstalling, check whether security or antivirus software quarantined Headmaster components."
     },
     "packageArchitectureMismatch": {
-      "title": "AionUi package architecture mismatch",
-      "description": "This AionUi package is for {{packageArch}}, but this Mac is {{deviceArch}}. You may have downloaded the wrong package. Please download and install the {{expectedArch}} package."
+      "title": "Headmaster package architecture mismatch",
+      "description": "This Headmaster package is for {{packageArch}}, but this Mac is {{deviceArch}}. You may have downloaded the wrong package. Please download and install the {{expectedArch}} package."
     }
   },
   "fileAttach.addFiles": "Добавить файлы",

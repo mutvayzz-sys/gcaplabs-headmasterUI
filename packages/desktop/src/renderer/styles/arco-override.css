@@ -9,18 +9,18 @@
     ui-monospace, 'SF Mono', SFMono-Regular, Menlo, 'Cascadia Code', 'Roboto Mono', Consolas, 'Liberation Mono',
     monospace;
   --code-font-size: 13px;
-  --aion-overlay-bg: #ffffff;
-  --aion-overlay-text: #1d2129;
-  --aion-overlay-border: #e5e6eb;
-  --aion-overlay-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
+  --headmaster-overlay-bg: #ffffff;
+  --headmaster-overlay-text: #1d2129;
+  --headmaster-overlay-border: #e5e6eb;
+  --headmaster-overlay-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
 }
 
 html[data-theme='dark'],
 body[arco-theme='dark'] {
-  --aion-overlay-bg: #0e0e0e;
-  --aion-overlay-text: #f2f3f5;
-  --aion-overlay-border: #333333;
-  --aion-overlay-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+  --headmaster-overlay-bg: #0e0e0e;
+  --headmaster-overlay-text: #f2f3f5;
+  --headmaster-overlay-border: #333333;
+  --headmaster-overlay-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
 }
 
 /* Arco's arco.css puts 'Inter' first in font-family, which causes very thin
@@ -35,10 +35,10 @@ body {
 html body .arco-tooltip-content,
 html body .arco-popover-content,
 html body .arco-popconfirm-content {
-  background: var(--aion-overlay-bg) !important;
-  color: var(--aion-overlay-text) !important;
-  border: 1px solid var(--aion-overlay-border) !important;
-  box-shadow: var(--aion-overlay-shadow) !important;
+  background: var(--headmaster-overlay-bg) !important;
+  color: var(--headmaster-overlay-text) !important;
+  border: 1px solid var(--headmaster-overlay-border) !important;
+  box-shadow: var(--headmaster-overlay-shadow) !important;
 }
 
 html[data-theme='dark'] body .arco-tooltip-content,
@@ -47,10 +47,10 @@ html[data-theme='dark'] body .arco-popconfirm-content,
 body[arco-theme='dark'] .arco-tooltip-content,
 body[arco-theme='dark'] .arco-popover-content,
 body[arco-theme='dark'] .arco-popconfirm-content {
-  background: var(--aion-overlay-bg) !important;
-  color: var(--aion-overlay-text) !important;
-  border: 1px solid var(--aion-overlay-border) !important;
-  box-shadow: var(--aion-overlay-shadow) !important;
+  background: var(--headmaster-overlay-bg) !important;
+  color: var(--headmaster-overlay-text) !important;
+  border: 1px solid var(--headmaster-overlay-border) !important;
+  box-shadow: var(--headmaster-overlay-shadow) !important;
 }
 
 html body .arco-tooltip-content-inner,
@@ -58,14 +58,14 @@ html body .arco-popover-title,
 html body .arco-popover-inner-content,
 html body .arco-popconfirm-title,
 html body .arco-popconfirm-inner-content {
-  color: var(--aion-overlay-text) !important;
+  color: var(--headmaster-overlay-text) !important;
 }
 
 html body .arco-trigger-arrow.arco-tooltip-arrow,
 html body .arco-popover-arrow.arco-trigger-arrow,
 html body .arco-popconfirm-arrow.arco-trigger-arrow {
-  background: var(--aion-overlay-bg) !important;
-  border: 1px solid var(--aion-overlay-border) !important;
+  background: var(--headmaster-overlay-bg) !important;
+  border: 1px solid var(--headmaster-overlay-border) !important;
 }
 
 /* Override Arco Design component backgrounds to white in light mode */
@@ -139,24 +139,24 @@ body[arco-theme='dark'] .arco-tag-checked.arco-tag-gray {
   color: rgb(209, 213, 219) !important;
 }
 
-/* AionUi Steps wrapper styles */
-.aionui-steps .arco-steps-item-process .arco-steps-item-icon {
+/* Headmaster Steps wrapper styles */
+.headmaster-steps .arco-steps-item-process .arco-steps-item-icon {
   background-color: var(--aou-6-brand) !important;
   border-color: var(--aou-6-brand) !important;
 }
 
-.aionui-steps .arco-steps-item-finish .arco-steps-item-icon {
+.headmaster-steps .arco-steps-item-finish .arco-steps-item-icon {
   background-color: #e8f3ff !important;
   border-color: #e8f3ff !important;
   border-radius: 50% !important;
 }
 
-.aionui-steps .arco-steps-item-finish .arco-steps-item-icon .arco-steps-icon {
+.headmaster-steps .arco-steps-item-finish .arco-steps-item-icon .arco-steps-icon {
   line-height: 28px !important;
 }
 
-/* AionUi Modal wrapper styles */
-.aionui-modal .arco-modal-content {
+/* Headmaster Modal wrapper styles */
+.headmaster-modal .arco-modal-content {
   background: var(--dialog-fill-0) !important;
   border: 1px solid var(--border-base) !important;
   border-radius: 16px !important;
@@ -271,21 +271,21 @@ body[arco-theme='dark'] .arco-modal-confirm-icon {
   border-color: var(--bg-4) !important;
 }
 
-.aionui-modal-header {
+.headmaster-modal-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 20px 24px 16px;
 }
 
-.aionui-modal-title {
+.headmaster-modal-title {
   font-size: 18px;
   font-weight: 500;
   color: var(--text-primary);
   margin: 0;
 }
 
-.aionui-modal-close-btn {
+.headmaster-modal-close-btn {
   width: 32px;
   height: 32px;
   display: flex;
@@ -299,7 +299,7 @@ body[arco-theme='dark'] .arco-modal-confirm-icon {
   padding: 0;
 }
 
-.aionui-modal-close-btn:hover {
+.headmaster-modal-close-btn:hover {
   background: var(--color-fill-1);
 }
 
@@ -486,9 +486,9 @@ body[arco-theme='dark'] .arco-message-error {
  * `.arco-dropdown-menu` root, which is also the `overflow:auto` scroll box),
  * not the `.arco-menu-*` one — so we target the dropdown variant here.
  *
- * Scoped to `.aion-model-menu--sticky-group` so it never affects other menus
+ * Scoped to `.headmaster-model-menu--sticky-group` so it never affects other menus
  * that group items (e.g. the agent mode switcher). */
-.aion-model-menu--sticky-group .arco-dropdown-menu-group-title {
+.headmaster-model-menu--sticky-group .arco-dropdown-menu-group-title {
   position: sticky;
   /* `.arco-dropdown-menu` has `padding: 4px 0`, so `top: 0` pins the title 4px
    * below the scroll-box edge, leaving a strip where the previous item shows
@@ -513,7 +513,7 @@ body[arco-theme='dark'] .arco-message-error {
  * rule (3 classes) out-specifies the 2-class reset above, so the first group's
  * 4px margin-top survives and leaves a transparent strip at the very top. Match
  * its specificity to override it; shift the separation into padding instead. */
-.aion-model-menu--sticky-group .arco-dropdown-menu-group:first-child .arco-dropdown-menu-group-title {
+.headmaster-model-menu--sticky-group .arco-dropdown-menu-group:first-child .arco-dropdown-menu-group-title {
   margin-top: 0;
   padding-top: 4px;
 }

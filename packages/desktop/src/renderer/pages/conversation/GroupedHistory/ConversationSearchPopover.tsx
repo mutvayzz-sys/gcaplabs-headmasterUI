@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 Headmaster (gcaplabs.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -11,7 +11,7 @@ import { usePresetAssistantInfo } from '@/renderer/hooks/agent/usePresetAssistan
 import { getAgentLogo } from '@/renderer/utils/model/agentLogo';
 import { blockMobileInputFocus, blurActiveElement } from '@/renderer/utils/ui/focus';
 import { Empty, Spin, Typography } from '@arco-design/web-react';
-import { Close, CloseSmall, MessageOne, Search } from '@icon-park/react';
+import { ChatCircle, MagnifyingGlass, X } from '@phosphor-icons/react';
 import classNames from 'classnames';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { flushSync } from 'react-dom';
@@ -133,7 +133,7 @@ const ConversationAgentMark: React.FC<{ conversation: IMessageSearchItem['conver
     );
   }
 
-  return <MessageOne theme='outline' size='18' className='line-height-0 flex-shrink-0 text-t-secondary' />;
+  return <ChatCircle size={18} weight='regular' className='line-height-0 flex-shrink-0 text-t-secondary' />;
 };
 
 const ConversationSearchPopover: React.FC<ConversationSearchPopoverProps> = ({
@@ -454,19 +454,17 @@ const ConversationSearchPopover: React.FC<ConversationSearchPopoverProps> = ({
         >
           {fullWidth ? (
             <span className='size-22px flex items-center justify-center shrink-0 text-t-primary'>
-              <Search
-                theme='outline'
-                size='16'
-                fill='currentColor'
+              <MagnifyingGlass
+                size={16}
+                weight='regular'
                 className='block leading-none'
                 style={{ lineHeight: 0 }}
               />
             </span>
           ) : (
-            <Search
-              theme='outline'
-              size='16'
-              fill='currentColor'
+            <MagnifyingGlass
+              size={16}
+              weight='regular'
               className='block leading-none shrink-0'
               style={{ lineHeight: 0 }}
             />
@@ -523,13 +521,13 @@ const ConversationSearchPopover: React.FC<ConversationSearchPopoverProps> = ({
               onClick={handleClose}
               aria-label='Close'
             >
-              <Close size={16} />
+              <X size={16} weight='regular' />
             </button>
           </div>
 
           <div className='mb-14px conversation-search-modal__input-wrap'>
             <div className='conversation-search-modal__searchbar'>
-              <Search theme='outline' size='16' className='conversation-search-modal__search-icon' />
+              <MagnifyingGlass size={16} weight='regular' className='conversation-search-modal__search-icon' />
               <input
                 autoFocus={visible}
                 value={keyword}
@@ -544,7 +542,7 @@ const ConversationSearchPopover: React.FC<ConversationSearchPopoverProps> = ({
                   onClick={handleClearKeyword}
                   aria-label='Clear search'
                 >
-                  <CloseSmall theme='outline' size='14' />
+                  <X size={14} weight='regular' />
                 </button>
               ) : null}
             </div>

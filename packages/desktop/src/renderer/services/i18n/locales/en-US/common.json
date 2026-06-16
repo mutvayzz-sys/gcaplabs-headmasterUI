@@ -8,7 +8,7 @@
   "folder": "Folder",
   "upload": "Upload",
   "model": "Model",
-  "skills": "Skills",
+  "agency": "Agency",
   "workspace": "Project",
   "settings": "Settings",
   "system": "System",
@@ -60,10 +60,10 @@
   "more": "More",
   "refresh": "Refresh",
   "readOnly": "Read only",
-  "tray.showWindow": "Show AionUi",
+  "tray.showWindow": "Show Headmaster",
   "tray.newChat": "New Chat",
   "tray.closeToTray": "Hide to Tray",
-  "tray.about": "About AionUi",
+  "tray.about": "About Headmaster",
   "tray.restart": "Restart App",
   "tray.quit": "Quit",
   "tray.runningTasks": "Running Tasks",
@@ -74,19 +74,19 @@
   "backendStartup": {
     "incompatibleRuntime": {
       "title": "This system is not supported by the bundled backend",
-      "description": "AionUi opened, but the local AionCore backend cannot run on this Linux version. Please upgrade to a supported Linux distribution and restart AionUi.",
+      "description": "Headmaster opened, but the local Adonis Core backend cannot run on this Linux version. Please upgrade to a supported Linux distribution and restart Headmaster.",
       "requiredVersions": "Required runtime symbols: {{versions}}"
     },
     "incompleteInstallation": {
-      "title": "AionUi installation is incomplete",
-      "description": "This installation is missing required local resources, so AionCore cannot start. Please download and reinstall the latest AionUi. If the issue returns after reinstalling, check whether security or antivirus software quarantined AionCore.",
+      "title": "Headmaster installation is incomplete",
+      "description": "This installation is missing required local resources, so Adonis Core cannot start. Please download and reinstall the latest Headmaster. If the issue returns after reinstalling, check whether security or antivirus software quarantined Adonis Core.",
       "downloadLatest": "Download latest",
       "sendDiagnostics": "Send diagnostics",
-      "runtimeComponentDescription": "This installation is missing required bundled runtime components, so {{resource}} cannot start. Reinstall the latest AionUi package. If it still happens after reinstalling, check whether security or antivirus software quarantined AionUi components."
+      "runtimeComponentDescription": "This installation is missing required bundled runtime components, so {{resource}} cannot start. Reinstall the latest Headmaster package. If it still happens after reinstalling, check whether security or antivirus software quarantined Headmaster components."
     },
     "packageArchitectureMismatch": {
-      "title": "AionUi package architecture mismatch",
-      "description": "This AionUi package is for {{packageArch}}, but this Mac is {{deviceArch}}. You may have downloaded the wrong package. Please download and install the {{expectedArch}} package."
+      "title": "Headmaster package architecture mismatch",
+      "description": "This Headmaster package is for {{packageArch}}, but this Mac is {{deviceArch}}. You may have downloaded the wrong package. Please download and install the {{expectedArch}} package."
     }
   },
   "fileAttach.addFiles": "Add files",
@@ -99,12 +99,29 @@
   "name": "Name",
   "added": "Added",
   "status": "Status",
-  "agentMode": "Agent Mode",
+  "agentMode": "Specialist Mode",
   "refreshSuccess": "Refreshed",
   "import": "Import",
   "processing": "Processing...",
   "optional": "(optional)",
   "clear": "Clear",
+  "sidebar": {
+    "dashboard": "Dashboard",
+    "chat": "Chat",
+    "activity": "Activity",
+    "approvals": "Approvals",
+    "documents": "Documents",
+    "memory": "Memory",
+    "automations": "Automations",
+    "skills": "Skills",
+    "agents": "Agents",
+    "integrations": "Integrations",
+    "browser": "Browser",
+    "assets": "Assets",
+    "council": "The Council",
+    "kanban": "Kanban",
+    "settings": "Settings"
+  },
   "unit": {
     "minute_short": "m",
     "second_short": "s"

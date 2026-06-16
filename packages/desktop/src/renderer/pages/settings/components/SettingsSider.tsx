@@ -11,6 +11,7 @@ import {
   Info,
   Lightning,
   LinkCloud,
+  MemoryOne,
   Puzzle,
   Robot,
   Speed,
@@ -32,6 +33,8 @@ export const BUILTIN_TAB_IDS = [
   'appearance',
   'webui',
   'pet',
+  'runtime',
+  'memory',
   'system',
   'about',
 ] as const;
@@ -55,6 +58,8 @@ export const LEGACY_ANCHOR_REMAP: Record<string, string> = {
 const GROUP_HEADER_BEFORE: Record<string, string> = {
   agent: 'settings.groupAiCore',
   appearance: 'settings.groupApp',
+  runtime: 'settings.groupRuntime',
+  memory: 'settings.groupMemory',
   about: 'settings.groupAbout',
 };
 
@@ -109,6 +114,18 @@ const SettingsSider: React.FC<{ collapsed?: boolean; tooltipEnabled?: boolean }>
         path: 'webui',
       },
       pet: { id: 'pet', label: t('pet.desktopPet'), icon: <Cat />, path: 'pet' },
+      runtime: {
+        id: 'runtime',
+        label: t('settings.runtime.menuLabel', { defaultValue: 'Runtime' }),
+        icon: <LinkCloud />,
+        path: 'runtime',
+      },
+      memory: {
+        id: 'memory',
+        label: t('settings.memory.menuLabel', { defaultValue: 'Memory' }),
+        icon: <MemoryOne />,
+        path: 'memory',
+      },
       system: { id: 'system', label: t('settings.system'), icon: <System />, path: 'system' },
       about: { id: 'about', label: t('settings.about'), icon: <Info />, path: 'about' },
     };

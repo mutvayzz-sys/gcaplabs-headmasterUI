@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 Headmaster (gcaplabs.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -69,7 +69,7 @@ const OFFICE_ERROR_I18N_KEYS: Record<OfficeWatchErrorCode, string> = {
   PATH_OUTSIDE_SANDBOX: 'preview.office.errors.outsideSandbox',
 };
 
-export const OFFICECLI_INSTALL_URL = 'https://github.com/iOfficeAI/OfficeCli/releases';
+export const OFFICECLI_INSTALL_URL = 'https://github.com/GCAP Labs Office Tools/releases';
 
 interface OfficeWatchViewerProps {
   docType: DocType;

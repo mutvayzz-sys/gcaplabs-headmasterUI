@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 Headmaster (gcaplabs.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -43,7 +43,7 @@ export const buildSendFailureError = (error: unknown, message: string): AgentStr
   if (isConversationBusyError(error)) {
     return {
       message,
-      code: 'AIONUI_CONVERSATION_BUSY',
+      code: 'HEADMASTER_CONVERSATION_BUSY',
       ownership: 'aionui',
       detail: message,
       retryable: false,
@@ -54,7 +54,7 @@ export const buildSendFailureError = (error: unknown, message: string): AgentStr
 
   return {
     message,
-    code: 'AIONUI_INTERNAL_ERROR',
+    code: 'HEADMASTER_INTERNAL_ERROR',
     ownership: 'aionui',
     detail: message,
     retryable: true,

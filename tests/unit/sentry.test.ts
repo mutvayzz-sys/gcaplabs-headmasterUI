@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 Headmaster (aionui.com)
  * SPDX-License-Identifier: Apache-2.0
  *
  * Unit tests for the pure helpers exported from `packages/desktop/src/sentry.ts`:
@@ -160,7 +160,7 @@ describe('captureBackendStartupFailure', () => {
         isPackaged: true,
         runtimeKey: 'win32-x64',
         binaryName: 'aioncore.exe',
-        resourcesPath: 'C:\\Users\\alice\\AppData\\Local\\Programs\\AionUi\\resources',
+        resourcesPath: 'C:\\Users\\alice\\AppData\\Local\\Programs\\Headmaster\\resources',
         bundledDirExists: false,
         runtimeDirExists: false,
         resourcesDirEntries: [

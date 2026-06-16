@@ -215,3 +215,62 @@ graphify-out/
 .graphify_python
 
 .snow/
+
+# --- gcaplabs-headmasterUI specific additions ---
+
+# Local working notes / scratch dirs (do not ship)
+.omh/
+.desdoc/
+.workspace/
+.snow/
+.taichuy/
+.kylindoc/
+
+# Sensitive files - never commit
+*.pem
+*.key
+*.p12
+*.pfx
+**/secrets.json
+**/credentials.json
+**/firebase-adminsdk*.json
+**/service-account*.json
+**/gcp-credentials*.json
+**/aws-credentials*
+gha-creds-*.json
+
+# Local environment overrides
+.envrc
+.env.local
+.env.*.local
+
+# Test artifacts (Playwright/Vitest)
+tests/e2e/screenshots/
+tests/e2e/results/
+tests/e2e/report/
+tests/e2e/test-results/
+coverage/
+.nyc_output/
+*.lcov
+
+# OS / editor
+.DS_Store
+.DS_Store?
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+$null
+
+# Bun
+.bun/
+
+# Misc scratch
+*.tmp
+.tmp_*
+tmp-*
+*.bak
+*.swp
+*~
+.#*
+scratch/

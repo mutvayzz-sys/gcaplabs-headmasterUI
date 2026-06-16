@@ -1,9 +1,9 @@
 <p align="center">
-  <img src="../../resources/aionui-banner-1.png" alt="AionUi - Cowork with AI Agents" width="100%">
+  <img src="../../resources/headmaster-banner-1.png" alt="Headmaster - Work Along with AI Specialists" width="100%">
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/github/v/release/iOfficeAI/AionUi?style=flat-square&color=32CD32" alt="Version">
+  <img src="https://img.shields.io/github/v/release/iOfficeAI/Headmaster?style=flat-square&color=32CD32" alt="Version">
   &nbsp;
   <img src="https://img.shields.io/badge/license-Apache--2.0-32CD32?style=flat-square&logo=apache&logoColor=white" alt="License">
   &nbsp;
@@ -19,22 +19,22 @@
 ---
 
 <p align="center">
-  <strong>免費、開源，與AI Agents協作的Cowork App</strong><br>
+  <strong>免費、開源，與AI Agents協作的Work Along App</strong><br>
   <em>內建 Agent | 零配置 | 任意 API 金鑰 | 多 Agent | 遠端存取 | 跨平台 | 24/7 自動化</em>
 </p>
 
 <p align="center">
-  <a href="https://github.com/iOfficeAI/AionUi/releases">
+  <a href="https://github.com/iOfficeAI/Headmaster/releases">
     <img src="https://img.shields.io/badge/⬇️%20立即下載-最新版本-32CD32?style=for-the-badge&logo=github&logoColor=white" alt="下載最新版本" height="50">
   </a>
 </p>
 
 <p align="center">
-  <a href="../../readme.md">English</a> | <a href="./readme_ch.md">简体中文</a> | <strong>繁體中文</strong> | <a href="./readme_jp.md">日本語</a> | <a href="./readme_ko.md">한국어</a> | <a href="./readme_es.md">Español</a> | <a href="./readme_pt.md">Português</a> | <a href="./readme_tr.md">Türkçe</a> | <a href="./readme_ru.md">Русский</a> | <a href="./readme_uk.md">Українська</a> | <a href="https://www.aionui.com" target="_blank">官方網站</a>
+  <a href="../../readme.md">English</a> | <a href="./readme_ch.md">简体中文</a> | <strong>繁體中文</strong> | <a href="./readme_jp.md">日本語</a> | <a href="./readme_ko.md">한국어</a> | <a href="./readme_es.md">Español</a> | <a href="./readme_pt.md">Português</a> | <a href="./readme_tr.md">Türkçe</a> | <a href="./readme_ru.md">Русский</a> | <a href="./readme_uk.md">Українська</a> | <a href="https://www.gcaplabs.com" target="_blank">官方網站</a>
 </p>
 
 <p align="center">
-  <strong>💬 社群：</strong> <a href="https://discord.gg/2QAwJn7Egx" target="_blank">Discord (English)</a> | <a href="../../resources/wx-11.png" target="_blank">微信 (中文群)</a> | <a href="https://twitter.com/AionUI" target="_blank">Twitter</a>
+  <strong>💬 社群：</strong> <a href="https://discord.gg/2QAwJn7Egx" target="_blank">Discord (English)</a> | <a href="../../resources/wx-11.png" target="_blank">微信 (中文群)</a> | <a href="https://twitter.com/Headmaster" target="_blank">Twitter</a>
 </p>
 
 ---
@@ -43,8 +43,8 @@
 
 <p align="center">
 
-[✨ Cowork 演示](#-cowork-演示) ·
-[🤔 為什麼選擇 AionUi？](#-為什麼選擇-aionui-而非-claude-cowork) ·
+[✨ Work Along 演示](#-cowork-演示) ·
+[🤔 為什麼選擇 Headmaster？](#-為什麼選擇-headmaster-而非-claude-cowork) ·
 [🚀 快速開始](#-快速開始) ·
 [💬 社群](#-社群與支援)
 
@@ -52,11 +52,11 @@
 
 ---
 
-## Cowork — AI Agent 與您並肩工作
+## Work Along — AI Agent 與您並肩工作
 
-**AionUi 不只是個聊天工具。** 它是一個真正的 Cowork 平台，AI Agent 就像您的得力助手，在電腦上幫您處理各種任務——讀檔案、寫程式碼、查資料、自動化工作流。Agent 的一舉一動都在您的掌控之中，透明可見。
+**Headmaster 不只是個聊天工具。** 它是一個真正的 Work Along 平台，AI Agent 就像您的得力助手，在電腦上幫您處理各種任務——讀檔案、寫程式碼、查資料、自動化工作流。Agent 的一舉一動都在您的掌控之中，透明可見。
 
-|                       | 傳統 AI 聊天客戶端 | **AionUi (Cowork)**                                                                                    |
+|                       | 傳統 AI 聊天客戶端 | **Headmaster (Work Along)**                                                                                    |
 | :-------------------- | :----------------- | :----------------------------------------------------------------------------------------------------- |
 | AI 可以操作您的檔案   | 有限或不可用       | **是 — 內建 Agent，完全檔案存取**                                                                      |
 | AI 可以執行多步驟任務 | 有限               | **是 — 自主執行，需您批准**                                                                            |
@@ -66,19 +66,19 @@
 | 價格                  | 免費 / 付費        | **免費且開源**                                                                                         |
 
 <p align="center">
-  <img src="../../resources/offica-ai BANNER-function.png" alt="AionUi Cowork Platform" width="800">
+  <img src="../../resources/offica-ai BANNER-function.png" alt="Headmaster Work Along Platform" width="800">
 </p>
 
 ---
 
 ## 內建 Agent — 安裝即用，零配置
 
-AionUi 自帶完整的 AI Agent 引擎。不像其他工具需要您手動安裝各種 CLI 工具，**AionUi 裝好就能用，開箱即用**。
+Headmaster 自帶完整的 AI Agent 引擎。不像其他工具需要您手動安裝各種 CLI 工具，**Headmaster 裝好就能用，開箱即用**。
 
 - **無需安裝 CLI 工具** — Agent 引擎已內建
 - **無需複雜配置** — 貼上任意 API 金鑰即可開始
 - **完整的 Agent 能力** — 檔案讀寫、網路搜尋、圖像生成、MCP 工具
-- **現成的專業助手** — 內建 21 個專業助手（Cowork、PPT 生成器、Word 生成器、Word 表單生成器、Excel 生成器、Morph PPT、Morph PPT 3D、Pitch Deck 生成器、儀表板生成器、學術論文寫作助手、財務模型生成器等），拿來就能用
+- **現成的專業助手** — 內建 21 個專業助手（Work Along、PPT 生成器、Word 生成器、Word 表單生成器、Excel 生成器、Morph PPT、Morph PPT 3D、Pitch Deck 生成器、儀表板生成器、學術論文寫作助手、財務模型生成器等），拿來就能用
 
 <p align="center">
   <img src="../../resources/homepage.png" alt="Built-in Agents" width="800">
@@ -86,7 +86,7 @@ AionUi 自帶完整的 AI Agent 引擎。不像其他工具需要您手動安裝
 
 ### **辦公助手（PPT / Word / Excel）**
 
-想把文件/表格直接交給 Agent？AionUi 內建 **[OfficeCLI](https://github.com/iOfficeAI/OfficeCli)**，讓 PPT（Morph 轉場）、Word（`.docx`）與 Excel（`.xlsx/.xlsm/.csv`）從需求到可交付結果更高效、更穩定。
+想把文件/表格直接交給 Agent？Headmaster 內建 **[OfficeCLI](https://github.com/iOfficeAI/OfficeCli)**，讓 PPT（Morph 轉場）、Word（`.docx`）與 Excel（`.xlsx/.xlsm/.csv`）從需求到可交付結果更高效、更穩定。
 三類助手對應各自的文件工作流：生成的成稿可直接編輯、可復用。
 
 #### **PPT 助手**
@@ -141,34 +141,34 @@ AionUi 自帶完整的 AI Agent 引擎。不像其他工具需要您手動安裝
 
 ## 多 Agent 模式 — 已有 CLI 工具？一起用起來
 
-如果您已經在用 Claude Code、Codex 或 Qwen Code，AionUi 會自動發現它們，讓您同時和這些 Agent 一起 Cowork——當然，還有內建 Agent。
+如果您已經在用 Claude Code、Codex 或 Qwen Code，Headmaster 會自動發現它們，讓您同時和這些 Agent 一起 Work Along——當然，還有內建 Agent。
 
-**支援的 Agent：** 內建 Agent（零配置） • Claude Code • Codex • Qwen Code • Goose AI • OpenClaw • Augment Code • CodeBuddy • Kimi CLI • OpenCode • Factory Droid • GitHub Copilot • Qoder CLI • Mistral Vibe • Nanobot • Aion CLI（aionrs，隨附於 AionUi 的 Rust 後端服務） • Snow CLI • Hermes Agent • Cursor Agent 等
+**支援的 Agent：** 內建 Agent（零配置） • Claude Code • Codex • Qwen Code • Goose AI • OpenClaw • Augment Code • CodeBuddy • Kimi CLI • OpenCode • Factory Droid • GitHub Copilot • Qoder CLI • Mistral Vibe • Nanobot • Aion CLI（aionrs，隨附於 Headmaster 的 Rust 後端服務） • Snow CLI • Hermes Agent • Cursor Agent 等
 
 <p align="center">
-  <img src="../../resources/multi-agent支持openclaw.gif" alt="Multi-Agent Cowork" width="800">
+  <img src="../../resources/multi-agent支持openclaw.gif" alt="Multi-Agent Work Along" width="800">
 </p>
 
 - **自動偵測** — 自動識別已安裝的 CLI 工具
-- **統一介面** — 一個 Cowork 平台管理所有 AI Agent
+- **統一介面** — 一個 Work Along 平台管理所有 AI Agent
 - **並行會話** — 同時執行多個 Agent，各自獨立上下文
 - **MCP 統一管理** — 配置一次 MCP（模型上下文協定）工具，自動同步到所有 Agent — 無需為每個 Agent 單獨配置
 - **YOLO Mode**（自動批准所有 Agent 操作，無需手動確認）/ **全自動模式** — 一鍵跳過權限提示；所有 Agent 均支援全自動無人值守執行
 
-### Team Mode — 多 Agent 有序協作
+### The Council — 多 Agent 有序協作
 
 以團隊形式運行多個 AI Agent：**Leader** Agent 接收您的指令，將其分解為子任務，並透過內建 Team MCP Server 委派給 **Teammate** Agent。Teammate 並行執行，透過非同步郵箱共享結果，並將進度寫入共享任務看板。
 
 <p align="center">
-  <img src="../../resources/AionUi_team.gif" alt="Team Mode overview" width="800">
+  <img src="../../resources/Headmaster_team.gif" alt="The Council overview" width="800">
 </p>
 
-- **多 Agent 並行執行** — Leader 將任務分解為子任務並委派給並行運行的 Teammate Agent；每個 Teammate 透過 ACP（Agent Communication Protocol，AionUi 的多 Agent 協調層）、Gemini 或 Aionrs 使用獨立模型
+- **多 Agent 並行執行** — Leader 將任務分解為子任務並委派給並行運行的 Teammate Agent；每個 Teammate 透過 ACP（Agent Communication Protocol，Headmaster 的多 Agent 協調層）、Gemini 或 Aionrs 使用獨立模型
 - **Leader 統籌編排** — Leader 分配、追蹤並彙總結果；支援的後端包括 Claude Code、Codex、Hermes Agent、Gemini、Snow CLI 和 Aion CLI
 - **團隊隔離工作空間** — 所有 Agent 共享同一資料夾；每個 Agent 有獨立的權限確認彈窗，側邊欄角標顯示待確認項
 
 <details>
-<summary><strong>🔍 查看 Team Mode 詳情 ▶️</strong></summary>
+<summary><strong>🔍 查看 The Council 詳情 ▶️</strong></summary>
 
 <br>
 
@@ -182,20 +182,20 @@ AionUi 自帶完整的 AI Agent 引擎。不像其他工具需要您手動安裝
 
 ---
 
-## 任意 API 金鑰，都能獲得完整 Cowork 能力
+## 任意 API 金鑰，都能獲得完整 Work Along 能力
 
-其他 AI 應用可能只給您個聊天視窗，**但 AionUi 給您的是完整的 Cowork Agent**。
+其他 AI 應用可能只給您個聊天視窗，**但 Headmaster 給您的是完整的 Work Along Agent**。
 
 | 您的 API 金鑰              | 您獲得的功能                                 |
 | :------------------------- | :------------------------------------------- |
-| Gemini API 金鑰            | Gemini 驅動的 Cowork Agent                   |
-| OpenAI API 金鑰            | GPT 驅動的 Cowork Agent                      |
-| Anthropic API 金鑰         | Claude 驅動的 Cowork Agent                   |
+| Gemini API 金鑰            | Gemini 驅動的 Work Along Agent                   |
+| OpenAI API 金鑰            | GPT 驅動的 Work Along Agent                      |
+| Anthropic API 金鑰         | Claude 驅動的 Work Along Agent                   |
 | AWS Bedrock 憑證           | 透過 Aion CLI（aionrs）的 Bedrock 驅動 Agent |
-| Ollama / LM Studio（本地） | 本地模型 Cowork Agent                        |
+| Ollama / LM Studio（本地） | 本地模型 Work Along Agent                        |
 | NewAPI 閘道                | 統一存取 20+ 模型                            |
 
-不管用哪個模型，Agent 的能力都一樣強大——檔案讀寫、網路搜尋、圖像生成、工具調用，一個不少。AionUi 支援 **30+ 個 AI 平台**，雲端本地都能用。
+不管用哪個模型，Agent 的能力都一樣強大——檔案讀寫、網路搜尋、圖像生成、工具調用，一個不少。Headmaster 支援 **30+ 個 AI 平台**，雲端本地都能用。
 
 <p align="center">
   <img src="../../resources/llm_newapi.png" alt="Multi-Model Support" width="800">
@@ -214,7 +214,7 @@ AionUi 自帶完整的 AI Agent 引擎。不像其他工具需要您手動安裝
 - **國際平台** — DeepSeek、MiniMax、Novita、OpenRouter、SiliconFlow、xAI、Ark (火山引擎)、Poe
 - **本地模型** — Ollama、LM Studio（透過自訂平台設定本地 API 端點）
 
-AionUi 還支援 [NewAPI](https://github.com/QuantumNous/new-api) 閘道服務 — 一個統一的 AI 模型中心，聚合和分發各種大語言模型。在同一個介面中靈活切換不同模型，滿足各種任務需求。
+Headmaster 還支援 [NewAPI](https://github.com/QuantumNous/new-api) 閘道服務 — 一個統一的 AI 模型中心，聚合和分發各種大語言模型。在同一個介面中靈活切換不同模型，滿足各種任務需求。
 
 </details>
 
@@ -225,7 +225,7 @@ AionUi 還支援 [NewAPI](https://github.com/QuantumNous/new-api) 閘道服務 �
 _靈活的助手系統，內建 21 個專業助手，支援三層技能體系，可自由建立和管理助手與技能。_
 
 - **打造專屬助手** — 按您的需求自訂助手，設定專屬規則和能力
-- **三層技能體系** — 內建技能（隨 AionUi 附帶）、自訂技能（您自己的）以及擴展技能（第三方擴展貢獻）；透過技能指示器按對話啟用/停用
+- **三層技能體系** — 內建技能（隨 Headmaster 附帶）、自訂技能（您自己的）以及擴展技能（第三方擴展貢獻）；透過技能指示器按對話啟用/停用
 - **對話級控制** — 聊天標頭的技能指示器顯示當前對話的活躍技能；可隨時搜尋和排除技能
 
 <p align="center">
@@ -237,9 +237,9 @@ _靈活的助手系統，內建 21 個專業助手，支援三層技能體系，
 
 <br>
 
-AionUi 內建 **21 個專業助手**，每個都有獨特能力，還能透過自訂技能繼續擴展：
+Headmaster 內建 **21 個專業助手**，每個都有獨特能力，還能透過自訂技能繼續擴展：
 
-- **🤝 Cowork** — 自主任務執行（檔案操作、文件處理、工作流程規劃）
+- **🤝 Work Along** — 自主任務執行（檔案操作、文件處理、工作流程規劃）
 - **📊 PPT 生成器 / Morph PPT / Morph PPT 3D** — 生成並製作帶 Morph 轉場的 PPTX 簡報
 - **📐 Pitch Deck 生成器** — 投資人級 Pitch Deck 生成
 - **📊 儀表板生成器** — 資料儀表板生成
@@ -259,7 +259,7 @@ AionUi 內建 **21 個專業助手**，每個都有獨特能力，還能透過�
 - **🔧 OpenClaw 設定** — OpenClaw 整合的設定和配置助手
 - **📖 故事角色扮演** — 沉浸式故事角色扮演，支援角色卡和世界資訊（相容 SillyTavern）
 
-**自訂技能**：在 `skills/` 目錄下建立您的專屬技能，隨時為助手開啟或關閉，讓 AI 能力無限擴展。技能來源分三層：內建（隨 AionUi 附帶）、自訂（您自己的）以及擴展（透過擴展 SDK 貢獻）。內建技能有 `pptx`、`docx`、`pdf`、`xlsx`、`mermaid` 等。
+**自訂技能**：在 `skills/` 目錄下建立您的專屬技能，隨時為助手開啟或關閉，讓 AI 能力無限擴展。技能來源分三層：內建（隨 Headmaster 附帶）、自訂（您自己的）以及擴展（透過擴展 SDK 貢獻）。內建技能有 `pptx`、`docx`、`pdf`、`xlsx`、`mermaid` 等。
 
 > 💡 每個助手都用 markdown 檔案定義，想看看怎麼做的？去 `assistant/` 目錄找範例。
 
@@ -274,13 +274,13 @@ _您的 24/7 AI 助手 — 手機、平板、電腦，隨時隨地都能用。_
 - **WebUI 模式** — 用瀏覽器就能存取，手機、平板、電腦都行。支援區域網路、跨網路和伺服器部署，掃碼或密碼登入，簡單方便。
 
 - **聊天平台整合**
-  - **Telegram** — 直接在 Telegram 中與 AI Agent Cowork
-  - **Lark (飛書)** — 透過飛書機器人進行企業 Cowork
+  - **Telegram** — 直接在 Telegram 中與 AI Agent Work Along
+  - **Lark (飛書)** — 透過飛書機器人進行企業 Work Along
   - **DingTalk** — AI Card 串流更新，自動回退
   - **WeChat** — 微信個人號接入
   - **WeCom（企業微信）**、**Slack**、**Discord** 等更多平台即將推出
 
-> **設定：** AionUi 設定 → WebUI 設定 → Channel，配置 Bot Token。
+> **設定：** Headmaster 設定 → WebUI 設定 → Channel，配置 Bot Token。
 
 <p align="center">
   <img src="../../resources/webui-remote.gif" alt="WebUI remote access demo" width="800">
@@ -288,9 +288,9 @@ _您的 24/7 AI 助手 — 手機、平板、電腦，隨時隨地都能用。_
 
 <p align="center"><em>遠程監管你的 Agent — Claude、Gemini、Codex，瀏覽器或手機即可遠程控制與查看，如同 Claude Code remote。</em></p>
 
-> [遠端網際網路存取教學](https://github.com/iOfficeAI/AionUi/wiki/Remote-Internet-Access-Guide-Chinese)
+> [遠端網際網路存取教學](https://github.com/iOfficeAI/Headmaster/wiki/Remote-Internet-Access-Guide-Chinese)
 
-## ✨ Cowork 演示
+## ✨ Work Along 演示
 
 ### **定時任務 — 設定一次，自動執行**
 
@@ -326,7 +326,7 @@ _一次設定，AI Agent 就會按您的計劃自動工作 — 真正的 24/7 �
 - **綁定會話** — 每個定時任務都綁定到特定會話，上下文和歷史記錄都會保留
 - **自動執行** — 到點就自動執行，結果直接發到對應會話
 - **管理方便** — 隨時建立、修改、開啟/關閉、刪除或查看定時任務
-- **防休眠** — AionUi 會自動阻止系統休眠，任務啟用期間偵測喚醒後的漏觸發
+- **防休眠** — Headmaster 會自動阻止系統休眠，任務啟用期間偵測喚醒後的漏觸發
 - **進階設定** — 每個任務可單獨設定模型、工作目錄和推理力度
 
 **實際範例：**
@@ -372,10 +372,10 @@ _支援 10+ 種格式：PDF、Word、Excel、PPT、程式碼、Markdown、圖像
 
 ### **智慧檔案管理 — 讓 AI 幫您整理檔案**
 
-_批次重新命名、自動整理、智慧分類、檔案合併 — 這些繁瑣的事，交給 Cowork Agent 就行。_
+_批次重新命名、自動整理、智慧分類、檔案合併 — 這些繁瑣的事，交給 Work Along Agent 就行。_
 
 <p align="center">
-  <img src="../../resources/aionui sort file 2.gif" alt="Smart File Management" width="800">
+  <img src="../../resources/headmaster sort file 2.gif" alt="Smart File Management" width="800">
 </p>
 
 <details>
@@ -447,7 +447,7 @@ _智慧圖像生成、編輯和識別，由 Gemini 驅動_
 
 </details>
 
-> [圖像生成模型配置指南](https://github.com/iOfficeAI/AionUi/wiki/AionUi-Image-Generation-Tool-Model-Configuration-Guide)
+> [圖像生成模型配置指南](https://github.com/iOfficeAI/Headmaster/wiki/Headmaster-Image-Generation-Tool-Model-Configuration-Guide)
 
 ---
 
@@ -504,16 +504,16 @@ _同時開啟多個對話，任務不會亂，每個都有獨立記憶，效率�
 
 ---
 
-## 🤔 為什麼選擇 AionUi 而非 Claude Cowork？
+## 🤔 為什麼選擇 Headmaster 而非 Claude Work Along？
 
 <details>
 <summary><strong>點擊查看詳細對比</strong></summary>
 
 <br>
 
-AionUi 是一個**免費開源的 Multi-AI Agent 桌面應用**。相比只能在 macOS 上用、還只能綁定 Claude 的 Claude Cowork，AionUi 支援全模型、跨平台，是它的全面升級版。
+Headmaster 是一個**免費開源的 Multi-AI Agent 桌面應用**。相比只能在 macOS 上用、還只能綁定 Claude 的 Claude Work Along，Headmaster 支援全模型、跨平台，是它的全面升級版。
 
-| 維度     | Claude Cowork | AionUi                                                 |
+| 維度     | Claude Work Along | Headmaster                                                 |
 | :------- | :------------ | :----------------------------------------------------- |
 | OS       | 僅 macOS      | macOS / Windows / Linux                                |
 | 模型支援 | 僅 Claude     | Gemini、Claude、DeepSeek、OpenAI、Ollama 等            |
@@ -526,7 +526,7 @@ AionUi 是一個**免費開源的 Multi-AI Agent 桌面應用**。相比只能�
 - **檔案管理**：智慧整理本地資料夾，一鍵批次重新命名。
 - **資料處理**：深入分析並自動美化 Excel 報告。
 - **文件產生**：自動編寫和格式化 PPT、Word 和 Markdown 文件。
-- **即時預覽**：內建 10+ 種格式預覽面板，AI Cowork 結果立即可見。
+- **即時預覽**：內建 10+ 種格式預覽面板，AI Work Along 結果立即可見。
 
 </details>
 
@@ -536,17 +536,17 @@ AionUi 是一個**免費開源的 Multi-AI Agent 桌面應用**。相比只能�
 
 <details>
 <summary><strong>問：我需要先安裝 Gemini CLI 或 Claude Code 嗎？</strong></summary>
-答：<strong>完全不需要。</strong> AionUi 自帶 AI Agent，裝好就能用。輸入任意 API 金鑰即可開始。如果您已經裝了 Claude Code 或 Gemini CLI 這些 CLI 工具，AionUi 會自動發現並整合它們，功能更強大。
+答：<strong>完全不需要。</strong> Headmaster 自帶 AI Agent，裝好就能用。輸入任意 API 金鑰即可開始。如果您已經裝了 Claude Code 或 Gemini CLI 這些 CLI 工具，Headmaster 會自動發現並整合它們，功能更強大。
 </details>
 
 <details>
-<summary><strong>問：我可以用 AionUi 做什麼？</strong></summary>
-答：AionUi 就是您的<strong>私有 Cowork 工作空間</strong>。內建 Agent 可以幫您批次整理資料夾、處理 Excel 資料、產生文件、搜尋網路、產生圖像。透過多 Agent 模式，您還能在同一介面同時使用 Claude Code、Codex 和其他強大的 CLI Agent。
+<summary><strong>問：我可以用 Headmaster 做什麼？</strong></summary>
+答：Headmaster 就是您的<strong>私有 Work Along 工作空間</strong>。內建 Agent 可以幫您批次整理資料夾、處理 Excel 資料、產生文件、搜尋網路、產生圖像。透過多 Agent 模式，您還能在同一介面同時使用 Claude Code、Codex 和其他強大的 CLI Agent。
 </details>
 
 <details>
 <summary><strong>問：它是免費的嗎？</strong></summary>
-答：AionUi 完全免費且開源。您只需為所選服務商的 API 用量付費，可以使用任何您喜歡的服務商的 API 金鑰。
+答：Headmaster 完全免費且開源。您只需為所選服務商的 API 用量付費，可以使用任何您喜歡的服務商的 API 金鑰。
 </details>
 
 <details>
@@ -556,7 +556,7 @@ AionUi 是一個**免費開源的 Multi-AI Agent 桌面應用**。相比只能�
 
 ---
 
-## 看看大家是怎麼用 AionUi 的
+## 看看大家是怎麼用 Headmaster 的
 
 <p align="center">
   <a href="https://www.youtube.com/watch?v=vWxE6VO9TKo" target="_blank">
@@ -586,11 +586,11 @@ AionUi 是一個**免費開源的 Multi-AI Agent 桌面應用**。相比只能�
 
 ### 社群文章
 
-- [開源免費 Cowork，全模型整合 + 自主檔案操作](https://mp.weixin.qq.com/s/F3f-CCsVPaK3lK00jXhOOg) — 開源 AI 專案落地
+- [開源免費 Work Along，全模型整合 + 自主檔案操作](https://mp.weixin.qq.com/s/F3f-CCsVPaK3lK00jXhOOg) — 開源 AI 專案落地
 - [讓普通人像使用 APP 一樣使用 Claude Code](https://mp.weixin.qq.com/s/TsMojSbkUUFvsd-HQCazZg) — 懶貓愛摸魚
 - [5500 Stars：開源如何打破 Anthropic 的 AI 工具護城河](https://mp.weixin.qq.com/s/saEk49cYV6MqBgw19Lw6Gw) — AI 矽基時刻
 
-> **製作了關於 AionUi 的影片？** [在 X 上告訴我們](https://x.com/AionUi)，我們會在這裡展示！
+> **製作了關於 Headmaster 的影片？** [在 X 上告訴我們](https://x.com/Headmaster)，我們會在這裡展示！
 
 ---
 
@@ -607,7 +607,7 @@ AionUi 是一個**免費開源的 Multi-AI Agent 桌面應用**。相比只能�
 ### 安裝
 
 <p>
-  <a href="https://github.com/iOfficeAI/AionUi/releases">
+  <a href="https://github.com/iOfficeAI/Headmaster/releases">
     <img src="https://img.shields.io/badge/下載-最新版本-32CD32?style=for-the-badge&logo=github&logoColor=white" alt="下載最新版本" height="50">
   </a>
 </p>
@@ -616,14 +616,14 @@ AionUi 是一個**免費開源的 Multi-AI Agent 桌面應用**。相比只能�
 
 ```bash
 # 或者，macOS 透過 Homebrew
-brew install aionui
+brew install headmaster
 ```
 
 ### 三步上手
 
-1. **安裝** AionUi
+1. **安裝** Headmaster
 2. **輸入** 任意 API 金鑰即可開始
-3. **開始 Cowork** — 內建 AI Agent 已經準備好了
+3. **開始 Work Along** — 內建 AI Agent 已經準備好了
 
 ### 📖 詳細指南
 
@@ -634,23 +634,23 @@ brew install aionui
 
 **🚀 快速開始**
 
-- [📖 完整安裝指南](https://github.com/iOfficeAI/AionUi/wiki/Getting-Started) — 從下載到配置，一步步教您
-- [⚙️ LLM 配置指南](https://github.com/iOfficeAI/AionUi/wiki/LLM-Configuration) — 多平台 AI 模型怎麼配置
-- [🤖 多 Agent 模式設定](https://github.com/iOfficeAI/AionUi/wiki/ACP-Setup) — 把終端 AI Agent 整合進來
-- [🔌 MCP 工具配置](https://github.com/iOfficeAI/AionUi/wiki/MCP-Configuration-Guide) — 模型上下文協定伺服器設定
-- [🌐 WebUI 配置指南](https://github.com/iOfficeAI/AionUi/wiki/WebUI-Configuration-Guide) — WebUI 完整設定教學
+- [📖 完整安裝指南](https://github.com/iOfficeAI/Headmaster/wiki/Getting-Started) — 從下載到配置，一步步教您
+- [⚙️ LLM 配置指南](https://github.com/iOfficeAI/Headmaster/wiki/LLM-Configuration) — 多平台 AI 模型怎麼配置
+- [🤖 多 Agent 模式設定](https://github.com/iOfficeAI/Headmaster/wiki/ACP-Setup) — 把終端 AI Agent 整合進來
+- [🔌 MCP 工具配置](https://github.com/iOfficeAI/Headmaster/wiki/MCP-Configuration-Guide) — 模型上下文協定伺服器設定
+- [🌐 WebUI 配置指南](https://github.com/iOfficeAI/Headmaster/wiki/WebUI-Configuration-Guide) — WebUI 完整設定教學
 
 **🎯 使用場景**
 
-- [📁 檔案管理](https://github.com/iOfficeAI/AionUi/wiki/file-management) — 讓 AI 幫您整理檔案
-- [📊 Excel 處理](https://github.com/iOfficeAI/AionUi/wiki/excel-processing) — AI 驅動的資料處理
-- [🎨 圖像生成](https://github.com/iOfficeAI/AionUi/wiki/AionUi-Image-Generation-Tool-Model-Configuration-Guide) — AI 圖像生成
-- [📚 更多使用場景](https://github.com/iOfficeAI/AionUi/wiki/Use-Cases-Overview)
+- [📁 檔案管理](https://github.com/iOfficeAI/Headmaster/wiki/file-management) — 讓 AI 幫您整理檔案
+- [📊 Excel 處理](https://github.com/iOfficeAI/Headmaster/wiki/excel-processing) — AI 驅動的資料處理
+- [🎨 圖像生成](https://github.com/iOfficeAI/Headmaster/wiki/Headmaster-Image-Generation-Tool-Model-Configuration-Guide) — AI 圖像生成
+- [📚 更多使用場景](https://github.com/iOfficeAI/Headmaster/wiki/Use-Cases-Overview)
 
 **❓ 支援與幫助**
 
-- [❓ FAQ](https://github.com/iOfficeAI/AionUi/wiki/FAQ) — 常見問題和解決方案
-- [🔧 配置與使用教學](https://github.com/iOfficeAI/AionUi/wiki/Configuration-Guides) — 完整配置文件
+- [❓ FAQ](https://github.com/iOfficeAI/Headmaster/wiki/FAQ) — 常見問題和解決方案
+- [🔧 配置與使用教學](https://github.com/iOfficeAI/Headmaster/wiki/Configuration-Guides) — 完整配置文件
 
 </details>
 
@@ -661,14 +661,14 @@ brew install aionui
 **您的想法很重要！** 我們非常重視每一個建議和回饋。
 
 <p align="center">
-  <a href="https://x.com/AionUi" target="_blank">
+  <a href="https://x.com/Headmaster" target="_blank">
     <img src="../../resources/contactus-x.png" alt="Contact Us on X" width="600">
   </a>
 </p>
 
-- [GitHub Discussions](https://github.com/iOfficeAI/AionUi/discussions) — 分享想法，交流使用技巧
-- [報告問題](https://github.com/iOfficeAI/AionUi/issues) — 遇到 bug 或有新功能想法？告訴我們
-- [發布更新](https://github.com/iOfficeAI/AionUi/releases) — 取得最新版本
+- [GitHub Discussions](https://github.com/iOfficeAI/Headmaster/discussions) — 分享想法，交流使用技巧
+- [報告問題](https://github.com/iOfficeAI/Headmaster/issues) — 遇到 bug 或有新功能想法？告訴我們
+- [發布更新](https://github.com/iOfficeAI/Headmaster/releases) — 取得最新版本
 - [Discord 社群](https://discord.gg/2QAwJn7Egx) — 英語社群
 - [微信群](../../resources/wx-11.png) — 中文社群
 
@@ -714,7 +714,7 @@ bun run test       # 執行單元測試
   </a>
 </td>
 <td>
-  <a href="https://packycode.com" target="_blank">PackyCode</a> 是一家可靠高效的 API 中繼服務提供商，為 Claude Code、Codex、Gemini 等平台提供中繼服務。感謝 PackyCode 為支持 AionUi 用戶低成本使用，為我們的用戶提供專屬 <a href="https://www.packyapi.com/register?aff=aionui" target="_blank">9折優惠</a>，點擊此連結並在付款時使用優惠碼 <code>aionui</code> 可立減 10%。
+  <a href="https://packycode.com" target="_blank">PackyCode</a> 是一家可靠高效的 API 中繼服務提供商，為 Claude Code、Codex、Gemini 等平台提供中繼服務。感謝 PackyCode 為支持 Headmaster 用戶低成本使用，為我們的用戶提供專屬 <a href="https://www.packyapi.com/register?aff=headmaster" target="_blank">9折優惠</a>，點擊此連結並在付款時使用優惠碼 <code>headmaster</code> 可立減 10%。
 </td>
 </tr>
 </table>
@@ -730,16 +730,16 @@ bun run test       # 執行單元測試
 ## 貢獻者
 
 <p align="center">
-  <a href="https://github.com/iOfficeAI/AionUi/graphs/contributors">
-    <img src="https://contrib.rocks/image?repo=iOfficeAI/AionUi&max=100" alt="Contributors" />
+  <a href="https://github.com/iOfficeAI/Headmaster/graphs/contributors">
+    <img src="https://contrib.rocks/image?repo=iOfficeAI/Headmaster&max=100" alt="Contributors" />
   </a>
 </p>
 
 ## Star 歷史
 
 <p align="center">
-  <a href="https://www.star-history.com/#iOfficeAI/aionui&Date" target="_blank">
-    <img src="https://api.star-history.com/svg?repos=iOfficeAI/aionui&type=Date" alt="Star History" width="600">
+  <a href="https://www.star-history.com/#iOfficeAI/headmaster&Date" target="_blank">
+    <img src="https://api.star-history.com/svg?repos=iOfficeAI/headmaster&type=Date" alt="Star History" width="600">
   </a>
 </p>
 
@@ -747,6 +747,6 @@ bun run test       # 執行單元測試
 
 **如果覺得不錯，給我們點個 Star 吧**
 
-[報告 Bug](https://github.com/iOfficeAI/AionUi/issues) · [請求功能](https://github.com/iOfficeAI/AionUi/issues)
+[報告 Bug](https://github.com/iOfficeAI/Headmaster/issues) · [請求功能](https://github.com/iOfficeAI/Headmaster/issues)
 
 </div>

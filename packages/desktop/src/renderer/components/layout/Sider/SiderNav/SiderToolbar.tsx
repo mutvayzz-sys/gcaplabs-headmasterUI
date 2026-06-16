@@ -1,13 +1,13 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 Headmaster (gcaplabs.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Tooltip } from '@arco-design/web-react';
-import { ListCheckbox, Plus } from '@icon-park/react';
+import { ListChecks, Plus } from '@phosphor-icons/react';
 import classNames from 'classnames';
 import type { SiderTooltipProps } from '@renderer/utils/ui/siderTooltip';
 import styles from '../Sider.module.css';
@@ -43,9 +43,8 @@ const SiderToolbar: React.FC<SiderToolbarProps> = ({
             onClick={onNewChat}
           >
             <Plus
-              theme='outline'
-              size='16'
-              fill='currentColor'
+              size={16}
+              weight='regular'
               className={classNames('block leading-none', styles.newChatIcon)}
               style={{ lineHeight: 0 }}
             />
@@ -68,9 +67,8 @@ const SiderToolbar: React.FC<SiderToolbarProps> = ({
         >
           <span className='size-22px rd-6px bg-aou-2 border border-solid border-[var(--color-border-2)] group-hover:bg-fill-3 group-hover:border-transparent flex items-center justify-center shrink-0 transition-colors'>
             <Plus
-              theme='outline'
-              size='14'
-              fill='currentColor'
+              size={14}
+              weight='regular'
               className={classNames('block leading-none', styles.newChatIcon)}
               style={{ lineHeight: 0 }}
             />
@@ -96,7 +94,7 @@ const SiderToolbar: React.FC<SiderToolbarProps> = ({
           )}
           onClick={onToggleBatchMode}
         >
-          <ListCheckbox theme='outline' size='14' className='block leading-none shrink-0' style={{ lineHeight: 0 }} />
+          <ListChecks size={14} weight='regular' className='block leading-none shrink-0' style={{ lineHeight: 0 }} />
         </div>
       </Tooltip>
     </div>

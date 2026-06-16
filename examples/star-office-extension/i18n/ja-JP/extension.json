@@ -3,7 +3,7 @@
   "description": "すべてのエージェントのアクティビティを可視化するStar Officeスタイルのタブ。",
   "settingsTabs": {
     "star-office": { "name": "Star Office" },
-    "aionui-home": { "name": "AionUI ホーム" },
-    "aionui-issues": { "name": "AionUI 課題" }
+    "headmaster-home": { "name": "Headmaster ホーム" },
+    "headmaster-issues": { "name": "Headmaster 課題" }
   }
 }

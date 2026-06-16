@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 Headmaster (gcaplabs.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -93,7 +93,7 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({
         trigger='hover'
         droplist={
           <Menu
-            className='aion-model-menu--sticky-group'
+            className='headmaster-model-menu--sticky-group'
             selectedKeys={current_model ? [current_model.id + current_model.use_model] : []}
           >
             {!enabledModelList || enabledModelList.length === 0

@@ -25,7 +25,7 @@ and every HTTP call from the renderer (or from e2e helpers that use
 
 ```bash
 # Install the backend binary (builds to ~/.cargo/bin/aioncore)
-cd ../AionCore && cargo install --path crates/aionui-app
+cd ../Adonis Core && cargo install --path crates/headmaster-app
 
 # Make sure it's on PATH when running tests
 export PATH="$HOME/.cargo/bin:$PATH"
@@ -210,10 +210,10 @@ Variables set automatically during test launch:
 
 | Variable                     | Value | Purpose                  |
 | ---------------------------- | ----- | ------------------------ |
-| `AIONUI_E2E_TEST`            | `1`   | App recognizes test mode |
-| `AIONUI_DISABLE_AUTO_UPDATE` | `1`   | No update checks         |
-| `AIONUI_DISABLE_DEVTOOLS`    | `1`   | No DevTools windows      |
-| `AIONUI_CDP_PORT`            | `0`   | CDP disabled             |
+| `HEADMASTER_E2E_TEST`            | `1`   | App recognizes test mode |
+| `HEADMASTER_DISABLE_AUTO_UPDATE` | `1`   | No update checks         |
+| `HEADMASTER_DISABLE_DEVTOOLS`    | `1`   | No DevTools windows      |
+| `HEADMASTER_CDP_PORT`            | `0`   | CDP disabled             |
 
 ---
 
@@ -285,7 +285,7 @@ bunx electron-vite build
 
 ```bash
 # Clean via database
-sqlite3 "~/Library/Application Support/AionUi-Dev/aionui/aionui.db" \
+sqlite3 "~/Library/Application Support/Headmaster-Dev/headmaster/headmaster.db" \
   "DELETE FROM teams WHERE name LIKE 'E2E%';"
 ```
 
