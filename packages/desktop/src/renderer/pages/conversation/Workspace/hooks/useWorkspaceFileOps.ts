@@ -11,12 +11,13 @@ import { emitter } from '@/renderer/utils/emitter';
 import { removeWorkspaceEntry, renameWorkspaceEntry } from '@/renderer/utils/file/workspaceFs';
 import { useCallback } from 'react';
 import type { MessageApi, RenameModalState, DeleteModalState } from '../types';
+import type { WorkspaceEventPrefix } from '@/renderer/utils/emitter';
 import type { FileOrFolderItem } from '@/renderer/utils/file/fileTypes';
 import { getPathSeparator, replacePathInList, updateTreeForRename } from '../utils/treeHelpers';
 
 interface UseWorkspaceFileOpsOptions {
   workspace: string;
-  eventPrefix: 'acp' | 'codex' | 'aionrs';
+  eventPrefix: 'aionrs' | 'acp' | 'codex';
   messageApi: MessageApi;
   t: (key: string) => string;
 

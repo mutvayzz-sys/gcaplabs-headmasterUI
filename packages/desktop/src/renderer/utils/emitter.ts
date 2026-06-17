@@ -63,3 +63,5 @@ export const useAddEventListener = <T extends EventEmitter.EventNames<EventTypes
     return addEventListener(event, fn);
   }, deps || []);
 };
+
+export type WorkspaceEventPrefix = 'aionrs' | 'acp' | 'codex';

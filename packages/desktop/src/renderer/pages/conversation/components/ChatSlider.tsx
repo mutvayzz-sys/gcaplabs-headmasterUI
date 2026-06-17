@@ -8,6 +8,7 @@ import type { TChatConversation } from '@/common/config/storage';
 import { Message } from '@arco-design/web-react';
 import React from 'react';
 import ChatWorkspace from '../Workspace';
+import type { WorkspaceEventPrefix } from '@/renderer/utils/emitter';
 
 const ChatSlider: React.FC<{
   conversation?: TChatConversation;
@@ -15,7 +16,7 @@ const ChatSlider: React.FC<{
   const [messageApi, messageContext] = Message.useMessage({ maxCount: 1 });
 
   const workspace = conversation?.extra?.workspace;
-  const conversationType = conversation?.type ?? 'acp';
+  const conversationType = (conversation?.type ?? 'acp') as WorkspaceEventPrefix;
   const isTempWorkspace = (conversation?.extra as { is_temporary_workspace?: boolean } | undefined)
     ?.is_temporary_workspace;
 

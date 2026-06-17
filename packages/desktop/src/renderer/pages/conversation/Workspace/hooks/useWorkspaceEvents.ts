@@ -9,10 +9,11 @@ import type { IDirOrFile } from '@/common/adapter/ipcBridge';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
 import { useCallback, useEffect, useRef } from 'react';
 import type { ContextMenuState } from '../types';
+import type { WorkspaceEventPrefix } from '@/renderer/utils/emitter';
 
 interface UseWorkspaceEventsOptions {
-  conversation_id: string;
-  eventPrefix: 'acp' | 'codex' | 'aionrs';
+ conversation_id: string;
+  eventPrefix: 'aionrs' | 'acp' | 'codex';
 
   // Dependencies from useWorkspaceTree
   refreshWorkspace: () => void;

@@ -31,6 +31,7 @@ import { useAbortUploadsOnConversationChange } from '@/renderer/hooks/file/useAb
 import { useWorkspaceSearch } from './hooks/useWorkspaceSearch';
 import { useWorkspaceTree } from './hooks/useWorkspaceTree';
 import type { WorkspaceProps, WorkspaceTab } from './types';
+import type { WorkspaceEventPrefix } from '@/renderer/utils/emitter';
 import {
   computeContextMenuPosition,
   extractNodeData,
@@ -44,7 +45,7 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
   conversation_id,
   workspace,
   isTemporaryWorkspace: isTemporaryWorkspaceProp,
-  eventPrefix = 'acp',
+  eventPrefix = 'acp' as WorkspaceEventPrefix,
   messageApi: externalMessageApi,
 }) => {
   const { t } = useTranslation();

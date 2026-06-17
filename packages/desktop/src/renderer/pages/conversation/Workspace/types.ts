@@ -24,7 +24,7 @@ export interface WorkspaceProps {
    * Renamed here to camelCase per the frontend prop convention.
    */
   isTemporaryWorkspace?: boolean;
-  eventPrefix?: 'acp' | 'codex' | 'aionrs';
+  eventPrefix?: 'aionrs' | 'acp' | 'codex';
   messageApi?: MessageApi;
 }
 

@@ -11,11 +11,12 @@ import { dispatchWorkspaceHasFilesEvent } from '@/renderer/utils/workspace/works
 import { useCallback, useRef, useState } from 'react';
 import type { SelectedNodeRef } from '../types';
 import { getFirstLevelKeys, mergeLoadedChildren } from '../utils/treeHelpers';
+import type { WorkspaceEventPrefix } from '@/renderer/utils/emitter';
 
 interface UseWorkspaceTreeOptions {
-  workspace: string;
-  conversation_id: string;
-  eventPrefix: 'acp' | 'codex' | 'aionrs';
+ workspace: string;
+ conversation_id: string;
+  eventPrefix: 'aionrs' | 'acp' | 'codex';
 }
 
 /**
