@@ -8,7 +8,6 @@ import { ipcBridge } from '@/common';
 import type { IDirOrFile } from '@/common/adapter/ipcBridge';
 import FlexFullContainer from '@/renderer/components/layout/FlexFullContainer';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
-import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
 import { getWorkspaceDisplayName as getDisplayName } from '@/renderer/utils/workspace/workspace';
 import { Empty, Message, Tree } from '@arco-design/web-react';
 import { Right } from '@icon-park/react';
@@ -51,7 +50,6 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
   const { t } = useTranslation();
   const layout = useLayoutContext();
   const isMobile = layout?.isMobile ?? false;
-  const { openPreview } = usePreviewContext();
 
   // Message API setup
   const [internalMessageApi, messageContext] = Message.useMessage();
@@ -114,7 +112,6 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
     closeContextMenu: modalsHook.closeContextMenu,
     setRenameModal: modalsHook.setRenameModal,
     setDeleteModal: modalsHook.setDeleteModal,
-    openPreview,
   });
 
   // Setup events
@@ -176,14 +173,10 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
   );
 
   const handleOpenChangeDiff = useCallback(
-    (diffContent: string, file_name: string, file_path: string) => {
-      openPreview(diffContent, 'diff', {
-        file_name,
-        file_path,
-        workspace,
-      });
+    (_diffContent: string, _file_name: string, _file_path: string) => {
+      // Preview functionality has been removed
     },
-    [openPreview, workspace]
+    []
   );
 
   // Auto-refresh changes when switching to changes tab

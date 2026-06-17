@@ -5,9 +5,13 @@
  */
 
 import type { IDirOrFile } from '@/common/adapter/ipcBridge';
-import { getFileExtension } from '@/renderer/pages/conversation/Preview/fileUtils';
 
 type IconNode = Pick<IDirOrFile, 'name' | 'relativePath'>;
+
+const getFileExtension = (path: string): string => {
+  const parts = path.toLowerCase().split('.');
+  return parts.length > 1 ? parts[parts.length - 1] : '';
+};
 
 export const ICON_PREFIX = 'vscode-icons';
 const DEFAULT_FILE_ICON = 'default-file';

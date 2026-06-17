@@ -108,5 +108,8 @@
   "unit": {
     "minute_short": "m",
     "second_short": "s"
+  },
+  "sidebar": {
+    "deliverables": "Deliverables"
   }
 }

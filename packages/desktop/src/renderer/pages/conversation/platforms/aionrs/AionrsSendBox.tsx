@@ -36,7 +36,6 @@ import { useConversationRuntimeView } from '@/renderer/pages/conversation/runtim
 import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
 import { getConversationRuntimeWorkspaceErrorMessage } from '@/renderer/pages/conversation/utils/conversationCreateError';
 import { warmupConversation } from '@/renderer/pages/conversation/utils/warmupConversation';
-import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
 import { useTeamPermission } from '@/renderer/pages/team/hooks/TeamPermissionContext';
 import { allSupportedExts } from '@/renderer/services/FileService';
 import { iconColors } from '@/renderer/styles/colors';
@@ -174,22 +173,12 @@ const AionrsSendBox: React.FC<{
     agentStatus: agentWarmed ? 'active' : null,
   });
 
-  const { setSendBoxHandler } = usePreviewContext();
   const isCancelling = runtimeView.state === 'cancelling';
   const isBusy = isCancelling || runtimeView.isProcessing || !runtimeView.canSendMessage;
 
   const setContentRef = useLatestRef(setContent);
   const contentRef = useLatestRef(content);
   const atPathRef = useLatestRef(atPath);
-
-  // Register handler for adding text from preview panel to sendbox
-  useEffect(() => {
-    const handler = (text: string) => {
-      const new_content = content ? `${content}\n${text}` : text;
-      setContentRef.current(new_content);
-    };
-    setSendBoxHandler(handler);
-  }, [setSendBoxHandler, content]);
 
   // Listen for sendbox.fill event to append text to sendbox
   useAddEventListener(

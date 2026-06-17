@@ -6,6 +6,7 @@ import { isElectronDesktop, resolveExtensionAssetUrl } from '@/renderer/utils/pl
 import { type IExtensionSettingsTab } from '@/common/adapter/ipcBridge';
 import { useExtensionSettingsTabs } from '@/renderer/hooks/system/useExtensionSettingsTabs';
 import {
+  Api,
   Cat,
   Communication,
   Computer,
@@ -13,8 +14,10 @@ import {
   Info,
   Lightning,
   LinkCloud,
+  MemoryOne,
   Puzzle,
   Robot,
+  Speed,
   System,
 } from '@icon-park/react';
 import { useTranslation } from 'react-i18next';
@@ -35,6 +38,12 @@ type TranslateFn = (key: string, options?: { defaultValue?: string }) => string;
 
 export function getBuiltinSettingsNavItems(isDesktop: boolean, t: TranslateFn): NavItem[] {
   const builtinMap: Record<string, NavItem> = {
+    hermes: {
+      id: 'hermes',
+      label: t('settings.hermes', { defaultValue: 'Hermes' }),
+      icon: <LinkCloud theme='outline' size='16' />,
+      path: 'hermes',
+    },
     model: { id: 'model', label: t('settings.model'), icon: <LinkCloud theme='outline' size='16' />, path: 'model' },
     assistants: {
       id: 'assistants',
@@ -45,7 +54,7 @@ export function getBuiltinSettingsNavItems(isDesktop: boolean, t: TranslateFn): 
     agent: {
       id: 'agent',
       label: t('settings.agents', { defaultValue: 'Agents' }),
-      icon: <Robot theme='outline' size='16' />,
+      icon: <Speed theme='outline' size='16' />,
       path: 'agent',
     },
     capabilities: {
@@ -53,6 +62,12 @@ export function getBuiltinSettingsNavItems(isDesktop: boolean, t: TranslateFn): 
       label: t('settings.capabilities', { defaultValue: 'Capabilities' }),
       icon: <Lightning theme='outline' size='16' />,
       path: 'capabilities',
+    },
+    integrations: {
+      id: 'integrations',
+      label: t('settings.integrations', { defaultValue: 'Integrations' }),
+      icon: <Api theme='outline' size='16' />,
+      path: 'integrations',
     },
     appearance: {
       id: 'appearance',
@@ -67,11 +82,17 @@ export function getBuiltinSettingsNavItems(isDesktop: boolean, t: TranslateFn): 
       path: 'webui',
     },
     pet: { id: 'pet', label: t('pet.desktopPet'), icon: <Cat theme='outline' size='16' />, path: 'pet' },
+    memory: {
+      id: 'memory',
+      label: t('settings.memory.menuLabel', { defaultValue: 'Memory' }),
+      icon: <MemoryOne theme='outline' size='16' />,
+      path: 'memory',
+    },
     system: { id: 'system', label: t('settings.system'), icon: <System theme='outline' size='16' />, path: 'system' },
     about: { id: 'about', label: t('settings.about'), icon: <Info theme='outline' size='16' />, path: 'about' },
   };
 
-  return BUILTIN_TAB_IDS.map((id) => builtinMap[id]);
+  return BUILTIN_TAB_IDS.map((id) => builtinMap[id]).filter((item): item is NavItem => item !== undefined);
 }
 
 const SettingsPageWrapper: React.FC<SettingsPageWrapperProps> = ({ children, className, contentClassName }) => {

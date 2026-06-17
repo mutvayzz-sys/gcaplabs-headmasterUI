@@ -5,7 +5,6 @@
  */
 
 import type { AionrsModelSelection } from './useAionrsModelSelection';
-import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { getModelDisplayLabel } from '@/renderer/utils/model/agentLogo';
 import { iconColors } from '@/renderer/styles/colors';
@@ -20,9 +19,8 @@ const AionrsModelSelector: React.FC<{
   disabled?: boolean;
 }> = ({ selection, disabled = false }) => {
   const { t } = useTranslation();
-  const { isOpen: isPreviewOpen } = usePreviewContext();
   const layout = useLayoutContext();
-  const compact = isPreviewOpen || layout?.isMobile;
+  const compact = layout?.isMobile;
   const isMobileHeaderCompact = Boolean(layout?.isMobile);
   const defaultModelLabel = t('common.defaultModel');
 

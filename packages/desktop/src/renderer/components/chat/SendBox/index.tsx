@@ -14,7 +14,6 @@ import { useSlashCommandController } from '@/renderer/hooks/chat/useSlashCommand
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { useConversationContextSafe } from '@/renderer/hooks/context/ConversationContext';
 import { useTeamPermission } from '@/renderer/pages/team/hooks/TeamPermissionContext';
-import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
 import { warmupConversation } from '@/renderer/pages/conversation/utils/warmupConversation';
 import { buildAtFileInsertion, getActiveAtFileQuery, getAllAtFileQueries } from '@/renderer/utils/chat/atFileQuery';
 import { getLastAssistantText } from '@/renderer/utils/chat/getLastAssistantText';
@@ -257,21 +256,10 @@ const SendBox: React.FC<{
   useAddEventListener('sendbox.reply', (quote) => setReplyQuote(quote), []);
   useAddEventListener('sendbox.reply.clear', () => setReplyQuote(null), []);
 
-  // 集成预览面板的"添加到聊天"功能 / Integrate preview panel's "Add to chat" functionality
-  const { setSendBoxHandler, domSnippets, removeDomSnippet, clearDomSnippets } = usePreviewContext();
-
-  // 注册处理器以接收来自预览面板的文本 / Register handler to receive text from preview panel
-  useEffect(() => {
-    const handler = (text: string) => {
-      const base = latestInputRef.current;
-      const newValue = base ? `${base}\n\n${text}` : text;
-      setInputRef.current(newValue);
-    };
-    setSendBoxHandler(handler);
-    return () => {
-      setSendBoxHandler(null);
-    };
-  }, [setSendBoxHandler]);
+  // DOM snippets functionality removed with PreviewPanel
+  const domSnippets: Array<{ id: string; tag: string; html: string }> = [];
+  const removeDomSnippet = useCallback((_id: string) => {}, []);
+  const clearDomSnippets = useCallback(() => {}, []);
 
   // 初始化时获取单行输入框的可用宽度
   // Initialize and get the available width of single-line input

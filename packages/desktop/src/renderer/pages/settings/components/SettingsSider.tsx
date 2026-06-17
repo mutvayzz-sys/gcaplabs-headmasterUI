@@ -16,6 +16,7 @@ import {
   Robot,
   Speed,
   System,
+  Api,
 } from '@icon-park/react';
 import classNames from 'classnames';
 import React, { useMemo } from 'react';
@@ -26,14 +27,15 @@ import { getSiderTooltipProps } from '@/renderer/utils/ui/siderTooltip';
 
 /** Builtin settings tab IDs in display order (must match router paths). */
 export const BUILTIN_TAB_IDS = [
+  'hermes',
   'agent',
   'model',
   'assistants',
   'capabilities',
+  'integrations',
   'appearance',
   'webui',
   'pet',
-  'runtime',
   'memory',
   'system',
   'about',
@@ -48,6 +50,7 @@ export const LEGACY_ANCHOR_REMAP: Record<string, string> = {
   'skills-hub': 'capabilities',
   tools: 'capabilities',
   display: 'appearance',
+  runtime: 'hermes',
 };
 
 /**
@@ -56,9 +59,8 @@ export const LEGACY_ANCHOR_REMAP: Record<string, string> = {
  * Extension tabs anchored between these builtins inherit the enclosing group visually.
  */
 const GROUP_HEADER_BEFORE: Record<string, string> = {
-  agent: 'settings.groupAiCore',
-  appearance: 'settings.groupApp',
-  runtime: 'settings.groupRuntime',
+  hermes: 'settings.groupAiCore',
+  appearance: 'settings.groupHeadmasterUI',
   memory: 'settings.groupMemory',
   about: 'settings.groupAbout',
 };
@@ -87,6 +89,12 @@ const SettingsSider: React.FC<{ collapsed?: boolean; tooltipEnabled?: boolean }>
   const { menus, groupHeaderAt } = useMemo(() => {
     // Build builtin items
     const builtinMap: Record<string, SiderItem> = {
+      hermes: {
+        id: 'hermes',
+        label: t('settings.hermes', { defaultValue: 'Hermes' }),
+        icon: <LinkCloud />,
+        path: 'hermes',
+      },
       model: { id: 'model', label: t('settings.model'), icon: <LinkCloud />, path: 'model' },
       assistants: {
         id: 'assistants',
@@ -106,6 +114,12 @@ const SettingsSider: React.FC<{ collapsed?: boolean; tooltipEnabled?: boolean }>
         icon: <Lightning />,
         path: 'capabilities',
       },
+      integrations: {
+        id: 'integrations',
+        label: t('settings.integrations', { defaultValue: 'Integrations' }),
+        icon: <Api />,
+        path: 'integrations',
+      },
       appearance: { id: 'appearance', label: t('settings.appearancePanel'), icon: <Computer />, path: 'appearance' },
       webui: {
         id: 'webui',
@@ -114,12 +128,6 @@ const SettingsSider: React.FC<{ collapsed?: boolean; tooltipEnabled?: boolean }>
         path: 'webui',
       },
       pet: { id: 'pet', label: t('pet.desktopPet'), icon: <Cat />, path: 'pet' },
-      runtime: {
-        id: 'runtime',
-        label: t('settings.runtime.menuLabel', { defaultValue: 'Runtime' }),
-        icon: <LinkCloud />,
-        path: 'runtime',
-      },
       memory: {
         id: 'memory',
         label: t('settings.memory.menuLabel', { defaultValue: 'Memory' }),

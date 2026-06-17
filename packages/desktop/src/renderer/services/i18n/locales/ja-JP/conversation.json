@@ -1,4 +1,8 @@
 {
+  "browser": {
+    "title": "Browser",
+    "close": "Close browser panel"
+  },
   "welcome": {
     "title": "Hi、今日の予定は何ですか？",
     "placeholder": "メッセージの送信、ファイルの追加、フォルダーの追加、またはスケジュールタスクの作成...",

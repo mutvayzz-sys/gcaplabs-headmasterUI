@@ -24,6 +24,7 @@ import { cleanupSiderTooltips } from '@renderer/utils/ui/siderTooltip';
 import { useConversationShortcuts } from '@renderer/hooks/ui/useConversationShortcuts';
 import { isElectronDesktop } from '@renderer/utils/platform';
 import '@renderer/styles/layout.css';
+import { AppErrorBoundary } from './AppErrorBoundary';
 
 const SidebarIcon: React.FC<{ size?: number; strokeWidth?: number }> = ({ size = 18, strokeWidth = 4 }) => (
   <svg
@@ -379,15 +380,17 @@ const Layout: React.FC<{
                 {/* 侧栏折叠改由标题栏统一控制 / Sidebar folding handled by Titlebar toggle */}
               </ArcoLayout.Header>
               <ArcoLayout.Content className='pt-0 px-8px pb-0 layout-sider-content'>
-                {React.isValidElement(sider)
-                  ? React.cloneElement(sider, {
-                      onSessionClick: () => {
-                        cleanupSiderTooltips();
-                        if (isMobile) setCollapsed(true);
-                      },
-                      collapsed,
-                    } as any)
-                  : sider}
+                <AppErrorBoundary>
+                  {React.isValidElement(sider)
+                    ? React.cloneElement(sider, {
+                        onSessionClick: () => {
+                          cleanupSiderTooltips();
+                          if (isMobile) setCollapsed(true);
+                        },
+                        collapsed,
+                      } as any)
+                    : sider}
+                </AppErrorBoundary>
               </ArcoLayout.Content>
               {!isMobile && (
                 <div
@@ -414,7 +417,9 @@ const Layout: React.FC<{
                   : undefined
               }
             >
-              <Outlet />
+              <AppErrorBoundary>
+                <Outlet />
+              </AppErrorBoundary>
               {directorySelectionContextHolder}
               <PwaPullToRefresh />
               <Suspense fallback={null}>

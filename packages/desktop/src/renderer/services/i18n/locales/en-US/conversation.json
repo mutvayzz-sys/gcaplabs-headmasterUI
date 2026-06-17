@@ -1,4 +1,8 @@
 {
+  "browser": {
+    "title": "Browser",
+    "close": "Close browser panel"
+  },
   "welcome": {
     "title": "Hi, what's your plan for today?",
     "placeholder": "Send a message, upload files, open a folder, or create a scheduled task...",

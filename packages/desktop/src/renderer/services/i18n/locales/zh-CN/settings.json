@@ -1054,5 +1054,8 @@
     "conversation": "对话",
     "mcp": "MCP",
     "customAgent": "自定义 Agent"
-  }
+  },
+  "integrations": "Integrations",
+  "hermes": "Hermes",
+  "groupHeadmasterUI": "HeadmasterUI"
 }

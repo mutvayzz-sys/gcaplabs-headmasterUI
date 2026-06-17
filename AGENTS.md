@@ -145,4 +145,30 @@ For pull request creation, see the `oss-pr` skill (`.claude/skills/oss-pr/SKILL.
 | **pr-ship**       | End-to-end PR lifecycle: create, CI wait, review, fix, merge in one invocation        | `/pr-ship`, after development is done, resume shepherding a PR                             |
 | **pr-automation** | PR automation orchestrator: poll PRs, review, fix, and merge via label state machine  | Invoked by daemon script (`pr-automation.sh`), `/pr-automation`                            |
 
+---
+
+## Architecture Notes
+
+### BrowserPanel (added 2026-06-17)
+
+The app has a **contextual browser view panel** that auto-opens when the Hermes agent uses browser tools (Camofox with VNC).
+
+**Slot:** Same right-side panel slot that used to hold the PreviewPanel tabs. Sits between the chat area and the workspace panel.
+
+**Key files:**
+- `renderer/pages/conversation/BrowserPanel/` — context, component, barrel export
+- `renderer/hooks/chat/useBrowserSessionWatch.ts` — watches `listChanged` IPC events, queries last 30 messages for `browser_*` tool names, opens panel at `http://localhost:6080`, closes 2.5s after agent stops
+- `renderer/pages/conversation/components/ChatLayout/index.tsx` — panel slot driven by `useBrowserPanelContext` (replaced `usePreviewContext` for this slot)
+- `renderer/main.tsx` — `BrowserPanelProvider` nested inside `PreviewProvider`
+- `renderer/pages/conversation/index.tsx` — `useBrowserSessionWatch(id)` called at route level
+
+**Do not:**
+- Add another panel to the same slot without removing or rethinking BrowserPanel
+- Hardcode `http://localhost:6080` anywhere other than `useBrowserSessionWatch.ts` (`CAMOFOX_VNC_URL` constant)
+- Remove `BrowserPanelProvider` from the provider chain in `main.tsx`
+
+**Pending:**
+- Old `PreviewPanel` / `PreviewProvider` code still exists and is still provided — user intends to remove the tabbed preview system. Do not add new features to `PreviewPanel` in the meantime.
+- Run `bun run i18n:types` after any locale file changes (`browser.*` keys were added to all `conversation.json` files).
+
 > Skills are located in `.claude/skills/` and contain project conventions that apply to **all** agents and contributors.

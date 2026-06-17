@@ -10,8 +10,7 @@ import { vs, vs2015 } from 'react-syntax-highlighter/dist/esm/styles/hljs';
 
 import { copyText } from '@/renderer/utils/ui/clipboard';
 import { Message } from '@arco-design/web-react';
-import { Copy, PreviewOpen } from '@icon-park/react';
-import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
+import { Copy } from '@icon-park/react';
 import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -49,7 +48,6 @@ const withResponsiveSvg = (svg: string): string => {
 
 function MermaidBlock({ code, style, showOpenInPanelButton = true }: MermaidBlockProps) {
   const { t } = useTranslation();
-  const { openPreview } = usePreviewContext();
   const blockIdRef = useRef(`mermaid-${Math.random().toString(36).slice(2, 10)}`);
   const preferredViewModeRef = useRef<'preview' | 'source' | null>(null);
   const [svg, setSvg] = useState<string | null>(null);
@@ -209,22 +207,6 @@ function MermaidBlock({ code, style, showOpenInPanelButton = true }: MermaidBloc
             )}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
-            {showOpenInPanelButton && (
-              <PreviewOpen
-                data-testid='mermaid-open-in-panel'
-                theme='outline'
-                size='18'
-                style={{ cursor: 'pointer', flexShrink: 0 }}
-                fill='var(--text-secondary)'
-                title={t('preview.openInPanelTooltip')}
-                onClick={() => {
-                  openPreview(`\`\`\`mermaid\n${code}\n\`\`\``, 'markdown', {
-                    title: previewTitle,
-                    editable: false,
-                  });
-                }}
-              />
-            )}
             <Copy
               data-testid='mermaid-copy'
               theme='outline'

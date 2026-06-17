@@ -1,5 +1,4 @@
 import type { GoogleModelSelection } from '@/renderer/pages/conversation/platforms/gemini/useGoogleModelSelection';
-import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { getModelDisplayLabel } from '@/renderer/utils/model/agentLogo';
 import { iconColors } from '@/renderer/styles/colors';
@@ -17,9 +16,8 @@ const GoogleModelSelector: React.FC<{
   variant?: 'header' | 'settings';
 }> = ({ selection, disabled = false, label: customLabel, variant = 'header' }) => {
   const { t } = useTranslation();
-  const { isOpen: isPreviewOpen } = usePreviewContext();
   const layout = useLayoutContext();
-  const compact = variant === 'header' && (isPreviewOpen || layout?.isMobile);
+  const compact = variant === 'header' && layout?.isMobile;
   const isMobileHeaderCompact = variant === 'header' && Boolean(layout?.isMobile);
   const defaultModelLabel = t('common.defaultModel');
 

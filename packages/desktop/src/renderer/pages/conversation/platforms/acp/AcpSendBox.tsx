@@ -31,7 +31,6 @@ import {
   useConversationCommandQueue,
   type ConversationCommandQueueItem,
 } from '@/renderer/pages/conversation/platforms/useConversationCommandQueue';
-import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
 import { useConversationRuntimeView } from '@/renderer/pages/conversation/runtime/useConversationRuntimeView';
 import { getConversationRuntimeWorkspaceErrorMessage } from '@/renderer/pages/conversation/utils/conversationCreateError';
 import { warmupConversation } from '@/renderer/pages/conversation/utils/warmupConversation';
@@ -204,7 +203,6 @@ const AcpSendBox: React.FC<{
     },
     [teamPermission, setContent]
   );
-  const { setSendBoxHandler } = usePreviewContext();
 
   // Use useLatestRef to keep latest setters to avoid re-registering handler
   const setContentRef = useLatestRef(setContent);
@@ -224,16 +222,6 @@ const AcpSendBox: React.FC<{
   });
   const isCancelling = runtimeView.state === 'cancelling';
   const isBusy = isCancelling || runtimeView.isProcessing || !runtimeView.canSendMessage;
-
-  // Register handler for adding text from preview panel to sendbox
-  useEffect(() => {
-    const handler = (text: string) => {
-      // If there's existing content, add newline and new text; otherwise just set the text
-      const new_content = content ? `${content}\n${text}` : text;
-      setContentRef.current(new_content);
-    };
-    setSendBoxHandler(handler);
-  }, [setSendBoxHandler, content]);
 
   // Listen for sendbox.fill event to append text to sendbox
   useAddEventListener(

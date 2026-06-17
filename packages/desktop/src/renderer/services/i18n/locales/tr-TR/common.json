@@ -108,5 +108,8 @@
   "unit": {
     "minute_short": "dk",
     "second_short": "sn"
+  },
+  "sidebar": {
+    "deliverables": "Deliverables"
   }
 }

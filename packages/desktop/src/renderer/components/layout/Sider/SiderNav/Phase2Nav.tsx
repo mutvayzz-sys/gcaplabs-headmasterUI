@@ -7,19 +7,13 @@
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
-  HouseLine,
   ChatCircle,
-  Pulse,
-  Books,
   Brain,
   Clock,
-  GitBranch,
   Users,
-  Plugs,
   Kanban,
   GearSix,
-  Globe,
-  Images,
+  Package,
 } from '@phosphor-icons/react';
 import type { SiderTooltipProps } from '@renderer/utils/ui/siderTooltip';
 import { SiderNavEntry } from './index';
@@ -32,18 +26,12 @@ interface Phase2NavProps {
 }
 
 const NAV_ITEMS = [
-  { path: '/dashboard', icon: HouseLine, labelKey: 'sidebar.dashboard', defaultLabel: 'Dashboard' },
   { path: '/guid', icon: ChatCircle, labelKey: 'sidebar.chat', defaultLabel: 'Chat' },
-  { path: '/activity', icon: Pulse, labelKey: 'sidebar.activity', defaultLabel: 'Activity' },
-  { path: '/documents', icon: Books, labelKey: 'sidebar.documents', defaultLabel: 'Documents' },
   { path: '/memory', icon: Brain, labelKey: 'sidebar.memory', defaultLabel: 'Memory' },
-  { path: '/scheduled', icon: Clock, labelKey: 'sidebar.automations', defaultLabel: 'Automations' },
-  { path: '/workflows', icon: GitBranch, labelKey: 'sidebar.skills', defaultLabel: 'Skills' },
   { path: '/agents', icon: Users, labelKey: 'sidebar.agents', defaultLabel: 'Agents' },
-  { path: '/integrations', icon: Plugs, labelKey: 'sidebar.integrations', defaultLabel: 'Integrations' },
-  { path: '/browser', icon: Globe, labelKey: 'sidebar.browser', defaultLabel: 'Browser' },
-  { path: '/assets', icon: Images, labelKey: 'sidebar.assets', defaultLabel: 'Assets' },
+  { path: '/scheduled', icon: Clock, labelKey: 'sidebar.automations', defaultLabel: 'Automations' },
   { path: '/kanban', icon: Kanban, labelKey: 'sidebar.kanban', defaultLabel: 'Kanban' },
+  { path: '/assets', icon: Package, labelKey: 'sidebar.deliverables', defaultLabel: 'Deliverables' },
   { path: '/settings/model', icon: GearSix, labelKey: 'sidebar.settings', defaultLabel: 'Settings' },
 ];
 

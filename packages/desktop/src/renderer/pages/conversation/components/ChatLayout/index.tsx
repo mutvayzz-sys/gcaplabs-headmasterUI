@@ -10,7 +10,7 @@ import { useContainerWidth } from '@/renderer/pages/conversation/hooks/useContai
 import { useLayoutConstraints } from '@/renderer/pages/conversation/hooks/useLayoutConstraints';
 import { useTitleRename } from '@/renderer/pages/conversation/hooks/useTitleRename';
 import { useWorkspaceCollapse } from '@/renderer/pages/conversation/hooks/useWorkspaceCollapse';
-import { PreviewPanel, usePreviewContext } from '@/renderer/pages/conversation/Preview';
+import { BrowserPanel, useBrowserPanelContext } from '@/renderer/pages/conversation/BrowserPanel';
 import { dispatchWorkspaceToggleEvent } from '@/renderer/utils/workspace/workspaceEvents';
 import { useConversationAgents } from '@/renderer/pages/conversation/hooks/useConversationAgents';
 import classNames from 'classnames';
@@ -68,8 +68,8 @@ const ChatLayout: React.FC<{
   const isDesktop = !layout?.isMobile;
   const isMobile = Boolean(layout?.isMobile);
 
-  // Preview panel state
-  const { isOpen: isPreviewOpen } = usePreviewContext();
+  // Browser panel state
+  const { isOpen: isPreviewOpen } = useBrowserPanelContext();
 
   // --- Hook A: workspace collapse ---
   const { rightSiderCollapsed, setRightSiderCollapsed } = useWorkspaceCollapse({
@@ -302,7 +302,7 @@ const ChatLayout: React.FC<{
                     lineStyle: { width: '2px' },
                   })}
                 <div className='h-full w-full overflow-hidden rounded-[15px]'>
-                  <PreviewPanel />
+                  <BrowserPanel />
                 </div>
               </div>
             )}

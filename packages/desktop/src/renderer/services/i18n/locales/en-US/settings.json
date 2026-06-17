@@ -1131,5 +1131,8 @@
     "conversation": "Conversation",
     "mcp": "MCP",
     "customAgent": "Custom Specialist"
-  }
+  },
+  "integrations": "Integrations",
+  "hermes": "Hermes",
+  "groupHeadmasterUI": "HeadmasterUI"
 }

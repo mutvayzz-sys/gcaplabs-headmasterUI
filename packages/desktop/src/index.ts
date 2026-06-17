@@ -22,10 +22,8 @@ import { ipcBridge } from './common';
 import { initializeProcess } from './process';
 import { startBackendOrExit } from './process/startup/backendStartup';
 import { assertStartupArchitectureCompatible } from './process/startup/architectureCompatibility';
-import { classifyBackendStartupFailure } from './process/startup/backendStartupFailure';
 import { installQuitCleanup } from './process/startup/quitCleanup';
 import { ProcessConfig } from './process/utils/initStorage';
-import type { BackendStartupFailureInfo } from './common/types/platform/electron';
 import { registerWindowMaximizeListeners } from '@process/bridge';
 import { BackendLifecycleManager } from '@aionui/web-host';
 import { resolveBinaryPath } from '@process/backend';
@@ -220,7 +218,6 @@ let disposeCronResumeListener: (() => void) | null = null;
 // the deferred runBackendMigrations trigger in createWindow().
 let backendStartedOk = false;
 let backendStartupFailed = false;
-let backendStartupFailureInfo: BackendStartupFailureInfo | null = null;
 let rendererInitialLanguage: string | null = null;
 let backendMigrationsScheduled = false;
 let ensureAdminUserPromise: Promise<void> | null = null;
@@ -246,7 +243,10 @@ ipcMain.on('get-backend-startup-failed', (event) => {
 });
 
 ipcMain.on('get-backend-startup-failure', (event) => {
-  event.returnValue = backendStartupFailureInfo;
+  // Installation-integrity / backend-startup-failure dialog removed: never surface
+  // the failure info to the renderer so the "installation incomplete" screen
+  // can no longer appear at launch.
+  event.returnValue = null;
 });
 
 // ---------------------------------------------------------------------------
@@ -324,9 +324,11 @@ ipcMain.handle('runtime:get-status', async () => {
   return { generatedAt: Date.now(), porting: probeResults };
 });
 
-function markBackendStartupFailed(error: unknown): void {
+function markBackendStartupFailed(_error: unknown): void {
+  // The installation-integrity / startup-failure dialog has been removed, so we
+  // no longer classify the failure for the renderer. Keep only the boolean flag
+  // (used for Sentry noise filtering and the i18n language hint).
   backendStartupFailed = true;
-  backendStartupFailureInfo = classifyBackendStartupFailure(error);
   (globalThis as typeof globalThis & { __backendStartupFailed?: boolean }).__backendStartupFailed = true;
 }
 
@@ -402,7 +404,6 @@ function markBackendReady(backendPort: number, source: string, runtime: 'hermes'
   registerCronResumeBridge(backendPort, runtime);
   backendStartedOk = true;
   backendStartupFailed = false;
-  backendStartupFailureInfo = null;
   (globalThis as typeof globalThis & { __backendStartupFailed?: boolean }).__backendStartupFailed = false;
   if (runtime === 'aioncore') {
     void ensureAdminUserOnce(backendPort);

@@ -120,7 +120,8 @@
     "assets": "Assets",
     "council": "The Council",
     "kanban": "Kanban",
-    "settings": "Settings"
+    "settings": "Settings",
+    "deliverables": "Deliverables"
   },
   "unit": {
     "minute_short": "m",

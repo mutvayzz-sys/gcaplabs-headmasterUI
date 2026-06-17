@@ -1,7 +1,6 @@
 import classNames from 'classnames';
 import React, { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { usePreviewContext } from '@renderer/pages/conversation/Preview/context/PreviewContext';
 import { cleanupSiderTooltips, getSiderTooltipProps } from '@renderer/utils/ui/siderTooltip';
 import { useAuth } from '@renderer/hooks/context/AuthContext';
 import { useLayoutContext } from '@renderer/hooks/context/LayoutContext';
@@ -31,7 +30,6 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
   const { pathname, search, hash } = location;
 
   const navigate = useNavigate();
-  const { closePreview } = usePreviewContext();
   const { logout, status } = useAuth();
   const { theme, setTheme } = useThemeContext();
   const [isBatchMode, setIsBatchMode] = useState(false);
@@ -51,7 +49,6 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
   const handleNewChat = () => {
     cleanupSiderTooltips();
     blurActiveElement();
-    closePreview();
     setIsBatchMode(false);
     Promise.resolve(navigate('/guid', { state: { resetAssistant: true } })).catch((error) => {
       console.error('Navigation failed:', error);
@@ -82,14 +79,12 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
   const handleConversationSelect = () => {
     cleanupSiderTooltips();
     blurActiveElement();
-    closePreview();
     setIsBatchMode(false);
   };
 
   const handleScheduledClick = () => {
     cleanupSiderTooltips();
     blurActiveElement();
-    closePreview();
     setIsBatchMode(false);
     Promise.resolve(navigate('/scheduled')).catch((error) => {
       console.error('Navigation failed:', error);
@@ -106,7 +101,6 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
   const handleLogout = useCallback(async () => {
     cleanupSiderTooltips();
     blurActiveElement();
-    closePreview();
     try {
       await logout();
     } catch (error) {
@@ -116,7 +110,7 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
     if (onSessionClick) {
       onSessionClick();
     }
-  }, [closePreview, logout, onSessionClick]);
+  }, [logout, onSessionClick]);
 
   useEffect(() => {
     if (!showLogout) return;
@@ -137,7 +131,6 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
   const handleCronNavigate = (path: string) => {
     cleanupSiderTooltips();
     blurActiveElement();
-    closePreview();
     Promise.resolve(navigate(path)).catch(console.error);
     if (onSessionClick) onSessionClick();
   };

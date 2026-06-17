@@ -76,7 +76,8 @@ const PanelRoute: React.FC<{ layout: React.ReactElement }> = ({ layout }) => {
           <Route path='/settings/assistants' element={withRouteFallback(AssistantSettings)} />
           <Route path='/settings/agent' element={withRouteFallback(AgentSettings)} />
           <Route path='/settings/capabilities' element={withRouteFallback(CapabilitiesSettings)} />
-          <Route path='/settings/runtime' element={withRouteFallback(RuntimeSettings)} />
+          <Route path='/settings/hermes' element={withRouteFallback(RuntimeSettings)} />
+          <Route path='/settings/runtime' element={<Navigate to='/settings/hermes' replace />} />
           <Route path='/settings/memory' element={withRouteFallback(MemorySettings)} />
           {/* Legacy routes — redirect to the merged /settings/capabilities page */}
           <Route path='/settings/skills-hub' element={<Navigate to='/settings/capabilities?tab=skills' replace />} />
@@ -87,6 +88,7 @@ const PanelRoute: React.FC<{ layout: React.ReactElement }> = ({ layout }) => {
           <Route path='/settings/pet' element={withRouteFallback(PetSettings)} />
           <Route path='/settings/system' element={withRouteFallback(SystemSettings)} />
           <Route path='/settings/about' element={withRouteFallback(SystemSettings)} />
+          <Route path='/settings/integrations' element={withRouteFallback(IntegrationsPage)} />
           <Route path='/settings/ext/:tabId' element={withRouteFallback(ExtensionSettingsPage)} />
           <Route path='/settings' element={<Navigate to='/settings/model' replace />} />
           <Route path='/test/components' element={withRouteFallback(ComponentsShowcase)} />
@@ -99,7 +101,7 @@ const PanelRoute: React.FC<{ layout: React.ReactElement }> = ({ layout }) => {
           <Route path='/memory' element={withRouteFallback(MemoryPage)} />
           <Route path='/workflows' element={withRouteFallback(WorkflowsPage)} />
           <Route path='/agents' element={withRouteFallback(AgentsPage)} />
-          <Route path='/integrations' element={withRouteFallback(IntegrationsPage)} />
+          <Route path='/integrations' element={<Navigate to='/settings/integrations' replace />} />
           <Route path='/kanban' element={withRouteFallback(KanbanPage)} />
           <Route path='/browser' element={withRouteFallback(BrowserPage)} />
           <Route path='/assets' element={withRouteFallback(AssetsPage)} />

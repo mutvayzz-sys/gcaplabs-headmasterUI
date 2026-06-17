@@ -5,16 +5,16 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
 import useSWR from 'swr';
 import ChatConversation from './components/ChatConversation';
-import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
 import { useAutoTitle } from '@/renderer/hooks/chat/useAutoTitle';
+import { useBrowserSessionWatch } from '@/renderer/hooks/chat/useBrowserSessionWatch';
 import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
 
 const ChatConversationIndex: React.FC = () => {
   const { id } = useParams();
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { closePreview } = usePreviewContext();
   const { syncTitleFromHistory } = useAutoTitle();
+  useBrowserSessionWatch(id);
   const previousConversationIdRef = useRef<string | undefined>(undefined);
   const notFoundHandledIdRef = useRef<string | undefined>(undefined);
   const defaultConversationTitle = t('conversation.welcome.newConversation');
@@ -22,15 +22,8 @@ const ChatConversationIndex: React.FC = () => {
   useEffect(() => {
     if (!id) return;
 
-    // 切换会话时自动关闭预览面板，避免跨会话残留
-    // Close preview on every conversation change, including initial mount
-    // (component may remount via React Router, resetting the ref to undefined)
-    if (previousConversationIdRef.current !== id) {
-      closePreview();
-    }
-
     previousConversationIdRef.current = id;
-  }, [id, closePreview]);
+  }, [id]);
 
   const { data, isLoading, mutate } = useSWR(id ? `conversation/${id}` : null, () => {
     return getConversationOrNull(id!);
