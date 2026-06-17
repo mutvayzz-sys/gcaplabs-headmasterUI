@@ -14,42 +14,21 @@ const ChatSlider: React.FC<{
 }> = ({ conversation }) => {
   const [messageApi, messageContext] = Message.useMessage({ maxCount: 1 });
 
+  const workspace = conversation?.extra?.workspace;
+  const conversationType = conversation?.type ?? 'acp';
+  const isTempWorkspace = (conversation?.extra as { is_temporary_workspace?: boolean } | undefined)
+    ?.is_temporary_workspace;
+
   let workspaceNode: React.ReactNode = null;
-  if (conversation?.type === 'acp' && conversation.extra?.workspace) {
+  if (workspace && conversationType) {
     workspaceNode = (
       <ChatWorkspace
-        conversation_id={conversation.id}
-        workspace={conversation.extra.workspace}
-        isTemporaryWorkspace={
-          (conversation.extra as { is_temporary_workspace?: boolean } | undefined)?.is_temporary_workspace
-        }
-        eventPrefix='acp'
+        conversation_id={conversation!.id}
+        workspace={workspace}
+        isTemporaryWorkspace={isTempWorkspace}
+        eventPrefix={conversationType}
         messageApi={messageApi}
-      ></ChatWorkspace>
-    );
-  } else if (conversation?.type === 'codex' && conversation.extra?.workspace) {
-    workspaceNode = (
-      <ChatWorkspace
-        conversation_id={conversation.id}
-        workspace={conversation.extra.workspace}
-        isTemporaryWorkspace={
-          (conversation.extra as { is_temporary_workspace?: boolean } | undefined)?.is_temporary_workspace
-        }
-        eventPrefix='codex'
-        messageApi={messageApi}
-      ></ChatWorkspace>
-    );
-  } else if (conversation?.type === 'aionrs' && conversation.extra?.workspace) {
-    workspaceNode = (
-      <ChatWorkspace
-        conversation_id={conversation.id}
-        workspace={conversation.extra.workspace}
-        isTemporaryWorkspace={
-          (conversation.extra as { is_temporary_workspace?: boolean } | undefined)?.is_temporary_workspace
-        }
-        eventPrefix='aionrs'
-        messageApi={messageApi}
-      ></ChatWorkspace>
+      />
     );
   }
 

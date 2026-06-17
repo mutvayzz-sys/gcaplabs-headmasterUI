@@ -18,7 +18,6 @@ import { useDeepLink } from '@renderer/hooks/system/useDeepLink';
 import { useNotificationClick } from '@renderer/hooks/system/useNotificationClick';
 import { useDashboardStatus } from '@renderer/hooks/system/useDashboardStatus';
 import { HermesStatusBar } from './HermesStatusBar';
-import BottomComposer from './BottomComposer';
 import { useDirectorySelection } from '@renderer/hooks/file/useDirectorySelection';
 import { cleanupSiderTooltips } from '@renderer/utils/ui/siderTooltip';
 import { useConversationShortcuts } from '@renderer/hooks/ui/useConversationShortcuts';
@@ -425,7 +424,6 @@ const Layout: React.FC<{
               <Suspense fallback={null}>
                 <UpdateModal />
               </Suspense>
-              <BottomComposer />
             </ArcoLayout.Content>
           </ArcoLayout>
         </div>
