@@ -90,7 +90,7 @@ export function useAssets() {
 
   const refresh = useCallback(async () => {
     setLoading(true);
-    // In a real implementation, this would IPC to main to scan C:\Users\Matve\Desktop\Gcaplabs.com\AssetsTODO\
+    // In a real implementation, this would IPC to main to scan staging/assets/
     // and read each prompt.md + reference.*
     await new Promise((r) => setTimeout(r, 400));
     setLoading(false);
