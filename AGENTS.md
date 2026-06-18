@@ -149,6 +149,55 @@ For pull request creation, see the `oss-pr` skill (`.claude/skills/oss-pr/SKILL.
 
 ## Architecture Notes
 
+### Agent Scanner (added 2026-06-18)
+
+The app includes a **local CLI agent scanner** in the main process that probes `$PATH` for known CLI agent binaries (`claude`, `codex`, `grok`, `hermes`). This replaces the broken backend-dependent detection that tried non-existent `/api/extensions/acp-adapters` and `/api/agents` endpoints.
+
+**Key files:**
+- `process/agent/agentScanner.ts` — uses `child_process.execSync` with `where`/`which` to find binaries
+- `process/bridge/agentBridge.ts` — registers IPC handler `acpConversation.scanAgents`
+- `common/adapter/ipcBridge.ts` — `getAvailableAgents` merges local scanner results with backend adapters
+
+### Gateway Status Indicator (added 2026-06-18)
+
+A **gateway status checker** in the sidebar footer that polls `GET /api/status` (public endpoint) every 30 seconds. Shows a green/red dot and a restart button.
+
+**Key files:**
+- `renderer/components/layout/Sider/SiderNav/GatewayStatusIndicator.tsx` — polls `/api/status`, renders status dot + restart button
+- `renderer/components/layout/Sider/SiderFooter.tsx` — hosts the indicator above the settings button
+
+### Update Checker (added 2026-06-18)
+
+A **Headmaster update checker** that polls `GET /api/hermes/update/check` every 6 hours. When an update is available, shows a badge in the sidebar footer. Clicking triggers `POST /api/hermes/update` and shows a notification.
+
+**Key files:**
+- `renderer/components/layout/Sider/SiderNav/UpdateChecker.tsx` — polls update endpoint, shows notification
+- `renderer/components/layout/Sider/SiderFooter.tsx` — hosts the checker
+
+### Memory Page (updated 2026-06-18)
+
+The Memory left-nav tab now **embeds `https://memory.gcaplabs.com`** via iframe instead of showing a local provider list. The Memory Settings entry under Settings still uses `MemoryModalContent` for configuration.
+
+**Key files:**
+- `renderer/pages/memory/index.tsx` — iframe embed of `memory.gcaplabs.com`
+
+### RuntimeSettings (updated 2026-06-18)
+
+The Settings → Runtime page now fetches from real Hermes backend endpoints:
+- `GET /api/config` — current config values
+- `GET /api/config/schema` — field types, descriptions, categories
+- `PUT /api/config` — saves modified config
+
+**Key file:**
+- `renderer/pages/settings/RuntimeSettings.tsx`
+
+### Advanced Settings Tab (added 2026-06-18)
+
+Web UI, Capabilities, and Integrations settings have been merged under a new **Advanced Settings** tab in the settings sidebar. Old routes redirect to `/settings/advanced`.
+
+**Key file:**
+- `renderer/pages/settings/AdvancedSettings.tsx` — tabbed container for WebUI/Capabilities/Integrations
+
 ### BrowserPanel (added 2026-06-17)
 
 The app has a **contextual browser view panel** that auto-opens when the Hermes agent uses browser tools (Camofox with VNC).
