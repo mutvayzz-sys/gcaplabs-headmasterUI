@@ -11,6 +11,8 @@ import { ArrowCircleLeft, GearSix, Moon, SignOut, Sun } from '@phosphor-icons/re
 import classNames from 'classnames';
 import { iconColors } from '@renderer/styles/colors';
 import type { SiderTooltipProps } from '@renderer/utils/ui/siderTooltip';
+import GatewayStatusIndicator from './SiderNav/GatewayStatusIndicator';
+import UpdateChecker from './SiderNav/UpdateChecker';
 
 interface SiderFooterProps {
   isMobile: boolean;
@@ -57,6 +59,13 @@ const SiderFooter: React.FC<SiderFooterProps> = ({
 
   return (
     <div className='shrink-0 sider-footer mt-auto pt-8px pb-8px border-t border-solid border-[var(--color-border-2)] border-l-0 border-r-0 border-b-0'>
+      {/* System status indicators — gateway + update checker */}
+      {!isMobile && (
+        <div className='flex flex-col gap-2px mb-4px'>
+          <GatewayStatusIndicator collapsed={collapsed} />
+          <UpdateChecker collapsed={collapsed} />
+        </div>
+      )}
       <div className={classNames('flex', collapsed ? 'flex-col gap-2px' : 'items-center gap-2px')}>
         <Tooltip {...siderTooltipProps} content={isSettings ? t('common.back') : t('common.settings')} position='right'>
           <div
