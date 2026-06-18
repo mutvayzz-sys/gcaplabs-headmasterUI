@@ -1133,6 +1133,7 @@
     "customAgent": "Custom Specialist"
   },
   "integrations": "Integrations",
-  "hermes": "Hermes",
-  "groupHeadmasterUI": "HeadmasterUI"
+  "hermes": "Runtime",
+  "groupHeadmasterUI": "Headmaster",
+  "memorySettings": "Memory Settings"
 }

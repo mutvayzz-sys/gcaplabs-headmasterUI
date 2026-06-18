@@ -1,22 +1,18 @@
 import FlexFullContainer from '@/renderer/components/layout/FlexFullContainer';
-import { isElectronDesktop, resolveExtensionAssetUrl } from '@/renderer/utils/platform';
+import { resolveExtensionAssetUrl } from '@/renderer/utils/platform';
 import { type IExtensionSettingsTab } from '@/common/adapter/ipcBridge';
 import { useExtI18n } from '@/renderer/hooks/system/useExtI18n';
 import { useExtensionSettingsTabs } from '@/renderer/hooks/system/useExtensionSettingsTabs';
 import {
-  Cat,
-  Communication,
   Computer,
-  Earth,
   Info,
-  Lightning,
   LinkCloud,
   MemoryOne,
   Puzzle,
   Robot,
   Speed,
   System,
-  Api,
+  Setting as SettingsIcon,
 } from '@icon-park/react';
 import classNames from 'classnames';
 import React, { useMemo } from 'react';
@@ -31,13 +27,10 @@ export const BUILTIN_TAB_IDS = [
   'agent',
   'model',
   'assistants',
-  'capabilities',
-  'integrations',
   'appearance',
-  'webui',
-  'pet',
   'memory',
   'system',
+  'advanced',
   'about',
 ] as const;
 
@@ -47,10 +40,13 @@ export const BUILTIN_TAB_IDS = [
  * This keeps older extensions working without requiring them to update.
  */
 export const LEGACY_ANCHOR_REMAP: Record<string, string> = {
-  'skills-hub': 'capabilities',
-  tools: 'capabilities',
+  'skills-hub': 'advanced',
+  tools: 'advanced',
   display: 'appearance',
   runtime: 'hermes',
+  webui: 'advanced',
+  integrations: 'advanced',
+  pet: 'model',
 };
 
 /**
@@ -81,7 +77,6 @@ const SettingsSider: React.FC<{ collapsed?: boolean; tooltipEnabled?: boolean }>
   const navigate = useNavigate();
   const { t } = useTranslation();
   const { pathname } = useLocation();
-  const isDesktop = isElectronDesktop();
 
   const extensionTabs = useExtensionSettingsTabs();
   const { resolveExtTabName } = useExtI18n();
@@ -91,7 +86,7 @@ const SettingsSider: React.FC<{ collapsed?: boolean; tooltipEnabled?: boolean }>
     const builtinMap: Record<string, SiderItem> = {
       hermes: {
         id: 'hermes',
-        label: t('settings.hermes', { defaultValue: 'Hermes' }),
+        label: t('settings.runtime', { defaultValue: 'Runtime' }),
         icon: <LinkCloud />,
         path: 'hermes',
       },
@@ -108,38 +103,25 @@ const SettingsSider: React.FC<{ collapsed?: boolean; tooltipEnabled?: boolean }>
         icon: <Speed />,
         path: 'agent',
       },
-      capabilities: {
-        id: 'capabilities',
-        label: t('settings.capabilities', { defaultValue: 'Capabilities' }),
-        icon: <Lightning />,
-        path: 'capabilities',
-      },
-      integrations: {
-        id: 'integrations',
-        label: t('settings.integrations', { defaultValue: 'Integrations' }),
-        icon: <Api />,
-        path: 'integrations',
-      },
       appearance: { id: 'appearance', label: t('settings.appearancePanel'), icon: <Computer />, path: 'appearance' },
-      webui: {
-        id: 'webui',
-        label: t('settings.webui'),
-        icon: isDesktop ? <Earth /> : <Communication />,
-        path: 'webui',
-      },
-      pet: { id: 'pet', label: t('pet.desktopPet'), icon: <Cat />, path: 'pet' },
       memory: {
         id: 'memory',
-        label: t('settings.memory.menuLabel', { defaultValue: 'Memory' }),
+        label: t('settings.memorySettings', { defaultValue: 'Memory Settings' }),
         icon: <MemoryOne />,
         path: 'memory',
       },
       system: { id: 'system', label: t('settings.system'), icon: <System />, path: 'system' },
+      advanced: {
+        id: 'advanced',
+        label: t('settings.advancedSettings', { defaultValue: 'Advanced Settings' }),
+        icon: <SettingsIcon />,
+        path: 'advanced',
+      },
       about: { id: 'about', label: t('settings.about'), icon: <Info />, path: 'about' },
     };
 
-    // Start with ordered builtin IDs, hiding desktop-only tabs in browser mode
-    const result: SiderItem[] = BUILTIN_TAB_IDS.filter((id) => isDesktop || id !== 'pet').map((id) => builtinMap[id]);
+    // Start with ordered builtin IDs
+    const result: SiderItem[] = BUILTIN_TAB_IDS.map((id) => builtinMap[id]);
 
     // Extension tabs with position anchoring
     const beforeMap = new Map<string, IExtensionSettingsTab[]>();
@@ -213,7 +195,7 @@ const SettingsSider: React.FC<{ collapsed?: boolean; tooltipEnabled?: boolean }>
     }
 
     return { menus: result, groupHeaderAt: headerAt };
-  }, [t, isDesktop, extensionTabs, resolveExtTabName]);
+  }, [t, extensionTabs, resolveExtTabName]);
 
   const siderTooltipProps = getSiderTooltipProps(tooltipEnabled);
   return (
