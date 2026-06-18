@@ -8,7 +8,7 @@
 
 The working root of the **Headmaster** build for **GCAP Labs** (white-label of Hermes Agent, MIT, by Nous Research). Three products share this machine:
 
-1. **Headmaster Desktop** — the Electron app you're most likely to be editing. Lives in `headmaster-desktop/`. Pushed to `gcaplabs-headmasterUI` (private repo on GitHub).
+1. **Headmaster Desktop** — the Electron app you're most likely to be editing. Lives in `gcaplabs-headmaster/repo/gcaplabs-headmasterUI/`. Pushed to `gcaplabs-headmasterUI` (private repo on GitHub).
 2. **Headmaster Hub** (web) — `headmaster-hub/`. Separate product surface. Has its own git.
 3. **GCAP Labs marketing site** — `gcaplabs-site/`. Next.js 15 App Router. **Live on `gcaplabs.com`.** Pushed to `mutvayzz-sys/gcaplabs-site` (private).
 
@@ -18,23 +18,23 @@ Everything else in this folder is upstream reference, runtime, recon, staging, o
 
 | If you want to… | Start here |
 |---|---|
-| See what's queued for the desktop app | `headmaster-desktop/todo.md` — **all 16 TODO items completed 2026-06-18**. Remaining: build + smoke test, DeepWiki update, Honcho upgrade. |
-| Edit the desktop app (most common) | `headmaster-desktop/` — read its `AGENTS.md` and `CLAUDE.md` (it has them). |
-| Understand the desktop app's structure | `headmaster-desktop/docs/white-label/WHAT-WE-TAKE.md` (the plan) + `headmaster-desktop/docs/white-label/WHITE-LABEL-AUDIT.md` (rename rules). |
+| See what's queued for the desktop app | `gcaplabs-headmaster/repo/gcaplabs-headmasterUI/todo.md` — **all 16 TODO items completed 2026-06-18**. Remaining: build + smoke test, DeepWiki update, Honcho upgrade. |
+| Edit the desktop app (most common) | `gcaplabs-headmaster/repo/gcaplabs-headmasterUI/` — read its `AGENTS.md` and `CLAUDE.md` (it has them). |
+| Understand the desktop app's structure | `gcaplabs-headmaster/repo/gcaplabs-headmasterUI/docs/white-label/WHAT-WE-TAKE.md` (the plan) + `gcaplabs-headmaster/repo/gcaplabs-headmasterUI/docs/white-label/WHITE-LABEL-AUDIT.md` (rename rules). |
 | Understand the Hermes runtime (Python backend) | `runtime-recon/RECON.md` (Task 0 recon, ground truth). |
-| Look up a name in Headmaster (UI term) | `headmaster-desktop/docs/white-label/HEADMASTER-VOCABULARY.csv` (AionUi → Headmaster mapping, authoritative). |
+| Look up a name in Headmaster (UI term) | `gcaplabs-headmaster/repo/gcaplabs-headmasterUI/docs/white-label/HEADMASTER-VOCABULARY.csv` (AionUi → Headmaster mapping, authoritative). |
 | Edit the marketing site (gcaplabs.com) | `gcaplabs-site/`. Read its `AGENTS.md`. |
 | Edit the Headmaster Hub (web) | `headmaster-hub/`. |
 | Find a long-running decision / project context | `G:\Vault\KBs\headmasterui-kb\` (file index at `_MOC.md`) and Honcho memory (auto-injected). |
 | Reference UI from fathah's Hermes Desktop fork | `_support/upstream/hermes-desktop/` (run `git pull` to track upstream). |
 | Reference the **official** Hermes Desktop (NousResearch) | `_support/upstream/hermes-agent-desktop/` (junction into `runtime-recon/hermes-agent/apps/desktop/`). |
 | Reference features from Hermes Workspace (Kanban/Runs/Skills/Cron) | `_support/upstream/hermes-workspace/` (run `git pull` to track upstream). |
-| Find what an upstream Hermes app looked like before any of our edits | `_support/upstream/aionui/` (the original Apache-2.0 source `headmaster-desktop/` is forked from). |
+| Find what an upstream Hermes app looked like before any of our edits | `_support/upstream/aionui/` (the original Apache-2.0 source `gcaplabs-headmaster/repo/gcaplabs-headmasterUI/` is forked from). |
 | Stage new visual assets | `_support/staging/assets/`. |
 | Look at planning history | `_support/archive/` (AUDIT_REPORT.md, claude-plan.md, claude-notes.md, etc — stale, treat as historical). |
 ```
 GCAP-Labs/
-├── headmaster-desktop/      ← the Electron app (build target)
+├── gcaplabs-headmaster/repo/gcaplabs-headmasterUI/      ← the Electron app (build target)
 ├── headmaster-hub/          ← Headmaster Hub web app
 ├── gcaplabs-site/           ← gcaplabs.com (Next.js)
 │
@@ -65,7 +65,7 @@ GCAP-Labs/
 
 | Local folder | GitHub remote | Visibility |
 |---|---|---|
-| `headmaster-desktop/` | `gcaplabs-headmasterUI` (origin) | private |
+| `gcaplabs-headmaster/repo/gcaplabs-headmasterUI/` | `gcaplabs-headmasterUI` (origin) | private |
 | `headmaster-hub/` | `mutvayzz-sys/gcaplabs-headmasterhub` | private |
 | `gcaplabs-site/` | `mutvayzz-sys/gcaplabs-site` | private |
 | `runtime/hermes-agent/` | `NousResearch/hermes-agent` (or upstream fork) | public |
@@ -74,7 +74,7 @@ GCAP-Labs/
 | `_support/upstream/aionui/` | `iOfficeAI/AionUi` | public |
 | `_support/upstream/hermes-webui/` | `NousResearch/hermes-agent` (subfolder) | public |
 
-## Naming rules (TL;DR — see `headmaster-desktop/docs/white-label/HEADMASTER-VOCABULARY.csv` for full map)
+## Naming rules (TL;DR — see `gcaplabs-headmaster/repo/gcaplabs-headmasterUI/docs/white-label/HEADMASTER-VOCABULARY.csv` for full map)
 
 | Don't ship this in the UI | Use this instead |
 |---|---|
@@ -97,7 +97,7 @@ GCAP-Labs/
 
 These mappings are **locked**. If you find yourself writing a new name that isn't in this table, ask before introducing it.
 
-## Frontstuff vs. runtime (TL;DR — see `headmaster-desktop/docs/white-label/WHITE-LABEL-AUDIT.md` for full list)
+## Frontstuff vs. runtime (TL;DR — see `gcaplabs-headmaster/repo/gcaplabs-headmasterUI/docs/white-label/WHITE-LABEL-AUDIT.md` for full list)
 
 **Safe to rename (user-facing):** app name, package metadata, window/menu/About text, renderer UI strings, theme names, brand assets, marketing docs, `localStorage` keys, code-signing identity, Winget/Linux maintainer strings.
 
@@ -107,9 +107,9 @@ These mappings are **locked**. If you find yourself writing a new name that isn'
 
 ## Build and run
 
-**Current desktop version:** `0.1.2` (root `headmaster-desktop/package.json`).
+**Current desktop version:** `0.1.2` (root `gcaplabs-headmaster/repo/gcaplabs-headmasterUI/package.json`).
 
-**Desktop build** (from `headmaster-desktop/`):
+**Desktop build** (from `gcaplabs-headmaster/repo/gcaplabs-headmasterUI/`):
 
 ```bash
 bunx tsc --noEmit                                              # typecheck
@@ -120,7 +120,7 @@ node scripts/build-with-builder.js auto --win --dir            # fast: portable 
 
 Close any running `Headmaster.exe` before building — it locks `out/win-unpacked/`.
 
-**Launch test:** `headmaster-desktop/out/win-unpacked/Headmaster.exe` (shortcut: `GCAP-Labs/Headmaster.lnk`)
+**Launch test:** `gcaplabs-headmaster/repo/gcaplabs-headmasterUI/out/win-unpacked/Headmaster.exe` (shortcut: `GCAP-Labs/Headmaster.lnk`)
 
 **Logs:** `%APPDATA%\Headmaster\logs\YYYY-MM-DD.log`
 
@@ -132,7 +132,7 @@ Close any running `Headmaster.exe` before building — it locks `out/win-unpacke
 
 | Local folder | GitHub remote | Visibility |
 |---|---|---|
-| `headmaster-desktop/` | `gcaplabs-headmasterUI` (origin) | private |
+| `gcaplabs-headmaster/repo/gcaplabs-headmasterUI/` | `gcaplabs-headmasterUI` (origin) | private |
 | `headmaster-hub/` | `mutvayzz-sys/gcaplabs-headmasterhub` | private |
 | `gcaplabs-site/` | `mutvayzz-sys/gcaplabs-site` | private |
 | `runtime/hermes-agent/` | `NousResearch/hermes-agent` (or upstream fork) | public |
@@ -146,10 +146,10 @@ Close any running `Headmaster.exe` before building — it locks `out/win-unpacke
 - **This folder** = the working tree
 - **`G:\Vault\KBs\headmasterui-kb\`** = structured knowledge base (file index at `_MOC.md`)
 - **Honcho memory** = auto-injected facts about the user, project, and decisions
-- **`headmaster-desktop/docs/white-label/WHAT-WE-TAKE.md`** = the original 3-LEGO-sets plan (out of date, but explains intent)
+- **`gcaplabs-headmaster/repo/gcaplabs-headmasterUI/docs/white-label/WHAT-WE-TAKE.md`** = the original 3-LEGO-sets plan (out of date, but explains intent)
 - **`runtime-recon/RECON.md`** = authoritative ground truth on the Hermes Python runtime
 - **`runtime-recon/reconcile.md`** = the original plan's assumptions vs. the actual runtime
-- **`headmaster-desktop/docs/white-label/WHITE-LABEL-AUDIT.md`** = frontstuff vs. runtime boundary
+- **`gcaplabs-headmaster/repo/gcaplabs-headmasterUI/docs/white-label/WHITE-LABEL-AUDIT.md`** = frontstuff vs. runtime boundary
 
 ## What is NOT in this folder
 
@@ -161,6 +161,6 @@ Close any running `Headmaster.exe` before building — it locks `out/win-unpacke
 ## Owners and cadence
 
 - **Vic** = project owner. Expects short casual responses, immediate execution, receipts for any tool/CLI claim.
-- **AionUi is a fork** — if upstream iOfficeAI/AionUi changes, the merge is into `headmaster-desktop/`, not into `_support/upstream/aionui/`.
+- **AionUi is a fork** — if upstream iOfficeAI/AionUi changes, the merge is into `gcaplabs-headmaster/repo/gcaplabs-headmasterUI/`, not into `_support/upstream/aionui/`.
 - **Hermes upstreams are reference clones** — pull fresh with `git pull --ff-only` when you need a clean read; do not commit to them.
 - **Gaming machine constraint** — this box runs WoW with kernel-level cheats. Hyper-V AND WSL2 must stay DISABLED. No Docker / Podman / Rancher on this box. Containerized services live elsewhere (Fly.io, k8s) or use native Windows installs.

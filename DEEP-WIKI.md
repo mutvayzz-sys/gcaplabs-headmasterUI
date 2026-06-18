@@ -9,7 +9,7 @@
 1. [Workspace Overview](#workspace-overview)
 2. [Project Architecture](#project-architecture)
 3. [Directory Structure](#directory-structure)
-4. [Headmaster Desktop](#headmaster-desktop)
+4. [Headmaster Desktop](#gcaplabs-headmaster/repo/gcaplabs-headmasterUI)
 5. [GCAP Labs Marketing Site](#gcap-labs-marketing-site)
 6. [Headmaster Hub](#headmaster-hub)
 7. [Hermes Runtime](#hermes-runtime)
@@ -71,7 +71,7 @@ The GCAP-Labs workspace is the development root for the **Headmaster** product l
 
 | Project | Local Path | GitHub Remote | Visibility |
 |---------|-----------|---------------|------------|
-| Headmaster Desktop | `headmaster-desktop/` | `gcaplabs-headmasterUI` | Private |
+| Headmaster Desktop | `gcaplabs-headmaster/repo/gcaplabs-headmasterUI/` | `gcaplabs-headmasterUI` | Private |
 | Headmaster Hub | `headmaster-hub/` | `mutvayzz-sys/gcaplabs-headmasterhub` | Private |
 | Marketing Site | `gcaplabs-site/` | `mutvayzz-sys/gcaplabs-site` | Private |
 | Hermes Runtime | `runtime/hermes-agent/` | `NousResearch/hermes-agent` | Public |
@@ -138,7 +138,7 @@ Headmaster Desktop follows Electron's multi-process architecture:
 
 ```
 GCAP-Labs/
-├── headmaster-desktop/          # Main Electron app (build target)
+├── gcaplabs-headmaster/repo/gcaplabs-headmasterUI/          # Main Electron app (build target)
 │   ├── packages/
 │   │   ├── desktop/            # Electron main + renderer
 │   │   ├── web-host/           # Web hosting package
@@ -692,7 +692,7 @@ node scripts/build-with-builder.js auto --win
 ```
 
 #### Build Output
-Located in `headmaster-desktop/out/`:
+Located in `gcaplabs-headmaster/repo/gcaplabs-headmasterUI/out/`:
 - `out/win-unpacked/Headmaster.exe` — Portable executable
 - `out/Headmaster-0.1.2-win-x64.exe` — NSIS installer
 - `out/Headmaster-0.1.2-win-x64.zip` — Portable archive
@@ -772,7 +772,7 @@ Headmaster Desktop uses Husky for pre-commit hooks:
 
 #### Initial Setup
 ```bash
-cd headmaster-desktop
+cd gcaplabs-headmaster/repo/gcaplabs-headmasterUI
 bun install                  # Install dependencies
 ```
 
@@ -1179,7 +1179,7 @@ Types: feat, fix, refactor, chore, docs, test, style, perf
 - **AGENTS.md**: Workspace directory map
 - **INDEX.md**: Project overview
 - **DEEP-WIKI.md**: This comprehensive guide
-- **Headmaster docs**: `headmaster-desktop/docs/`
+- **Headmaster docs**: `gcaplabs-headmaster/repo/gcaplabs-headmasterUI/docs/`
 - **Hermes docs**: `runtime/hermes-agent/docs/`
 
 #### Knowledge Base
@@ -1199,7 +1199,7 @@ Types: feat, fix, refactor, chore, docs, test, style, perf
 
 #### Headmaster Desktop Commands
 ```bash
-cd headmaster-desktop
+cd gcaplabs-headmaster/repo/gcaplabs-headmasterUI
 bun run dev                  # Start dev server
 bun run lint:fix             # Fix lint issues
 bun run format               # Format code
@@ -1226,13 +1226,13 @@ hermes setup                           # Run setup wizard
 ### File Locations
 
 #### Configuration Files
-- **Headmaster config**: `headmaster-desktop/packages/desktop/src/common/config/`
+- **Headmaster config**: `gcaplabs-headmaster/repo/gcaplabs-headmasterUI/packages/desktop/src/common/config/`
 - **Hermes config**: `~/.hermes/config.yaml`
-- **i18n config**: `headmaster-desktop/packages/desktop/src/common/config/i18n-config.json`
-- **UnoCSS config**: `headmaster-desktop/uno.config.ts`
+- **i18n config**: `gcaplabs-headmaster/repo/gcaplabs-headmasterUI/packages/desktop/src/common/config/i18n-config.json`
+- **UnoCSS config**: `gcaplabs-headmaster/repo/gcaplabs-headmasterUI/uno.config.ts`
 
 #### Build Outputs
-- **Headmaster**: `headmaster-desktop/out/`
+- **Headmaster**: `gcaplabs-headmaster/repo/gcaplabs-headmasterUI/out/`
 - **Marketing site**: `gcaplabs-site/.next/`
 
 #### Logs
@@ -1432,9 +1432,9 @@ The settings restructure is done:
 
 **What:** Full snapshot of AionUI — the open-source upstream that Headmaster was forked from. Same stack: Electron, React 18, Arco Design, UnoCSS, TypeScript strict.
 
-**Use for:** Pulling any UI pattern, component, or convention that existed pre-fork. This is the authoritative source for the "original" shape of any component that's been modified in headmaster-desktop.
+**Use for:** Pulling any UI pattern, component, or convention that existed pre-fork. This is the authoritative source for the "original" shape of any component that's been modified in gcaplabs-headmaster/repo/gcaplabs-headmasterUI.
 
-**Key difference from headmaster-desktop:** All naming uses "aionui" throughout. Headmaster has rebranded everything.
+**Key difference from gcaplabs-headmaster/repo/gcaplabs-headmasterUI:** All naming uses "aionui" throughout. Headmaster has rebranded everything.
 
 ---
 
@@ -1489,7 +1489,7 @@ The settings restructure is done:
 
 **What:** The Hermes web UI — a Python Flask + React app that can run standalone or alongside the desktop app. Exposes Hermes over HTTP with a browser-based UI.
 
-**Use for:** Understanding the Hermes HTTP API surface (`/api/` routes), which is the same API that `RuntimeSettings.tsx` probes in headmaster-desktop.
+**Use for:** Understanding the Hermes HTTP API surface (`/api/` routes), which is the same API that `RuntimeSettings.tsx` probes in gcaplabs-headmaster/repo/gcaplabs-headmasterUI.
 
 ---
 

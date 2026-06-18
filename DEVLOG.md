@@ -6,7 +6,7 @@ Running record of what was built, why, and what's next. Newest entries at the to
 
 ## 2026-06-18 (Session 2) — TODO backlog cleared: 16 tasks, 8 commits
 
-**What:** Cleared the entire `todo.md` backlog. 16 tasks across 7 phases, 8 commits on `headmaster-desktop/main`.
+**What:** Cleared the entire `todo.md` backlog. 16 tasks across 7 phases, 8 commits on `gcaplabs-headmaster/repo/gcaplabs-headmasterUI/main`.
 
 **Commits (oldest → newest):**
 1. `32add65` — Remove global BottomComposer (chat input only on Chat screen)
@@ -78,7 +78,7 @@ Running record of what was built, why, and what's next. Newest entries at the to
 **Files deleted:**
 - `packages/desktop/src/renderer/components/layout/InstallationIntegrityDialog.tsx`
 
-**Next:** See `headmaster-desktop/todo.md` — settings restructure (Hermes→main / others→Advanced), fix CLI agent detection, Memory panel = app + "Memory Settings" rename, remove Desktop Pet/Skills, drop persistent composer, fix missing file/document explorer.
+**Next:** See `gcaplabs-headmaster/repo/gcaplabs-headmasterUI/todo.md` — settings restructure (Hermes→main / others→Advanced), fix CLI agent detection, Memory panel = app + "Memory Settings" rename, remove Desktop Pet/Skills, drop persistent composer, fix missing file/document explorer.
 
 ---
 
@@ -121,7 +121,7 @@ Running record of what was built, why, and what's next. Newest entries at the to
 
 ---
 
-## 2026-06-17 — Settings restructure & Kanban wiring (headmaster-desktop)
+## 2026-06-17 — Settings restructure & Kanban wiring (gcaplabs-headmaster/repo/gcaplabs-headmasterUI)
 
 **What:** Restructured the Settings page and wired the Kanban page to the real Hermes Kanban plugin.
 
@@ -141,7 +141,7 @@ Running record of what was built, why, and what's next. Newest entries at the to
 
 ---
 
-## 2026-06-17 — BrowserPanel (headmaster-desktop)
+## 2026-06-17 — BrowserPanel (gcaplabs-headmaster/repo/gcaplabs-headmasterUI)
 
 **What:** Added a contextual browser view panel to the Headmaster desktop app. When the Hermes agent uses browser tools (Camofox with `ENABLE_VNC=1`), a panel automatically slides in between the chat and workspace showing the live noVNC interface at `http://localhost:6080`. Panel closes itself 2.5s after the agent finishes.
 
@@ -153,8 +153,8 @@ Running record of what was built, why, and what's next. Newest entries at the to
 - Fixed VNC URL (`localhost:6080`) — Camofox always uses this port, no need to parse it from tool output
 
 **Files added:**
-- `headmaster-desktop/packages/desktop/src/renderer/pages/conversation/BrowserPanel/` (3 files)
-- `headmaster-desktop/packages/desktop/src/renderer/hooks/chat/useBrowserSessionWatch.ts`
+- `gcaplabs-headmaster/repo/gcaplabs-headmasterUI/packages/desktop/src/renderer/pages/conversation/BrowserPanel/` (3 files)
+- `gcaplabs-headmaster/repo/gcaplabs-headmasterUI/packages/desktop/src/renderer/hooks/chat/useBrowserSessionWatch.ts`
 
 **Files changed:**
 - `ChatLayout/index.tsx` — BrowserPanel replaces PreviewPanel in the right panel slot

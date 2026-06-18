@@ -2,6 +2,18 @@
 
 All contributors (human and AI) must follow [CONTRIBUTING.md](CONTRIBUTING.md) before opening a PR. ([Chinese version](CONTRIBUTING.zh.md))
 
+## Local Workspace Path
+
+Canonical local checkout:
+
+`C:\Users\Matve\Desktop\GCAP-Labs\gcaplabs-headmaster\repo\gcaplabs-headmasterUI`
+
+The build output is also exposed at:
+
+`C:\Users\Matve\Desktop\GCAP-Labs\gcaplabs-headmaster\build\headmaster-output`
+
+The old path `C:\Users\Matve\Desktop\GCAP-Labs\headmaster-desktop` was moved on 2026-06-18. Do not use it.
+
 ## Code Conventions
 
 ### File & Directory Structure
