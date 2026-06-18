@@ -14,6 +14,7 @@ import { initWebuiBridge } from './webuiBridge';
 import { initThemeBridge } from './themeBridge';
 import { initHermesBridge } from './hermesBridge';
 import { initBrowserBridge } from './browserBridge';
+import { initAgentBridge } from './agentBridge';
 import type { HermesBootstrap } from '@process/backend/hermesBootstrap';
 
 export interface BridgeDependencies {
@@ -33,6 +34,7 @@ export function initAllBridges(deps: BridgeDependencies = {}): void {
   initWebuiBridge();
   initThemeBridge();
   initBrowserBridge();
+  initAgentBridge();
 }
 
 export {

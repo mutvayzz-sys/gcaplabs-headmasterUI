@@ -914,60 +914,50 @@ export const acpConversation = {
   getAvailableAgents: {
     provider: () => {},
     invoke: (async () => {
+      // 1. Local CLI scanner — always works, probes $PATH for known binaries
+      let localAgents: AgentMetadata[] = [];
+      try {
+        localAgents = await bridge.buildProvider<AgentMetadata[], void>('acpConversation.scanAgents').invoke();
+      } catch {
+        // scanner not available (e.g. browser mode) — continue
+      }
+
+      // 2. Try backend ACP adapters endpoint
       const adaptersEnvelope = await httpRequest<unknown>('GET', '/api/extensions/acp-adapters').catch((_error: unknown): null => null);
       const adaptersRaw = (adaptersEnvelope && typeof adaptersEnvelope === 'object' && 'data' in adaptersEnvelope
         ? (adaptersEnvelope as { data?: unknown }).data
         : adaptersEnvelope) as unknown;
       const adapters = Array.isArray(adaptersRaw) ? adaptersRaw : [];
-      if (adapters.length > 0) {
-        return adapters.map((raw) => {
-          const adapter = raw as Record<string, unknown>;
-          const id = String(adapter.id ?? adapter.name ?? adapter.backend ?? '');
-          return {
-            id,
-            name: String(adapter.display_name ?? adapter.name ?? id),
-            description: typeof adapter.description === 'string' ? adapter.description : undefined,
-            backend: typeof adapter.backend === 'string' ? adapter.backend : id,
-            agent_type: 'acp',
-            agent_source: 'extension',
-            enabled: adapter.enabled !== false,
-            available: adapter.available !== false,
-            command: typeof adapter.command === 'string' ? adapter.command : undefined,
-            args: Array.isArray(adapter.args) ? adapter.args.map(String) : undefined,
-          } as AgentMetadata;
-        });
+      const backendAgents: AgentMetadata[] = adapters.map((raw) => {
+        const adapter = raw as Record<string, unknown>;
+        const id = String(adapter.id ?? adapter.name ?? adapter.backend ?? '');
+        return {
+          id,
+          name: String(adapter.display_name ?? adapter.name ?? id),
+          description: typeof adapter.description === 'string' ? adapter.description : undefined,
+          backend: typeof adapter.backend === 'string' ? adapter.backend : id,
+          agent_type: 'acp',
+          agent_source: 'extension',
+          enabled: adapter.enabled !== false,
+          available: adapter.available !== false,
+          command: typeof adapter.command === 'string' ? adapter.command : undefined,
+          args: Array.isArray(adapter.args) ? adapter.args.map(String) : undefined,
+        } as AgentMetadata;
+      });
+
+      // 3. Merge local + backend, dedup by id (local scanner takes priority)
+      const byId = new Map<string, AgentMetadata>();
+      for (const agent of backendAgents) {
+        byId.set(agent.id, agent);
+      }
+      for (const agent of localAgents) {
+        byId.set(agent.id, agent);
       }
 
-      const conversationsEnvelope = await httpRequest<unknown>('GET', '/api/conversations').catch((_error: unknown): null => null);
-      const conversationsData = conversationsEnvelope && typeof conversationsEnvelope === 'object' && 'data' in conversationsEnvelope
-        ? (conversationsEnvelope as { data?: unknown }).data
-        : conversationsEnvelope;
-      const items = conversationsData && typeof conversationsData === 'object' && Array.isArray((conversationsData as { items?: unknown }).items)
-        ? ((conversationsData as { items: unknown[] }).items)
-        : [];
-      const byBackend = new Map<string, AgentMetadata>();
-      for (const item of items) {
-        const conversation = item as Record<string, unknown>;
-        const extra = (conversation.extra && typeof conversation.extra === 'object' ? conversation.extra : {}) as Record<string, unknown>;
-        const backend = String(extra.backend ?? extra.provider_id ?? conversation.type ?? 'acp');
-        if (!backend || byBackend.has(backend)) continue;
-        const agentName = typeof extra.agent_name === 'string' ? extra.agent_name : backend;
-        byBackend.set(backend, {
-          id: backend,
-          name: agentName,
-          backend,
-          agent_type: 'acp',
-          agent_source: 'builtin',
-          enabled: true,
-          available: true,
-          agent_source_info: {
-            version: typeof extra.current_model_id === 'string' ? extra.current_model_id : undefined,
-          },
-        });
-      }
-      return [...byBackend.values()];
+      return [...byId.values()];
     }) as () => Promise<AgentMetadata[]>,
   },
+  scanAgents: bridge.buildProvider<AgentMetadata[], void>('acpConversation.scanAgents'),
   refreshCustomAgents: stubProvider<void, void>('acpConversation.refreshCustomAgents', undefined as unknown as void),
   testCustomAgent: stubProvider<
     { step: 'success' } | { step: 'fail_cli'; error: string } | { step: 'fail_acp'; error: string },
