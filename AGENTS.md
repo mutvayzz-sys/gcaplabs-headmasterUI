@@ -1,235 +1,102 @@
-# Headmaster - Project Guide
+# AGENTS.md — GCAP-Labs working root
 
-All contributors (human and AI) must follow [CONTRIBUTING.md](CONTRIBUTING.md) before opening a PR. ([Chinese version](CONTRIBUTING.zh.md))
-
-## Local Workspace Path
-
-Canonical local checkout:
-
-`C:\Users\Matve\Desktop\GCAP-Labs\gcaplabs-headmaster\repo\gcaplabs-headmasterUI`
-
-The build output is also exposed at:
-
-`C:\Users\Matve\Desktop\GCAP-Labs\gcaplabs-headmaster\build\headmaster-output`
-
-The old path `C:\Users\Matve\Desktop\GCAP-Labs\headmaster-desktop` was moved on 2026-06-18. Do not use it.
-
-## Code Conventions
-
-### File & Directory Structure
-
-- **Directory size limit**: A single directory must not exceed **10** direct children (files + subdirectories). Split by responsibility when approaching this limit.
-
-See [docs/contributing/file-structure.md](docs/contributing/file-structure.md) for complete rules. Agents must also follow the `architecture` skill (`.claude/skills/architecture/SKILL.md`) when creating files or modules.
-
-### Naming
-
-- **Components**: PascalCase (`Button.tsx`, `Modal.tsx`)
-- **Utilities**: camelCase (`formatDate.ts`)
-- **Hooks**: camelCase with `use` prefix (`useTheme.ts`)
-- **Constants files**: camelCase (`constants.ts`) — values inside use UPPER_SNAKE_CASE
-- **Type files**: camelCase (`types.ts`)
-- **Style files**: kebab-case or `ComponentName.module.css`
-- **Unused params**: prefix with `_`
-
-### UI Library & Icons
-
-- **Components**: `@arco-design/web-react` — no raw interactive HTML (`<button>`, `<input>`, `<select>`, etc.)
-- **Icons**: `@icon-park/react`
-
-### CSS
-
-- Prefer **UnoCSS utility classes**; complex styles use **CSS Modules** (`ComponentName.module.css`)
-- Colors must use **semantic tokens** from `uno.config.ts` or CSS variables — no hardcoded values
-- Arco theme overrides go in `packages/desktop/src/renderer/styles/arco-override.css`; component-scoped Arco overrides use CSS Module with `:global()`
-- Global styles only in `packages/desktop/src/renderer/styles/`
-
-Formatting rules (Oxfmt, Prettier-compatible):
-
-- Single-element arrays that fit on one line → inline: `[{ id: 'a', value: 'b' }]`
-- Trailing commas required in multi-line arrays/objects
-- Single quotes for strings
-
-### TypeScript
-
-- Strict mode enabled — no `any`, no implicit returns
-- Use path aliases: `@/*`, `@process/*`, `@renderer/*`
-- Prefer `type` over `interface` (per Oxlint config)
-- English for code comments; JSDoc for public functions
-
-### Internationalization (i18n)
-
-All user-facing text must use i18n keys — never hardcode strings. Languages and modules are defined in `packages/desktop/src/common/config/i18n-config.json`.
-
-See the `i18n` skill (`.claude/skills/i18n/SKILL.md`) for complete workflow, key naming, and validation steps.
-
-## Architecture
-
-Two process types — never mix their APIs:
-
-| Process  | Path                             | Restriction     |
-| -------- | -------------------------------- | --------------- |
-| Main     | `packages/desktop/src/process/`  | No DOM APIs     |
-| Renderer | `packages/desktop/src/renderer/` | No Node.js APIs |
-
-Cross-process communication must go through the IPC bridge (`packages/desktop/src/preload/`).
-See [docs/architecture/overview.md](docs/architecture/overview.md) for details.
-
-## Testing
-
-**Framework**: Vitest 4 (`vitest.config.ts`). Coverage target ≥ 80%.
-
-```bash
-bun run test              # run all tests
-bun run test:coverage     # with coverage report
-```
-
-See the `testing` skill (`.claude/skills/testing/SKILL.md`) for complete workflow and quality rules.
-
-## Workflow
-
-### During Development
-
-Auto-fix as you edit:
-
-```bash
-bun run lint:fix       # auto-fix lint issues (oxlint)
-bun run format         # auto-format all files (oxfmt)
-bunx tsc --noEmit      # verify no type errors
-```
-
-If your changes touch `packages/desktop/src/renderer/`, `locales/`, or `packages/desktop/src/common/config/i18n`, also run:
-
-```bash
-bun run i18n:types
-node scripts/check-i18n.js
-```
-
-### Before Pushing
-
-Always use `just push` instead of `git push`:
-
-```bash
-just push                          # lint → format-check → typecheck → test → git push
-just push -u origin feat/branch    # same checks, with extra git push args
-```
-
-Any step that fails aborts the push. Fix the issue, commit, then retry.
-
-> **Note for AI agents**: `just push` uses `--quiet` for lint — only errors cause failure. The project has many pre-existing lint _warnings_ which do NOT indicate failure. Judge success by exit code, not by output volume.
-
-### Before PR (optional stricter check)
-
-`prek` replicates the **exact CI pipeline** (includes end-of-file, trailing whitespace checks on all file types):
-
-```bash
-# One-time setup
-npm install -g @j178/prek
-
-# Run
-prek run --from-ref origin/main --to-ref HEAD
-```
-
-> `prek` is read-only — it reports but does not fix. If it reports issues, run the auto-fix commands above, commit, then re-run.
-
-The `oss-pr` skill runs this automatically during PR creation.
-
-### Commit & PR Format
-
-Commit format: `<type>(<scope>): <subject>` in English. Types: feat, fix, refactor, chore, docs, test, style, perf.
-
-**NEVER add AI signatures** (Co-Authored-By, Generated with, etc.).
-
-For pull request creation, see the `oss-pr` skill (`.claude/skills/oss-pr/SKILL.md`).
-
-## Skills Index
-
-| Skill             | Purpose                                                                               | Triggers                                                                                   |
-| ----------------- | ------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
-| **architecture**  | File & directory structure conventions for all process types                          | Creating files, adding modules, architectural decisions                                    |
-| **i18n**          | Internationalization workflow and standards                                           | Adding user-facing text, modifying `locales/` or `packages/desktop/src/common/config/i18n` |
-| **testing**       | Testing workflow and quality standards                                                | Writing tests, adding features, before claiming completion                                 |
-| **oss-pr**        | Full commit + PR workflow: branch management, quality checks, issue linking, PR       | Creating pull requests, after committing, `/oss-pr`                                        |
-| **bump-version**  | Version bump workflow: update package.json, checks, branch, PR, tag release           | Bumping version, `/bump-version`                                                           |
-| **pr-review**     | Local PR code review with full project context, no truncation limits                  | Reviewing a PR, user says "review PR", `/pr-review`                                        |
-| **pr-fix**        | Fix all issues from a pr-review report, create a follow-up PR, and verify each fix    | After pr-review, user says "fix all issues", `/pr-fix`                                     |
-| **pr-verify**     | Verify and merge bot:ready-to-merge PRs with impact analysis and test supplementation | Verifying PRs, merging ready PRs, `/pr-verify`                                             |
-| **pr-ship**       | End-to-end PR lifecycle: create, CI wait, review, fix, merge in one invocation        | `/pr-ship`, after development is done, resume shepherding a PR                             |
-| **pr-automation** | PR automation orchestrator: poll PRs, review, fix, and merge via label state machine  | Invoked by daemon script (`pr-automation.sh`), `/pr-automation`                            |
+> **Read this first.** You are inside the working root of the **Headmaster** product build (GCAP Labs, white-label of Hermes Agent). Every subdirectory here serves a different role in the build. This file tells you which is which, what to use it for, and what to ignore.
 
 ---
 
-## Architecture Notes
+## TL;DR — what's in this folder
 
-### Agent Scanner (added 2026-06-18)
+| Path | What it is | When to use it | When to ignore it |
+|---|---|---|---|
+| `gcaplabs-headmaster/repo/gcaplabs-headmasterUI/` | **The actual app.** Electron + Vite + React + TypeScript. This is the build target. Pushed to `gcaplabs-headmasterUI` (private) on GitHub. | Always — unless explicitly told otherwise. | Never. |
+| `headmaster-hub/` | The "Headmaster Hub" web frontend (separate product). Has its own `.git`. | When the user asks about the Headmaster Hub web app. | For desktop work, ignore entirely. |
+| `gcaplabs-site/` | The GCAP Labs marketing site. Next.js 15 App Router. **Live on gcaplabs.com.** Pushed to `mutvayzz-sys/gcaplabs-site` (private) on GitHub. | When the user asks to change gcaplabs.com / Headmaster HQ copy or pages. | For desktop work, ignore entirely. |
+| `runtime/hermes-agent/` | The Python runtime (NousResearch). The actual agent code that runs in the background. Spawned by the desktop app via `hermes dashboard`. This is the **canonical** checkout. | When the user asks about runtime behavior, dashboard endpoints, or the `hermes_bootstrap.py` install flow. | For UI / frontstuff work — that's `gcaplabs-headmaster/repo/gcaplabs-headmasterUI/`. |
+| `runtime-recon/` | Hermes recon workspace. Has `RECON.md` (Task 0) and `reconcile.md` (Task 1) plus a **recon copy** of `hermes-agent` (27 files more than the canonical, with local recon edits). | When you need to verify a Hermes runtime assumption before writing app code, or to read the recon notes. | Don't ship anything from here. |
+| `_support/upstream/aionui/` | The original Apache-2.0 source repo (`iOfficeAI/AionUi`). This is **what `gcaplabs-headmaster/repo/gcaplabs-headmasterUI/` is forked from**. | When the user asks "what was the original code" or to compare. | For active build work, use `gcaplabs-headmaster/repo/gcaplabs-headmasterUI/`. |
+| `_support/upstream/hermes-desktop/` | Reference clone of `fathah/hermes-desktop`. | When the user wants to crib UI from fathah's fork (12-screen grid layout, installer). | Don't edit — treat as reference. Run `git pull` to track upstream. |
+| `_support/upstream/hermes-workspace/` | Reference clone of `outsourc-e/hermes-workspace`. Multi-agent Swarm, terminal, memory, cron, skills marketplace. | When the user wants to crib Workspace features (Kanban, Runs, Skills, Cron). | Don't edit — treat as reference. Run `git pull` to track upstream. |
+| `_support/upstream/hermes-agent-desktop/` | **The official Hermes Desktop** from `NousResearch/hermes-agent` at `apps/desktop/`. 518 files, 13MB. Exposed via a directory junction to `runtime-recon/hermes-agent/apps/desktop/` so it stays live with the upstream clone. | When the user wants the **canonical** Hermes Desktop reference (vs the fathah fork). | Don't edit — it's a junction. |
+| `_support/upstream/hermes-webui/` | Hermes WebUI reference (Python/FastAPI). Part of the official Hermes Agent repo. | When the user wants to reference the web UI implementation or API structure. | Don't edit — treat as reference. Run `git pull` to track upstream. |
+| `_support/staging/assets/` | Asset staging area (Vercel Blob uploads, prompt-and-generate outputs). | When generating or staging new visual assets. | — |
+| `_support/staging/skills/` | Skill drafts. | When porting/authoring new skills. | — |
+| `_support/staging/marketplace/` | Bencium marketplace code (separate project). | When the user asks about the marketplace. | For Headmaster work, ignore. |
+| `_support/archive/` | Historical scratch from prior sessions (AUDIT_REPORT.md, claude-plan.md, claude-notes.md, output.txt, GOOGLE-OAUTH-URL.txt, Vault.lnk). | Reference only — stale. | Treat as historical, not current truth. |
+| `AGENTS.md` / `INDEX.md` | This file + the human-facing project map. | — | — |
+| `.claude/` | Your AI tool config (Claude settings, etc.). | — | Never commit `settings.local.json`. |
 
-The app includes a **local CLI agent scanner** in the main process that probes `$PATH` for known CLI agent binaries (`claude`, `codex`, `grok`, `hermes`). This replaces the broken backend-dependent detection that tried non-existent `/api/extensions/acp-adapters` and `/api/agents` endpoints.
+---
 
-**Key files:**
-- `process/agent/agentScanner.ts` — uses `child_process.execSync` with `where`/`which` to find binaries
-- `process/bridge/agentBridge.ts` — registers IPC handler `acpConversation.scanAgents`
-- `common/adapter/ipcBridge.ts` — `getAvailableAgents` merges local scanner results with backend adapters
+## What's actually shipping
 
-### Gateway Status Indicator (added 2026-06-18)
+**One product**: Headmaster Desktop (Electron). Its source is `gcaplabs-headmaster/repo/gcaplabs-headmasterUI/`. Everything else is upstream / reference / scratch.
 
-A **gateway status checker** in the sidebar footer that polls `GET /api/status` (public endpoint) every 30 seconds. Shows a green/red dot and a restart button.
+**The build target:** run from `gcaplabs-headmaster/repo/gcaplabs-headmasterUI/`. Build commands:
 
-**Key files:**
-- `renderer/components/layout/Sider/SiderNav/GatewayStatusIndicator.tsx` — polls `/api/status`, renders status dot + restart button
-- `renderer/components/layout/Sider/SiderFooter.tsx` — hosts the indicator above the settings button
+```bash
+# Typecheck
+bunx tsc --noEmit
 
-### Update Checker (added 2026-06-18)
+# Renderer+main+preload bundle
+bunx electron-vite build --config packages/desktop/electron.vite.config.ts
 
-A **Headmaster update checker** that polls `GET /api/hermes/update/check` every 6 hours. When an update is available, shows a badge in the sidebar footer. Clicking triggers `POST /api/hermes/update` and shows a notification.
+# Package as Windows installer + zip + portable EXE
+node scripts/build-with-builder.js auto --win
+```
 
-**Key files:**
-- `renderer/components/layout/Sider/SiderNav/UpdateChecker.tsx` — polls update endpoint, shows notification
-- `renderer/components/layout/Sider/SiderFooter.tsx` — hosts the checker
+**Version:** `0.1.3` (Headmaster's own version line, in root `package.json`; reset 2026-06-18 from the inherited white-label `2.1.18`). Output filenames track this version.
 
-### Memory Page (updated 2026-06-18)
+Output lands in `gcaplabs-headmaster/repo/gcaplabs-headmasterUI/out/`:
+- `out/win-unpacked/Headmaster.exe` — portable (run this for testing)
+- `out/Headmaster-<version>-win-x64.exe` — NSIS installer
+- `out/Headmaster-<version>-win-x64.zip` — portable zip
 
-The Memory left-nav tab now **embeds `https://memory.gcaplabs.com`** via iframe instead of showing a local provider list. The Memory Settings entry under Settings still uses `MemoryModalContent` for configuration.
+For a quick iteration that only produces the runnable portable exe (skips the slow installer/zip), add `--dir`: `node scripts/build-with-builder.js auto --win --dir`. Close any running `Headmaster.exe` first — it locks `out/win-unpacked/`.
 
-**Key files:**
-- `renderer/pages/memory/index.tsx` — iframe embed of `memory.gcaplabs.com`
+**Launch test:** `out\win-unpacked\Headmaster.exe`. Logs go to `%APPDATA%\Headmaster\logs\YYYY-MM-DD.log`.
 
-### RuntimeSettings (updated 2026-06-18)
+**Runtime: Hermes Python** (per the 2026-06-15 runtime pivot). The desktop first tries `hermes dashboard`; falls back to legacy `aioncore` if Python venv missing. **Aioncore is dead weight — do not block on it.** `bundled-aioncore/` does not need to ship.
 
-The Settings → Runtime page now fetches from real Hermes backend endpoints:
-- `GET /api/config` — current config values
-- `GET /api/config/schema` — field types, descriptions, categories
-- `PUT /api/config` — saves modified config
+---
 
-**Key file:**
-- `renderer/pages/settings/RuntimeSettings.tsx`
+## How to work in this tree
 
-### Advanced Settings Tab (added 2026-06-18)
+1. **Read** `gcaplabs-headmaster/repo/gcaplabs-headmasterUI/docs/white-label/HEADMASTER-VOCABULARY.csv` before naming anything user-facing. **Do not** ship AionUi / aionui / aionrs / Cowork / Hermes in the UI. Use the Headmaster column.
+2. **Read** `gcaplabs-headmaster/repo/gcaplabs-headmasterUI/docs/white-label/WHITE-LABEL-AUDIT.md` before touching anything in `gcaplabs-headmaster/repo/gcaplabs-headmasterUI/packages/desktop/src/process/`. `HERMES_DESKTOP_*` env vars and the `hermes-media://` protocol are off-limits.
+3. **Edit** in `gcaplabs-headmaster/repo/gcaplabs-headmasterUI/` only. Do not edit `runtime/hermes-agent/`, `_support/upstream/`, or `_support/staging/`. Those are reference clones.
+4. **Pull fresh upstream** for `_support/upstream/hermes-desktop/` and `_support/upstream/hermes-workspace/` before relying on their content: `cd _support/upstream/hermes-... && git pull --ff-only`.
+5. **Don't introduce new port numbers or endpoint paths** without checking `runtime-recon/RECON.md` (real Hermes endpoint map) first.
+6. **Knowledge base:** real product + runtime state lives in `G:\Vault\KBs\headmasterui-kb\` (Honcho memory is auto-injected; vault is human-readable).
 
-Web UI, Capabilities, and Integrations settings have been merged under a new **Advanced Settings** tab in the settings sidebar. Old routes redirect to `/settings/advanced`.
+---
 
-**Key file:**
-- `renderer/pages/settings/AdvancedSettings.tsx` — tabbed container for WebUI/Capabilities/Integrations
+## Things that are easy to get wrong
 
-### BrowserPanel (added 2026-06-17)
+- **Aioncore is dead weight.** The legacy fallback to `bundled-aioncore/` is skipped at build time when `HEADMASTER_RUNTIME=hermes` (set by `run-headmaster-dist-win-hermes.bat`). Don't try to download or wire up an aioncore binary — it doesn't exist upstream (`mutvayzz-sys/Adonis Core` repo is 404). The Hermes runtime is the only real path.
+- **"Hermes" is allowed in some places, forbidden in others.** Allowed in: env var names (`HERMES_HOME`, `HERMES_DESKTOP_*`), the `hermes-media://` URL scheme, the Python venv directory `~/.hermes/hermes-agent/`, the `hermes` console script name, the `hermes dashboard` spawn command. Forbidden in: any user-visible UI string, app name, About panel, window title, marketing copy. See WHITE-LABEL-AUDIT.md for the full list.
+- **The Headmaster icon (the Sorting Hat) doesn't exist yet.** All icon assets are PLACEHOLDER per `HEADMASTER-ASSET-INVENTORY.md`. Don't reference them as if they exist.
+- **`gcaplabs-site/` is the website, not the desktop.** Different stack, different product surface. If the user says "change the website", that's `gcaplabs-site/`. If they say "change the app", that's `gcaplabs-headmaster/repo/gcaplabs-headmasterUI/`.
+- **`headmaster-hub/` is the Headmaster Hub web app.** Not the same as the marketing site (`gcaplabs-site/`) and not the same as the desktop app.
+- **Local dev can't run Docker on this machine** (Hyper-V/WSL2 disabled for WoW kernel-level cheats). Anything that needs Docker (OpenConcho) has to be external or native.
+- **`_support/upstream/aionui/` is the Apache-2.0 upstream source.** Don't edit it; if you want to compare, that's what it's for.
 
-The app has a **contextual browser view panel** that auto-opens when the Hermes agent uses browser tools (Camofox with VNC).
+---
 
-**Slot:** Same right-side panel slot that used to hold the PreviewPanel tabs. Sits between the chat area and the workspace panel.
+## Cross-references
 
-**Key files:**
-- `renderer/pages/conversation/BrowserPanel/` — context, component, barrel export
-- `renderer/hooks/chat/useBrowserSessionWatch.ts` — watches `listChanged` IPC events, queries last 30 messages for `browser_*` tool names, opens panel at `http://localhost:6080`, closes 2.5s after agent stops
-- `renderer/pages/conversation/components/ChatLayout/index.tsx` — panel slot driven by `useBrowserPanelContext` (replaced `usePreviewContext` for this slot)
-- `renderer/main.tsx` — `BrowserPanelProvider` nested inside `PreviewProvider`
-- `renderer/pages/conversation/index.tsx` — `useBrowserSessionWatch(id)` called at route level
-
-**Do not:**
-- Add another panel to the same slot without removing or rethinking BrowserPanel
-- Hardcode `http://localhost:6080` anywhere other than `useBrowserSessionWatch.ts` (`CAMOFOX_VNC_URL` constant)
-- Remove `BrowserPanelProvider` from the provider chain in `main.tsx`
-
-**Pending:**
-- Old `PreviewPanel` / `PreviewProvider` code still exists and is still provided — user intends to remove the tabbed preview system. Do not add new features to `PreviewPanel` in the meantime.
-- Run `bun run i18n:types` after any locale file changes (`browser.*` keys were added to all `conversation.json` files).
-
-> Skills are located in `.claude/skills/` and contain project conventions that apply to **all** agents and contributors.
+- **Knowledge base:** `G:\Vault\KBs\headmasterui-kb\` (the file index lives at `G:\Vault\KBs\headmasterui-kb\_MOC.md`).
+- **Honcho memory** is auto-injected — long-term facts about the user, project, and decisions.
+- **White-label audit:** `gcaplabs-headmaster/repo/gcaplabs-headmasterUI/docs/white-label/WHITE-LABEL-AUDIT.md` (read before any rename work).
+- **Vocab mapping:** `gcaplabs-headmaster/repo/gcaplabs-headmasterUI/docs/white-label/HEADMASTER-VOCABULARY.csv` (read before any naming work).
+- **Hermes runtime recon:** `runtime-recon/RECON.md` (read before any runtime/backend work).
+- **The plan:** `gcaplabs-headmaster/repo/gcaplabs-headmasterUI/docs/white-label/WHAT-WE-TAKE.md` (high-level; likely out of date, the recon wins).
+- **Active backlog:** `gcaplabs-headmaster/repo/gcaplabs-headmasterUI/todo.md` — read this first when resuming desktop work. **All 16 TODO items completed 2026-06-18** (settings restructure, agent scanner, gateway checker, update checker, memory embed, feature removals, white-label audit). Remaining: build + smoke test, DeepWiki update, Honcho upgrade.
+- **Full history:** `DEVLOG.md` (newest first).
+- **Last few things we did** (most recent first):
+  1. **2026-06-18 — TODO backlog cleared:** Settings restructured (Hermes→Runtime, Advanced Settings tab, dead i18n removed), local CLI agent scanner implemented (`process/agent/agentScanner.ts`), BottomComposer removed, ChatSlider workspace fix, white-label grep audit across all locales, RuntimeSettings rewritten to use real `/api/config` endpoints, gateway status indicator + Headmaster update checker in sidebar footer, Memory page now embeds `memory.gcaplabs.com` via iframe.
+  2. Version reset to `0.1.3`; removed the "installation incomplete" startup check entirely; added `AppErrorBoundary`; produced fresh signed build + `GCAP-Labs/Headmaster.lnk` shortcut.
+  3. OpenConcho wired as external-link Memory settings tab.
+  4. Icon-park plugin fix for `as` aliases in icon imports.
+  5. Hermes runtime pivot (no more aioncore dependency for the build).
+  6. Repository split: `gcaplabs-headmaster` (old, deleted) → `gcaplabs-headmasterUI` (current, private). Marketing site renamed to `gcaplabs-site`.
+  7. Folder restructure: `Desktop/Gcaplabs.com/` → `Desktop/GCAP-Labs/`, with `gcaplabs-headmaster/repo/gcaplabs-headmasterUI/`, `headmaster-hub/`, `gcaplabs-site/`, `runtime/`, `runtime-recon/`, `_support/upstream/`, `_support/staging/`, `_support/archive/`.

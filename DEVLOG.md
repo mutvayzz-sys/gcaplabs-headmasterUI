@@ -4,6 +4,34 @@ Running record of what was built, why, and what's next. Newest entries at the to
 
 ---
 
+## 2026-06-18 (Session 3) — v0.1.3: Hermes detection + remote gateway, aioncore/aionui rename
+
+**What:** Implemented Task 9 (local/remote Hermes gateway selector) and Task 10 (rename all internal aioncore/aionui to Headmaster/Hermes). Bumped version to 0.1.3.
+
+**Task 9 — Hermes detection + remote gateway:**
+- `hermesBootstrap.ts` — added `isInstalled()` method
+- New `process/connection/connectionConfig.ts` — stores connection mode (local/remote) and remote config (host, port, token) in `connection-config.json`
+- `index.ts handleAppReady()` — branches on connection mode: remote skips local spawn, sets `__backendHost` + `__backendPort` + `__hermesSessionToken` from config
+- `httpBridge.ts` — `getBaseUrl()` and `getWsUrl()` honor `__backendHost` instead of hardcoded `127.0.0.1`
+- `backendUrl.ts` — `getBackendBase()` honors `__backendHost`
+- New `connectionBridge.ts` — IPC handlers for reading/writing connection settings from renderer
+- `backendStartup.ts` — fixed stale "aioncore" log message to "Hermes"
+
+**Task 10 — Rename aioncore/aionui:**
+- `initStorage.ts` — storage files renamed: `aionui-config.txt` → `headmaster-config.txt`, etc. + migration function for old files
+- `applicationBridgeCore.ts` — `ProcessEnv.set('aionui.dir')` → `'headmaster.dir'`
+- `binaryResolver.ts` — `BINARY_NAME = 'aioncore'` → `'hermes'`
+- `feedback/logs.ts` — `.aioncore.log` → `.hermes.log`, `.aionrs.log` → `.hermes-agent.log`
+- `builtinMcp/constants.ts` — `aionui-image-generation` → `headmaster-image-generation`
+- `imageGenServer.ts` — `aionui_image_generation` → `headmaster_image_generation`
+- `migrations.ts` — new migration v27: rename conversation source `aionui` → `headmaster` with CHECK constraint update
+- Comments updated in `webuiBridge.ts`, `hermesBridge.ts`, `hermesBootstrap.ts`
+
+**Commit:** `0207991` — 25 files changed, 563 insertions, 120 deletions
+**Version:** 0.1.3
+
+---
+
 ## 2026-06-18 (Session 2) — TODO backlog cleared: 16 tasks, 8 commits
 
 **What:** Cleared the entire `todo.md` backlog. 16 tasks across 7 phases, 8 commits on `gcaplabs-headmaster/repo/gcaplabs-headmasterUI/main`.
@@ -52,7 +80,7 @@ Running record of what was built, why, and what's next. Newest entries at the to
 **Changes:**
 
 *Versioning:*
-- Root `package.json` version reset from `2.1.18` (inherited from the white-label base) to **`0.1.2`** — Headmaster's own version line.
+- Root `package.json` version reset from `2.1.18` (inherited from the white-label base) to **`0.1.3`** — Headmaster's own version line.
 
 *Removed the "installation incomplete" startup check:*
 - `get-backend-startup-failure` IPC (`packages/desktop/src/index.ts`) now always returns `null`; the renderer can never receive failure info to render the dialog.
@@ -70,7 +98,7 @@ Running record of what was built, why, and what's next. Newest entries at the to
 **Why:** The packaged app the user was running was stale, so a removed dialog and an uncatchable white screen both persisted. Resetting the version, removing the check at its source, and adding an error boundary make the app self-consistent and crash-recoverable going forward.
 
 **Files changed:**
-- `package.json` — version → 0.1.2
+- `package.json` — version → 0.1.3
 - `packages/desktop/src/index.ts` — startup-failure check neutered
 - `packages/desktop/src/renderer/components/layout/Layout.tsx` — error boundaries
 - `packages/desktop/src/renderer/components/layout/AppErrorBoundary.tsx` — created

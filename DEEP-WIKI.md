@@ -694,8 +694,8 @@ node scripts/build-with-builder.js auto --win
 #### Build Output
 Located in `gcaplabs-headmaster/repo/gcaplabs-headmasterUI/out/`:
 - `out/win-unpacked/Headmaster.exe` — Portable executable
-- `out/Headmaster-0.1.2-win-x64.exe` — NSIS installer
-- `out/Headmaster-0.1.2-win-x64.zip` — Portable archive
+- `out/Headmaster-0.1.3-win-x64.exe` — NSIS installer
+- `out/Headmaster-0.1.3-win-x64.zip` — Portable archive
 
 #### Build Wrapper
 Uses `run-headmaster-dist-win-hermes.bat` which sets:
@@ -1272,7 +1272,7 @@ hermes setup                           # Run setup wizard
 ### Version Information
 
 #### Current Versions
-- **Headmaster Desktop**: 0.1.2 (reset from inherited 2.1.18)
+- **Headmaster Desktop**: 0.1.3 (reset from inherited 2.1.18)
 - **Electron**: 37.10.3
 - **React**: 19.1.0 (desktop), 19.2.4 (site)
 - **Next.js**: 16.2.6

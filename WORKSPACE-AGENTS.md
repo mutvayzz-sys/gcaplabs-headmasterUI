@@ -44,7 +44,7 @@ bunx electron-vite build --config packages/desktop/electron.vite.config.ts
 node scripts/build-with-builder.js auto --win
 ```
 
-**Version:** `0.1.2` (Headmaster's own version line, in root `package.json`; reset 2026-06-18 from the inherited white-label `2.1.18`). Output filenames track this version.
+**Version:** `0.1.3` (Headmaster's own version line, in root `package.json`; reset 2026-06-18 from the inherited white-label `2.1.18`). Output filenames track this version.
 
 Output lands in `gcaplabs-headmaster/repo/gcaplabs-headmasterUI/out/`:
 - `out/win-unpacked/Headmaster.exe` — portable (run this for testing)
@@ -94,7 +94,7 @@ For a quick iteration that only produces the runnable portable exe (skips the sl
 - **Full history:** `DEVLOG.md` (newest first).
 - **Last few things we did** (most recent first):
   1. **2026-06-18 — TODO backlog cleared:** Settings restructured (Hermes→Runtime, Advanced Settings tab, dead i18n removed), local CLI agent scanner implemented (`process/agent/agentScanner.ts`), BottomComposer removed, ChatSlider workspace fix, white-label grep audit across all locales, RuntimeSettings rewritten to use real `/api/config` endpoints, gateway status indicator + Headmaster update checker in sidebar footer, Memory page now embeds `memory.gcaplabs.com` via iframe.
-  2. Version reset to `0.1.2`; removed the "installation incomplete" startup check entirely; added `AppErrorBoundary`; produced fresh signed build + `GCAP-Labs/Headmaster.lnk` shortcut.
+  2. Version reset to `0.1.3`; removed the "installation incomplete" startup check entirely; added `AppErrorBoundary`; produced fresh signed build + `GCAP-Labs/Headmaster.lnk` shortcut.
   3. OpenConcho wired as external-link Memory settings tab.
   4. Icon-park plugin fix for `as` aliases in icon imports.
   5. Hermes runtime pivot (no more aioncore dependency for the build).

@@ -107,7 +107,7 @@ These mappings are **locked**. If you find yourself writing a new name that isn'
 
 ## Build and run
 
-**Current desktop version:** `0.1.2` (root `gcaplabs-headmaster/repo/gcaplabs-headmasterUI/package.json`).
+**Current desktop version:** `0.1.3` (root `gcaplabs-headmaster/repo/gcaplabs-headmasterUI/package.json`).
 
 **Desktop build** (from `gcaplabs-headmaster/repo/gcaplabs-headmasterUI/`):
 
