@@ -8,7 +8,7 @@
  * IPC Bridge → HTTP/WS adapter.
  *
  * This file replaces the original IPC bridge calls with HTTP REST and WebSocket
- * calls routed to aioncore. Electron-native operations (window controls,
+ * calls routed to the active backend. Electron-native operations (window controls,
  * native dialogs, auto-update, devtools, zoom, CDP, deep links) remain as IPC.
  */
 
@@ -846,9 +846,9 @@ async function buildProvidersFromAdonisConfig(): Promise<IProvider[]> {
 
   const modelsByBackend = new Map<string, Set<string>>();
   for (const item of items) {
-    const conversation = item as Record<string, unknown>;
-    const extra = (conversation.extra && typeof conversation.extra === 'object' ? conversation.extra : {}) as Record<string, unknown>;
-    const backend = String(extra.backend ?? extra.provider_id ?? conversation.type ?? '').toLowerCase();
+    const conversationRecord = item as Record<string, unknown>;
+    const extra = (conversationRecord.extra && typeof conversationRecord.extra === 'object' ? conversationRecord.extra : {}) as Record<string, unknown>;
+    const backend = String(extra.backend ?? extra.provider_id ?? conversationRecord.type ?? '').toLowerCase();
     const model = typeof extra.current_model_id === 'string' ? extra.current_model_id : (typeof extra.model === 'string' ? extra.model : '');
     if (!backend) continue;
     if (!modelsByBackend.has(backend)) modelsByBackend.set(backend, new Set());

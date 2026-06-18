@@ -87,7 +87,7 @@ export function resolveBinaryPath(): string {
 
 /**
  * Check bundled binary in resources directory.
- * Layout: bundled-hermes/{platform}-{arch}/aioncore[.exe]
+ * Layout: bundled-hermes/{platform}-{arch}/hermes[.exe]
  */
 function bundledPath(
   runtimeKey: string,

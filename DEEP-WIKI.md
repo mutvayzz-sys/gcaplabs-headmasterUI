@@ -210,11 +210,12 @@ Headmaster Desktop is the primary build target — an Electron application that 
 The main Electron application package containing:
 
 - **`src/process/`** — Main process code
-  - Backend spawning and management
+  - Runtime startup: Local Hermes dashboard or Remote Hermes connection mode
   - Window lifecycle
   - IPC handlers
   - File system operations
   - Native module loading
+  - AppData/config migrations (`aionui` → `headmaster`)
 
 - **`src/renderer/`** — Renderer process code
   - React components and pages
@@ -1597,6 +1598,20 @@ All tool names start with `browser_` — this is the pattern `useBrowserSessionW
 ## Recent Changes Log
 
 > Major structural changes to the UI — quick reference for what moved, what was removed, and why.
+
+### 2026-06-18 — Remote runtime mode + storage rename
+
+#### Runtime connection mode
+- Settings → Runtime now includes a **Runtime Connection** card with Local/Remote Hermes mode.
+- Remote mode stores `host`, `port`, and `token` in Electron user data as `connection-config.json`.
+- Main process startup branches before local spawn: Remote mode sets backend host/port/token globals and skips `hermes dashboard`; Local mode keeps the existing local Hermes dashboard startup.
+- Renderer HTTP and WebSocket bridges now build URLs from `__backendHost` + `__backendPort`, not hardcoded `127.0.0.1`.
+
+#### Storage rename / migration
+- AppData data folder migrated from `%APPDATA%\Headmaster\aionui\` to `%APPDATA%\Headmaster\headmaster\`.
+- Config/history filenames migrated from `aionui-*` to `headmaster-*` on startup.
+- `ProcessEnv` now writes `headmaster.dir`; startup still reads legacy `aionui.dir` as fallback.
+- Database migration v27 renames conversation source `aionui` to `headmaster` and updates the SQLite CHECK constraint.
 
 ### 2026-06-18 — TODO backlog cleared (16 tasks, 8 commits)
 

@@ -55,7 +55,7 @@ For a quick iteration that only produces the runnable portable exe (skips the sl
 
 **Launch test:** `out\win-unpacked\Headmaster.exe`. Logs go to `%APPDATA%\Headmaster\logs\YYYY-MM-DD.log`.
 
-**Runtime: Hermes Python** (per the 2026-06-15 runtime pivot). The desktop first tries `hermes dashboard`; falls back to legacy `aioncore` if Python venv missing. **Aioncore is dead weight — do not block on it.** `bundled-aioncore/` does not need to ship.
+**Runtime: Hermes Python** (per the 2026-06-15 runtime pivot). The desktop supports two runtime modes: **Local Hermes** starts `hermes dashboard` on this machine, while **Remote Hermes** connects to a configured host/port/token from Settings → Runtime. Legacy backend paths are fallback-only and should not block builds. `bundled-aioncore/` does not need to ship.
 
 ---
 
@@ -72,7 +72,8 @@ For a quick iteration that only produces the runnable portable exe (skips the sl
 
 ## Things that are easy to get wrong
 
-- **Aioncore is dead weight.** The legacy fallback to `bundled-aioncore/` is skipped at build time when `HEADMASTER_RUNTIME=hermes` (set by `run-headmaster-dist-win-hermes.bat`). Don't try to download or wire up an aioncore binary — it doesn't exist upstream (`mutvayzz-sys/Adonis Core` repo is 404). The Hermes runtime is the only real path.
+- **Remote runtime mode exists now.** Settings → Runtime has a Local/Remote selector plus host/port/token fields. Remote mode sets `__backendHost`, `__backendPort`, and `__hermesSessionToken` instead of spawning local Hermes. Local mode still starts `hermes dashboard`.
+- **Legacy bundled backend is fallback-only.** Don't try to download or wire up an aioncore binary — it doesn't exist upstream (`mutvayzz-sys/Adonis Core` repo is 404). The Hermes runtime is the only real path.
 - **"Hermes" is allowed in some places, forbidden in others.** Allowed in: env var names (`HERMES_HOME`, `HERMES_DESKTOP_*`), the `hermes-media://` URL scheme, the Python venv directory `~/.hermes/hermes-agent/`, the `hermes` console script name, the `hermes dashboard` spawn command. Forbidden in: any user-visible UI string, app name, About panel, window title, marketing copy. See WHITE-LABEL-AUDIT.md for the full list.
 - **The Headmaster icon (the Sorting Hat) doesn't exist yet.** All icon assets are PLACEHOLDER per `HEADMASTER-ASSET-INVENTORY.md`. Don't reference them as if they exist.
 - **`gcaplabs-site/` is the website, not the desktop.** Different stack, different product surface. If the user says "change the website", that's `gcaplabs-site/`. If they say "change the app", that's `gcaplabs-headmaster/repo/gcaplabs-headmasterUI/`.
@@ -93,10 +94,11 @@ For a quick iteration that only produces the runnable portable exe (skips the sl
 - **Active backlog:** `gcaplabs-headmaster/repo/gcaplabs-headmasterUI/todo.md` — read this first when resuming desktop work. **All 16 TODO items completed 2026-06-18** (settings restructure, agent scanner, gateway checker, update checker, memory embed, feature removals, white-label audit). Remaining: build + smoke test, DeepWiki update, Honcho upgrade.
 - **Full history:** `DEVLOG.md` (newest first).
 - **Last few things we did** (most recent first):
-  1. **2026-06-18 — TODO backlog cleared:** Settings restructured (Hermes→Runtime, Advanced Settings tab, dead i18n removed), local CLI agent scanner implemented (`process/agent/agentScanner.ts`), BottomComposer removed, ChatSlider workspace fix, white-label grep audit across all locales, RuntimeSettings rewritten to use real `/api/config` endpoints, gateway status indicator + Headmaster update checker in sidebar footer, Memory page now embeds `memory.gcaplabs.com` via iframe.
-  2. Version reset to `0.1.3`; removed the "installation incomplete" startup check entirely; added `AppErrorBoundary`; produced fresh signed build + `GCAP-Labs/Headmaster.lnk` shortcut.
-  3. OpenConcho wired as external-link Memory settings tab.
-  4. Icon-park plugin fix for `as` aliases in icon imports.
-  5. Hermes runtime pivot (no more aioncore dependency for the build).
-  6. Repository split: `gcaplabs-headmaster` (old, deleted) → `gcaplabs-headmasterUI` (current, private). Marketing site renamed to `gcaplabs-site`.
-  7. Folder restructure: `Desktop/Gcaplabs.com/` → `Desktop/GCAP-Labs/`, with `gcaplabs-headmaster/repo/gcaplabs-headmasterUI/`, `headmaster-hub/`, `gcaplabs-site/`, `runtime/`, `runtime-recon/`, `_support/upstream/`, `_support/staging/`, `_support/archive/`.
+  1. **2026-06-18 — Remote runtime + storage rename:** Settings → Runtime now has Local/Remote Hermes connection mode; renderer HTTP/WS clients support remote host; startup branches remote vs local; AppData storage migrates `aionui/` → `headmaster/`; source migration renames conversation source `aionui` → `headmaster`.
+  2. **2026-06-18 — TODO backlog cleared:** Settings restructured (Hermes→Runtime, Advanced Settings tab, dead i18n removed), local CLI agent scanner implemented (`process/agent/agentScanner.ts`), BottomComposer removed, ChatSlider workspace fix, white-label grep audit across all locales, RuntimeSettings rewritten to use real `/api/config` endpoints, gateway status indicator + Headmaster update checker in sidebar footer, Memory page now embeds `memory.gcaplabs.com` via iframe.
+  3. Version reset to `0.1.3`; removed the "installation incomplete" startup check entirely; added `AppErrorBoundary`; produced fresh signed build + `GCAP-Labs/Headmaster.lnk` shortcut.
+  4. OpenConcho wired as external-link Memory settings tab.
+  5. Icon-park plugin fix for `as` aliases in icon imports.
+  6. Hermes runtime pivot (no more legacy backend dependency for the build).
+  7. Repository split: `gcaplabs-headmaster` (old, deleted) → `gcaplabs-headmasterUI` (current, private). Marketing site renamed to `gcaplabs-site`.
+  8. Folder restructure: `Desktop/Gcaplabs.com/` → `Desktop/GCAP-Labs/`, with `gcaplabs-headmaster/repo/gcaplabs-headmasterUI/`, `headmaster-hub/`, `gcaplabs-site/`, `runtime/`, `runtime-recon/`, `_support/upstream/`, `_support/staging/`, `_support/archive/`.

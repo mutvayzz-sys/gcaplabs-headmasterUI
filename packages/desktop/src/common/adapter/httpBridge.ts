@@ -1,15 +1,15 @@
 /**
  * HTTP/WS bridge factory — drop-in replacement for bridge.buildProvider / bridge.buildEmitter
- * that routes calls to aioncore via REST API and WebSocket.
+ * that routes calls to the active backend via REST API and WebSocket.
  *
  * Exported helpers produce objects with the same shape as @office-ai/platform bridge,
  * so existing renderer code works without changes.
  *
- * NOTE (Phase 1): this module reads `window.__backendPort` (the aioncore port).
+ * NOTE (Phase 1): this module reads `window.__backendPort` (the backend port).
  * The new Hermes dashboard port is exposed as `window.__hermesPort` via the
  * `useDashboardStatus` hook and consumed by Phase 2 code paths that migrate
  * endpoints to the Hermes REST surface. During Phase 1, `httpBridge.ts` must NOT
- * read `__hermesPort` — that would silently redirect aioncore calls to Hermes.
+ * read `__hermesPort` — that would silently redirect backend calls to Hermes.
  */
 
 // ---------------------------------------------------------------------------
@@ -52,7 +52,7 @@ function getBackendPort(): number {
   if (typeof window !== 'undefined') {
     const w = (window as Window).__backendPort;
     // 0 means "Hermes not ready"; don't fall through to globalThis.__backendPort
-    // which would be the stale aioncore port.
+    // which would be the stale backend port.
     if (w !== undefined) return w;
   }
   const g = globalThis as typeof globalThis & { __backendPort?: number };
@@ -410,7 +410,7 @@ async function checkWsSupport(): Promise<boolean> {
     const timer = setTimeout(() => controller.abort(), 2000);
     const response = await fetch(url, { method: 'HEAD', signal: controller.signal });
     clearTimeout(timer);
-    // 404 means the active backend (Adonis Core/aioncore) doesn't expose /api/ws.
+    // 404 means the active backend (the active backend) doesn't expose /api/ws.
     if (response.status === 404) {
       wsUnsupported = true;
       console.debug('[ensureWs] /api/ws returned 404; marking WebSocket unsupported for this backend');

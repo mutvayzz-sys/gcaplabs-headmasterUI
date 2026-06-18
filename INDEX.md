@@ -18,7 +18,7 @@ Everything else in this folder is upstream reference, runtime, recon, staging, o
 
 | If you want to… | Start here |
 |---|---|
-| See what's queued for the desktop app | `gcaplabs-headmaster/repo/gcaplabs-headmasterUI/todo.md` — **all 16 TODO items completed 2026-06-18**. Remaining: build + smoke test, DeepWiki update, Honcho upgrade. |
+| See what's queued for the desktop app | `gcaplabs-headmaster/repo/gcaplabs-headmasterUI/todo.md` — TODO backlog is cleared through remote runtime mode + storage rename. Remaining: build + smoke test, docs/wiki refresh, Honcho upgrade. |
 | Edit the desktop app (most common) | `gcaplabs-headmaster/repo/gcaplabs-headmasterUI/` — read its `AGENTS.md` and `CLAUDE.md` (it has them). |
 | Understand the desktop app's structure | `gcaplabs-headmaster/repo/gcaplabs-headmasterUI/docs/white-label/WHAT-WE-TAKE.md` (the plan) + `gcaplabs-headmaster/repo/gcaplabs-headmasterUI/docs/white-label/WHITE-LABEL-AUDIT.md` (rename rules). |
 | Understand the Hermes runtime (Python backend) | `runtime-recon/RECON.md` (Task 0 recon, ground truth). |
@@ -123,6 +123,10 @@ Close any running `Headmaster.exe` before building — it locks `out/win-unpacke
 **Launch test:** `gcaplabs-headmaster/repo/gcaplabs-headmasterUI/out/win-unpacked/Headmaster.exe` (shortcut: `GCAP-Labs/Headmaster.lnk`)
 
 **Logs:** `%APPDATA%\Headmaster\logs\YYYY-MM-DD.log`
+
+**Runtime mode:** Settings → Runtime now stores Local/Remote Hermes connection mode in `connection-config.json`. Local mode launches `hermes dashboard`; Remote mode connects renderer HTTP/WS calls to the configured host/port/token and does not spawn local Hermes.
+
+**Storage:** App data now uses `%APPDATA%\Headmaster\headmaster\` instead of `%APPDATA%\Headmaster\aionui\`; startup migrates the old folder and old `aionui-*` config/history filenames forward.
 
 **Build wrapper (sets `HEADMASTER_RUNTIME=hermes`):** `C:\Users\Matve\AppData\Local\Temp\run-headmaster-dist-win-hermes.bat`
 

@@ -155,7 +155,7 @@ export interface IConfigStorageRefer {
     custom_agent_id?: string;
     name?: string;
   };
-  // Skills Market: whether the aionui-skills builtin skill is enabled
+  // Skills Market: whether the built-in skills market is enabled
   'skillsMarket.enabled'?: boolean;
   /**
    * One-shot completion flag for the legacy `model.config` → backend providers
@@ -223,7 +223,7 @@ interface IChatConversation<T, Extra> {
   model: TProviderWithModel;
   status?: TChatConversationStatus | undefined;
   runtime?: TConversationRuntimeSummary;
-  /** 会话来源，默认为 aionui / Conversation source, defaults to aionui */
+  /** 会话来源，默认为 headmaster / Conversation source, defaults to headmaster */
   source?: ConversationSource;
   /** Channel chat isolation ID (e.g. user:xxx, group:xxx) */
   channel_chat_id?: string;
@@ -633,7 +633,7 @@ export interface IConversationMcpStatus {
 
 /** Stable ID for the built-in image generation MCP server */
 export const BUILTIN_IMAGE_GEN_ID = 'builtin-image-gen';
-export const BUILTIN_IMAGE_GEN_NAME = 'aionui-image-generation';
+export const BUILTIN_IMAGE_GEN_NAME = 'headmaster-image-generation';
 export const BUILTIN_IMAGE_GEN_LEGACY_NAMES = ['Headmaster Image Generation', BUILTIN_IMAGE_GEN_ID] as const;
 
 export interface IMcpTool {

@@ -27,7 +27,7 @@
  * Recon reference: `headmaster-hermes/RECON.md` §1-6.
  */
 
-import { ChildProcess, spawn } from 'node:child_process';
+import { spawn, type ChildProcess } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { randomBytes } from 'node:crypto';
 import { delimiter, join } from 'node:path';

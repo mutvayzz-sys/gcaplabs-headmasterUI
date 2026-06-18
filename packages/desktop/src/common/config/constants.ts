@@ -11,10 +11,10 @@
 // ===== 文件处理相关常量 =====
 
 /** 临时文件时间戳分隔符 */
-export const HEADMASTER_TIMESTAMP_SEPARATOR = '_aionui_';
+export const HEADMASTER_TIMESTAMP_SEPARATOR = '_headmaster_';
 
 /** 用于匹配和清理时间戳后缀的正则表达式 */
-export const HEADMASTER_TIMESTAMP_REGEX = /_aionui_\d{13}(\.\w+)?$/;
+export const HEADMASTER_TIMESTAMP_REGEX = /_headmaster_\d{13}(\.\w+)?$/;
 export const HEADMASTER_FILES_MARKER = '[[AION_FILES]]';
 
 // ===== 媒体类型相关常量 =====

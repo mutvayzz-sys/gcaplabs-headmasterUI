@@ -38,7 +38,7 @@ describe('resolveBinaryPath', () => {
     setResourcesPath(originalResourcesPath);
   });
 
-  it('attaches bundled path diagnostics when aioncore cannot be resolved', () => {
+  it('attaches bundled path diagnostics when hermes cannot be resolved', () => {
     const resourcesPath = '/app/resources';
     const runtimeKey = `${process.platform}-${process.arch}`;
     const binaryName = process.platform === 'win32' ? 'hermes.exe' : 'hermes';
