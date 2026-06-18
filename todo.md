@@ -51,6 +51,82 @@ Working backlog for upcoming sessions. Current version: **v0.1.2**.
 
 ---
 
+## New tasks (2026-06-18 session 3)
+
+### 9. Hermes installation detection + local/remote gateway selector
+
+**Goal:** On startup, check if a Hermes installation is present locally. If yes, use it and load previous sessions. If the user chooses "remote", connect to a Hermes instance on another machine (e.g. the Mac) and pull sessions from there.
+
+**Current state:**
+- `hermesBootstrap.ts` always tries to spawn a local `hermes dashboard` process. It resolves `HERMES_HOME` from env or `appData/hermes` (Windows) / `~/.hermes` (POSIX).
+- There's no "remote" mode — the app always assumes local. `httpBridge.ts` reads `window.__backendPort` which is set by the main process after local Hermes starts.
+- The `backendStartup.ts` log message still says "Failed to start aioncore" (stale naming).
+
+**What needs to happen:**
+1. **Detection** — before spawning, check if `HERMES_HOME` exists and has a venv with the `hermes` binary. If yes, proceed with local spawn (current behavior). If no, don't crash — show a "no local Hermes found" state with options.
+2. **Remote mode** — add a setting (Settings → Runtime) for "Connection Mode: Local / Remote". When Remote:
+   - User enters host + port + session token (or an HTTP URL like `http://192.168.x.x:9119`)
+   - The app skips `hermesBootstrap.start()` entirely
+   - Sets `__backendPort` and `__hermesSessionToken` from the remote config
+   - All HTTP/WS calls go to the remote host instead of `127.0.0.1`
+   - Sessions, config, status — everything comes from the remote Hermes
+3. **Startup flow** — `index.ts` `handleAppReady` should branch: if connection mode is "remote", skip local spawn and go straight to connecting. If "local", do the existing `hermesBootstrap.start()` flow.
+4. **UI** — a first-run dialog or Settings → Runtime dropdown: "Connect to local Hermes" vs "Connect to remote Hermes". Remote needs host, port, and optional token fields.
+
+**Key files to modify:**
+- `process/backend/hermesBootstrap.ts` — add `isInstalled()` check
+- `process/index.ts` — branch startup based on connection mode
+- `common/adapter/httpBridge.ts` — support remote host URL instead of always `127.0.0.1:{port}`
+- `common/adapter/backendUrl.ts` — read remote URL from settings
+- `renderer/pages/settings/RuntimeSettings.tsx` — add connection mode selector
+- `process/services/database/` or `config` — store remote connection settings
+- `process/startup/backendStartup.ts` — fix "aioncore" log message to "Hermes"
+
+### 10. Rename AppData folders and internal naming from aioncore/aionui to Headmaster
+
+**Goal:** Stop using `aioncore`/`aionui` in file paths, env vars, database names, and internal identifiers. Use `Headmaster` or `headmaster` consistently.
+
+**Current state (found in code):**
+- `%APPDATA%\Headmaster\aionui\` — subfolder with `aionui-backend.db`, conversations, builtin-skills, runtime
+- `applicationBridgeCore.ts` line 31: `ProcessEnv.set('aionui.dir', ...)` — sets the working/cache/log dirs under the `aionui` key
+- `binaryResolver.ts` — `BINARY_NAME = 'aioncore'`, `bundled-aioncore/` dir
+- `backendStartup.ts` — log message says "Failed to start aioncore"
+- `feedback/logs.ts` — `.aioncore.log`, `.aionrs.log` suffixes
+- `petConfirmManager.ts` — comment references "aionui-conversation route"
+- `builtinMcp/constants.ts` — `BUILTIN_IMAGE_GEN_NAME = 'aionui-image-generation'`
+- `imageGenServer.ts` — `'aionui_image_generation'` tool name
+- `database/migrations.ts` — `source IN ('aionui', 'telegram')` CHECK constraints, `remote_agents` table
+- `webuiBridge.ts` — comments reference "aioncore"
+- `hermesBridge.ts` — comments reference "aioncore"
+- `hermesBootstrap.ts` — `HERMES_HOME_WIN32` uses `appData/hermes` (this one is fine — it's a Hermes runtime path, not Headmaster)
+
+**What needs to happen:**
+1. **AppData subfolder** — rename `aionui/` to `headmaster/`. Requires a migration: on first launch with the new version, move/rename the old folder. Database file `aionui-backend.db` → `headmaster-backend.db`.
+2. **ProcessEnv key** — `aionui.dir` → `headmaster.dir` (check what reads this key)
+3. **Binary resolver** — `BINARY_NAME = 'aioncore'` is dead code (Hermes runtime is the only path now). Either remove `binaryResolver.ts` entirely or rename to reflect Hermes. Same for `bundled-aioncore/`.
+4. **Log messages** — all "aioncore" references in log/error strings → "Hermes" or "Headmaster"
+5. **MCP server name** — `aionui-image-generation` → `headmaster-image-generation`
+6. **Database migrations** — the `source IN ('aionui', ...)` CHECK constraints are in existing migrations. Need a new migration that either (a) adds 'headmaster' to the CHECK or (b) migrates existing rows from 'aionui' to 'headmaster' and updates the constraint. **Careful:** don't break existing user databases.
+7. **Comments** — update all code comments that reference aioncore/aionui to say Hermes/Headmaster as appropriate.
+
+**Key files to modify:**
+- `process/bridge/applicationBridgeCore.ts` — `ProcessEnv.set('aionui.dir', ...)` key name
+- `process/backend/binaryResolver.ts` — remove or rename
+- `process/startup/backendStartup.ts` — log message
+- `process/feedback/logs.ts` — log suffixes
+- `process/resources/builtinMcp/constants.ts` — server name
+- `process/resources/builtinMcp/imageGenServer.ts` — tool name
+- `process/services/database/migrations.ts` — new migration for source rename
+- `process/pet/petConfirmManager.ts` — comment (or remove if pet is gone)
+- `process/bridge/webuiBridge.ts` — comments
+- `process/bridge/hermesBridge.ts` — comments
+- `electron-builder.yml` — check `appId`, `productName` (already Headmaster, but verify)
+- `package.json` — check `name` field (currently "headmaster", good)
+
+**Risk:** Database migration. The `aionui-backend.db` has CHECK constraints on the `source` column. Changing the allowed values requires a migration that recreates the table. Must handle existing user data carefully — test with a copy of the real DB first.
+
+---
+
 ## Notes / context from this session
 - 7 commits on main: settings restructure, agent scanner, BottomComposer removal, ChatSlider fix, white-label audit, RuntimeSettings rewrite, gateway+update checker, memory embed.
 - All changes pass `bunx tsc --noEmit` clean.
