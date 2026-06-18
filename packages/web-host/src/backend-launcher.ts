@@ -203,7 +203,7 @@ export function buildSpawnArgs(config: SpawnConfig): string[] {
  * Backend reads HEADMASTER_{CACHE,WORK,LOG}_DIR env vars to report system dirs
  * (see Adonis Core/crates/aionui-system/src/sysinfo.rs). Inject them so the
  * backend's `/api/system/info` matches what Electron main persists in
- * ProcessEnv('aionui.dir').
+ * ProcessEnv('headmaster.dir').
  */
 export function buildSpawnEnv(dirs: BackendDirConfig): NodeJS.ProcessEnv {
   return {

@@ -23,6 +23,7 @@ import {
   ensureDirectory,
   getConfigPath,
   getDataPath,
+  getLegacyDataPath,
   getTempPath,
   hasElectronAppPath,
   verifyDirectoryFiles,
@@ -36,10 +37,10 @@ type ArchitectureType = 'x64' | 'arm64' | 'ia32' | 'arm';
 const nodePath = path;
 
 const STORAGE_PATH = {
-  config: 'aionui-config.txt',
-  chatMessage: 'aionui-chat-message.txt',
-  chat: 'aionui-chat.txt',
-  env: '.aionui-env',
+  config: 'headmaster-config.txt',
+  chatMessage: 'headmaster-chat-message.txt',
+  chat: 'headmaster-chat.txt',
+  env: '.headmaster-env',
   assistants: 'assistants',
   skills: 'skills',
   cronSkills: 'cron-skills',
@@ -103,6 +104,34 @@ const migrateLegacyData = async () => {
   }
 
   return false;
+};
+
+const migrateLegacyAppDataDir = async (): Promise<void> => {
+  const oldDir = getLegacyDataPath();
+  const newDir = getDataPath();
+  try {
+    if (existsSync(oldDir) && !existsSync(newDir)) {
+      await fs.rename(oldDir, newDir);
+      console.log(`[Headmaster:init] migrated AppData folder ${oldDir} → ${newDir}`);
+    }
+
+    const dbRenames: Array<[string, string]> = [
+      ['aionui-backend.db', 'headmaster-backend.db'],
+      ['aionui-backend.db-shm', 'headmaster-backend.db-shm'],
+      ['aionui-backend.db-wal', 'headmaster-backend.db-wal'],
+      ['aionui-backend.db.migrate.lock', 'headmaster-backend.db.migrate.lock'],
+    ];
+    for (const [oldName, newName] of dbRenames) {
+      const oldPath = path.join(newDir, oldName);
+      const newPath = path.join(newDir, newName);
+      if (existsSync(oldPath) && !existsSync(newPath)) {
+        await fs.rename(oldPath, newPath);
+        console.log(`[Headmaster:init] migrated ${oldName} → ${newName}`);
+      }
+    }
+  } catch (error) {
+    console.warn('[Headmaster:init] legacy AppData migration failed:', error);
+  }
 };
 
 const WriteFile = async (file_path: string, data: string) => {
@@ -236,7 +265,7 @@ const JsonFileBuilder = <S extends object = Record<string, unknown>>(file_path: 
 
 const envFile = JsonFileBuilder<IEnvStorageRefer>(path.join(getHomePage(), STORAGE_PATH.env));
 
-const dirConfig = envFile.getSync('aionui.dir');
+const dirConfig = envFile.getSync('headmaster.dir') ?? (envFile.getSync as (key: string) => IEnvStorageRefer['headmaster.dir'] | undefined)('aionui.dir');
 
 const cacheDir = dirConfig?.cacheDir || getHomePage();
 
@@ -249,11 +278,11 @@ const _chatFile = JsonFileBuilder<IChatConversationRefer>(path.join(cacheDir, ST
 const chatFile = _chatFile;
 
 const buildMessageListStorage = (conversation_id: string, dir: string) => {
-  const fullName = path.join(dir, 'aionui-chat-history', conversation_id + '.txt');
+  const fullName = path.join(dir, 'headmaster-chat-history', conversation_id + '.txt');
   if (!existsSync(fullName)) {
-    mkdirSync(path.join(dir, 'aionui-chat-history'));
+    mkdirSync(path.join(dir, 'headmaster-chat-history'));
   }
-  return JsonFileBuilder<TMessage[]>(path.join(dir, 'aionui-chat-history', conversation_id + '.txt'));
+  return JsonFileBuilder<TMessage[]>(path.join(dir, 'headmaster-chat-history', conversation_id + '.txt'));
 };
 
 const conversationHistoryProxy = (options: typeof _chatMessageFile, dir: string) => {
@@ -274,7 +303,7 @@ const conversationHistoryProxy = (options: typeof _chatMessageFile, dir: string)
     backup(conversation_id: string) {
       const storage = buildMessageListStorage(conversation_id, dir);
       return storage.backup(
-        path.join(dir, 'aionui-chat-history', 'backup', conversation_id + '_' + Date.now() + '.txt')
+        path.join(dir, 'headmaster-chat-history', 'backup', conversation_id + '_' + Date.now() + '.txt')
       );
     },
   };
@@ -363,14 +392,62 @@ const getBuiltinMcpScriptPath = (scriptName: string): string => {
   return path.resolve(getBuiltinMcpBaseDir(), `${scriptName}.js`);
 };
 
+/**
+ * One-time migration: rename old aionui-* storage files to headmaster-*.
+ * Only renames if the old file exists and the new one doesn't.
+ */
+function migrateLegacyStorageNames(): void {
+  const home = getHomePage();
+  const pairs: Array<[string, string]> = [
+    ['aionui-config.txt', 'headmaster-config.txt'],
+    ['aionui-chat-message.txt', 'headmaster-chat-message.txt'],
+    ['aionui-chat.txt', 'headmaster-chat.txt'],
+    ['.aionui-env', '.headmaster-env'],
+  ];
+  for (const [oldName, newName] of pairs) {
+    const oldPath = nodePath.join(home, oldName);
+    const newPath = nodePath.join(home, newName);
+    if (existsSync(oldPath) && !existsSync(newPath)) {
+      try {
+        _mkdirSync(nodePath.dirname(newPath), { recursive: true });
+        const { renameSync } = require('node:fs');
+        renameSync(oldPath, newPath);
+        console.log(`[Headmaster:init] migrated ${oldName} → ${newName}`);
+      } catch (err) {
+        console.warn(`[Headmaster:init] failed to migrate ${oldName}:`, err);
+      }
+    }
+  }
+
+  const oldHistoryDir = nodePath.join(home, 'aionui-chat-history');
+  const newHistoryDir = nodePath.join(home, 'headmaster-chat-history');
+  if (existsSync(oldHistoryDir) && !existsSync(newHistoryDir)) {
+    try {
+      const { renameSync } = require('node:fs');
+      renameSync(oldHistoryDir, newHistoryDir);
+      console.log('[Headmaster:init] migrated aionui-chat-history → headmaster-chat-history');
+    } catch (err) {
+      console.warn('[Headmaster:init] failed to migrate aionui-chat-history:', err);
+    }
+  }
+}
+
 const initStorage = async () => {
   const t0 = performance.now();
   const mark = (label: string) => console.log(`[Headmaster:init] ${label} +${Math.round(performance.now() - t0)}ms`);
   mark('start');
 
+  // 0. Rename legacy AppData/Headmaster/aionui to AppData/Headmaster/headmaster.
+  await migrateLegacyAppDataDir();
+  mark('0. migrateLegacyAppDataDir');
+
   // 1. 先执行数据迁移（在任何目录创建之前）
   await migrateLegacyData();
   mark('1. migrateLegacyData');
+
+  // 1b. Rename old aionui-* storage files to headmaster-* (one-time migration)
+  migrateLegacyStorageNames();
+  mark('1b. migrateLegacyStorageNames');
 
   // 2. 创建必要的目录（迁移后再创建，确保迁移能正常进行）
   // Use ensureDirectory to handle cases where a regular file blocks the path (#841)

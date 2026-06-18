@@ -45,16 +45,24 @@ contextBridge.exposeInMainWorld('electronAPI', {
   collectFeedbackLogs: () => ipcRenderer.invoke('feedback:collect-logs'),
   // Feedback: capture a screenshot of the current window
   captureFeedbackScreenshot: () => ipcRenderer.invoke('feedback:capture-screenshot'),
+  // Runtime connection mode (local Hermes vs remote Hermes gateway)
+  getConnectionMode: () => ipcRenderer.invoke('connection:get-mode'),
+  setConnectionMode: (mode: 'local' | 'remote') => ipcRenderer.invoke('connection:set-mode', mode),
+  getRemoteConnectionConfig: () => ipcRenderer.invoke('connection:get-remote-config'),
+  setRemoteConnectionConfig: (config: { host: string; port: number; token: string }) =>
+    ipcRenderer.invoke('connection:set-remote-config', config),
 });
 
 // Synchronously fetch the backend port/session token and expose it to the renderer
 // via contextBridge (direct window assignment is invisible under contextIsolation).
 const backendPort = ipcRenderer.sendSync('get-backend-port') as number;
+const backendHost = ipcRenderer.sendSync('get-backend-host') as string;
 const hermesSessionToken = ipcRenderer.sendSync('get-hermes-session-token') as string;
 const initialLanguage = ipcRenderer.sendSync('get-initial-language') as string | null;
 const backendStartupFailed = ipcRenderer.sendSync('get-backend-startup-failed') as boolean;
 const backendStartupFailure = ipcRenderer.sendSync('get-backend-startup-failure') as unknown;
 contextBridge.exposeInMainWorld('__backendPort', backendPort > 0 ? backendPort : 0);
+contextBridge.exposeInMainWorld('__backendHost', backendHost || '127.0.0.1');
 contextBridge.exposeInMainWorld('__hermesSessionToken', hermesSessionToken || '');
 contextBridge.exposeInMainWorld('__initialLanguage', initialLanguage ?? null);
 contextBridge.exposeInMainWorld('__backendStartupFailed', backendStartupFailed === true);

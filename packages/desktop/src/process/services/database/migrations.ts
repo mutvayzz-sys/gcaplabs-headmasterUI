@@ -1219,6 +1219,77 @@ const migration_v26: IMigration = {
 };
 
 /**
+ * Migration v26 -> v27: Rename conversation source 'aionui' to 'headmaster'
+ *
+ * Updates existing rows and recreates the conversations table with the updated
+ * CHECK constraint. This is a non-destructive migration — existing data is
+ * preserved, only the source label changes.
+ */
+const migration_v27: IMigration = {
+  version: 27,
+  name: 'Rename conversation source aionui to headmaster',
+  up: (db: ISqliteDriver) => {
+    // 1. Update existing rows
+    db.exec(`UPDATE conversations SET source = 'headmaster' WHERE source = 'aionui'`);
+
+    // 2. Recreate the table with the updated CHECK constraint
+    //    (SQLite cannot ALTER CHECK constraints in place)
+    db.exec(`
+      CREATE TABLE _conversations_new (
+        id TEXT PRIMARY KEY,
+        type TEXT NOT NULL CHECK(type IN ('gemini', 'acp', 'codex', 'openclaw-gateway', 'nanobot', 'remote', 'aionrs')),
+        title TEXT,
+        source TEXT CHECK(source IS NULL OR source IN ('headmaster', 'telegram', 'lark')),
+        created_at INTEGER,
+        updated_at INTEGER,
+        is_pinned INTEGER DEFAULT 0,
+        is_archived INTEGER DEFAULT 0,
+        model TEXT,
+        provider TEXT,
+        system_prompt TEXT,
+        temperature REAL,
+        max_tokens INTEGER,
+        top_p REAL,
+        presence_penalty REAL,
+        frequency_penalty REAL,
+        workspace TEXT,
+        acp_agent_id TEXT,
+        acp_session_id TEXT,
+        acp_status TEXT,
+        device_id TEXT,
+        device_public_key TEXT,
+        device_private_key TEXT,
+        device_token TEXT,
+        allow_insecure INTEGER DEFAULT 0
+      )
+    `);
+
+    // 3. Copy data from old table to new
+    db.exec(`
+      INSERT INTO _conversations_new
+      SELECT * FROM conversations
+    `);
+
+    // 4. Drop old table and rename
+    db.exec('DROP TABLE conversations');
+    db.exec('ALTER TABLE _conversations_new RENAME TO conversations');
+
+    // 5. Recreate indexes
+    db.exec('CREATE INDEX IF NOT EXISTS idx_conversations_created_at ON conversations(created_at)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_conversations_updated_at ON conversations(updated_at)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_conversations_is_archived ON conversations(is_archived)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_conversations_source ON conversations(source)');
+
+    console.log('[Migration v27] Renamed conversation source aionui to headmaster');
+  },
+  down: (db: ISqliteDriver) => {
+    // Reverse: rename headmaster back to aionui
+    db.exec(`UPDATE conversations SET source = 'aionui' WHERE source = 'headmaster'`);
+    console.log('[Migration v27] Rolled back: Renamed conversation source headmaster to aionui');
+  },
+};
+
+/**
  * All migrations in order
  */
 // prettier-ignore
@@ -1227,7 +1298,7 @@ export const ALL_MIGRATIONS: IMigration[] = [
   migration_v7, migration_v8, migration_v9, migration_v10, migration_v11, migration_v12,
   migration_v13, migration_v14, migration_v15, migration_v16, migration_v17, migration_v18,
   migration_v19, migration_v20, migration_v21, migration_v22, migration_v23, migration_v24,
-  migration_v25, migration_v26,
+  migration_v25, migration_v26, migration_v27,
 ];
 
 /**

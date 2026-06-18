@@ -19,6 +19,7 @@
 declare global {
   interface Window {
     __backendPort?: number;
+    __backendHost?: string;
     __hermesPort?: number;
     __hermesSessionToken?: string;
     __hermesHome?: string;
@@ -84,13 +85,21 @@ function isWebUiBrowserMode(): boolean {
   return typeof window !== 'undefined' && typeof document !== 'undefined' && !window.electronAPI;
 }
 
+function getBackendHost(): string {
+  if (typeof window !== 'undefined' && (window as Window).__backendHost) {
+    return (window as Window).__backendHost as string;
+  }
+  const g = globalThis as typeof globalThis & { __backendHost?: string };
+  return g.__backendHost ?? '127.0.0.1';
+}
+
 export function getBaseUrl(): string {
   if (isWebUiBrowserMode()) {
     // Same-origin: calls like fetch(`${baseUrl}/api/foo`) resolve to `/api/foo`
     // on whatever host the page was served from.
     return '';
   }
-  return `http://127.0.0.1:${getBackendPort()}`;
+  return `http://${getBackendHost()}:${getBackendPort()}`;
 }
 
 function getWsUrl(): string {
@@ -104,7 +113,7 @@ function getWsUrl(): string {
   const params = new URLSearchParams();
   if (token) params.set('token', token);
   const qs = params.toString();
-  return `ws://127.0.0.1:${getBackendPort()}/api/ws${qs ? `?${qs}` : ''}`;
+  return `ws://${getBackendHost()}:${getBackendPort()}/api/ws${qs ? `?${qs}` : ''}`;
 }
 
 // ---------------------------------------------------------------------------

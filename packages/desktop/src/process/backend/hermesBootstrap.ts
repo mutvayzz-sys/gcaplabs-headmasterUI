@@ -7,7 +7,7 @@
 /**
  * Hermes Bootstrap — spawn and lifecycle for the Hermes Python dashboard.
  *
- * Replaces the `aioncore` lifecycle (BackendLifecycleManager) with a focused
+ * Replaces the legacy backend lifecycle (BackendLifecycleManager) with a focused
  * class that:
  *   1. Resolves the Hermes Python venv (`HERMES_HOME/venv/bin/hermes` on
  *      POSIX, `HERMES_HOME/venv/Scripts/hermes.exe` on Windows).
@@ -123,6 +123,14 @@ export class HermesBootstrap {
 
   get hermesHome(): string {
     return process.platform === 'win32' ? HERMES_HOME_WIN32() : HERMES_HOME_POSIX();
+  }
+
+  /**
+   * Check if a local Hermes installation exists without spawning anything.
+   * Returns true if the hermes binary can be resolved from HERMES_HOME.
+   */
+  isInstalled(): boolean {
+    return this.resolveHermesBin() !== null;
   }
 
   // ---------------------------------------------------------------------------

@@ -71,6 +71,7 @@ import {
   setIsQuitting,
 } from './process/utils/tray';
 import { readCloseToTraySetting } from './process/utils/closeToTraySetting';
+import { getConnectionMode, getRemoteConfig } from './process/connection/connectionConfig';
 // @ts-expect-error - electron-squirrel-startup doesn't have types
 import electronSquirrelStartup from 'electron-squirrel-startup';
 
@@ -225,6 +226,10 @@ let ensureAdminUserPromise: Promise<void> | null = null;
 ipcMain.on('get-backend-port', (event) => {
   event.returnValue =
     (globalThis as typeof globalThis & { __backendPort?: number }).__backendPort ?? hermesBootstrap.port ?? backendManager.port;
+});
+
+ipcMain.on('get-backend-host', (event) => {
+  event.returnValue = (globalThis as typeof globalThis & { __backendHost?: string }).__backendHost ?? '127.0.0.1';
 });
 
 ipcMain.on('get-hermes-session-token', (event) => {
@@ -650,83 +655,102 @@ const handleAppReady = async (): Promise<void> => {
     return;
   }
 
-  // Start the real Hermes dashboard runtime first. Headmaster is a white-label
-  // shell over Hermes Desktop/Workspace surfaces, so packaged builds should not
-  // require the legacy bundled aioncore binary.
-  const hermesStartup = await hermesBootstrap.start({ installIfMissing: false });
-  if (hermesStartup.ok && hermesStartup.port) {
-    (globalThis as typeof globalThis & { __hermesPort?: number; __hermesSessionToken?: string }).__hermesPort =
-      hermesStartup.port;
-    (globalThis as typeof globalThis & { __hermesSessionToken?: string }).__hermesSessionToken =
-      hermesBootstrap.sessionToken;
-    markBackendReady(hermesStartup.port, 'hermes.dashboard', 'hermes');
-    mark('hermesBootstrap.start');
-  } else {
-    console.warn('[Headmaster] Hermes dashboard bootstrap failed; falling back to legacy aioncore:', hermesStartup.error);
-  }
+  // Connection mode: 'local' spawns a local Hermes dashboard; 'remote' connects
+  // to a Hermes instance on another machine (host+port+token from connection config).
 
-  // Legacy fallback: start aioncore only when the Hermes dashboard is not
-  // available. This keeps old/dev installs usable but removes the packaging
-  // dependency on a missing Adonis Core release asset.
-  const backendStartup = await startBackendOrExit({
-    startBackend: async () => {
-      if (backendStartedOk) {
-        return (globalThis as typeof globalThis & { __backendPort?: number }).__backendPort ?? hermesStartup.port ?? 0;
-      }
-      assertStartupArchitectureCompatible({
-        arch: process.arch,
-        isPackaged: app.isPackaged,
-        platform: process.platform,
-      });
-      const { getDataPath } = await import('./process/utils/utils');
-      const { getSystemDir } = await import('./process/utils/initStorage');
-      const sysDir = getSystemDir();
-      return backendManager.start(
-        getDataPath(),
-        sysDir.logDir,
-        {
-          cacheDir: sysDir.cacheDir,
-          workDir: sysDir.workDir,
-          logDir: sysDir.logDir,
-        },
-        {
-          allowPendingOnHealthTimeout: !(isWebUIMode || isResetPasswordMode),
-          onHealthTimeout: async (error) => {
-            markBackendStartupFailed(error);
-            await captureBackendStartupFailure(error);
-          },
-          onPendingExit: async (error) => {
-            markBackendStartupFailed(error);
-            await captureBackendStartupFailure(error);
-          },
-          onReady: (backendPort) => {
-            markBackendReady(backendPort, 'backendManager.lateReady', 'aioncore');
-          },
+  const connectionMode = getConnectionMode();
+  const remoteConfig = getRemoteConfig();
+  const remoteModeActive = connectionMode === 'remote' && remoteConfig.host.trim().length > 0;
+
+  if (remoteModeActive) {
+    (globalThis as typeof globalThis & { __backendHost?: string }).__backendHost = remoteConfig.host;
+    (globalThis as typeof globalThis & { __hermesPort?: number; __hermesSessionToken?: string }).__hermesPort =
+      remoteConfig.port;
+    (globalThis as typeof globalThis & { __hermesSessionToken?: string }).__hermesSessionToken = remoteConfig.token;
+    markBackendReady(remoteConfig.port, `remote.gateway:${remoteConfig.host}`, 'hermes');
+    mark('remote.gateway.connect');
+  } else {
+    (globalThis as typeof globalThis & { __backendHost?: string }).__backendHost = '127.0.0.1';
+
+    // Start the real Hermes dashboard runtime first. Headmaster is a white-label
+    // shell over Hermes Desktop/Workspace surfaces, so packaged builds should not
+    // require the legacy bundled backend binary.
+    const hermesStartup = await hermesBootstrap.start({ installIfMissing: false });
+    if (hermesStartup.ok && hermesStartup.port) {
+      (globalThis as typeof globalThis & { __hermesPort?: number; __hermesSessionToken?: string }).__hermesPort =
+        hermesStartup.port;
+      (globalThis as typeof globalThis & { __hermesSessionToken?: string }).__hermesSessionToken =
+        hermesBootstrap.sessionToken;
+      markBackendReady(hermesStartup.port, 'hermes.dashboard', 'hermes');
+      mark('hermesBootstrap.start');
+    } else {
+      console.warn('[Headmaster] Hermes dashboard bootstrap failed; falling back to legacy backend:', hermesStartup.error);
+    }
+
+    // Legacy fallback: start the bundled backend only when the Hermes dashboard is not
+    // available. This keeps old/dev installs usable but removes the packaging
+    // dependency on a missing Adonis Core release asset.
+    const backendStartup = await startBackendOrExit({
+      startBackend: async () => {
+        if (backendStartedOk) {
+          return (globalThis as typeof globalThis & { __backendPort?: number }).__backendPort ?? hermesStartup.port ?? 0;
         }
-      );
-    },
-    onStarted: (backendPort) => {
-      exposeBackendPort(backendPort);
-      if (hermesStartup.ok) return;
-      if (backendManager.status === 'running') {
-        markBackendReady(backendPort, 'backendManager.start', 'aioncore');
+        assertStartupArchitectureCompatible({
+          arch: process.arch,
+          isPackaged: app.isPackaged,
+          platform: process.platform,
+        });
+        const { getDataPath } = await import('./process/utils/utils');
+        const { getSystemDir } = await import('./process/utils/initStorage');
+        const sysDir = getSystemDir();
+        return backendManager.start(
+          getDataPath(),
+          sysDir.logDir,
+          {
+            cacheDir: sysDir.cacheDir,
+            workDir: sysDir.workDir,
+            logDir: sysDir.logDir,
+          },
+          {
+            allowPendingOnHealthTimeout: !(isWebUIMode || isResetPasswordMode),
+            onHealthTimeout: async (error) => {
+              markBackendStartupFailed(error);
+              await captureBackendStartupFailure(error);
+            },
+            onPendingExit: async (error) => {
+              markBackendStartupFailed(error);
+              await captureBackendStartupFailure(error);
+            },
+            onReady: (backendPort) => {
+              markBackendReady(backendPort, 'backendManager.lateReady', 'aioncore');
+            },
+          }
+        );
+      },
+      onStarted: (backendPort) => {
+        exposeBackendPort(backendPort);
+        if (hermesStartup.ok) return;
+        if (backendManager.status === 'running') {
+          markBackendReady(backendPort, 'backendManager.start', 'aioncore');
+          return;
+        }
+        mark(`backendManager.start pending health (port=${backendPort})`);
+      },
+      captureFailure: async (error) => {
+        markBackendStartupFailed(error);
+        await captureBackendStartupFailure(error);
+      },
+      exitApp: (code) => app.exit(code),
+      exitOnFailure: isWebUIMode || isResetPasswordMode,
+      logError: console.error,
+    });
+    if (!backendStartup.ok) {
+      if (isWebUIMode || isResetPasswordMode) {
         return;
       }
-      mark(`backendManager.start pending health (port=${backendPort})`);
-    },
-    captureFailure: async (error) => {
-      markBackendStartupFailed(error);
-      await captureBackendStartupFailure(error);
-    },
-    exitApp: (code) => app.exit(code),
-    exitOnFailure: isWebUIMode || isResetPasswordMode,
-    logError: console.error,
-  });
-  if (!backendStartup.ok) {
-    if (isWebUIMode || isResetPasswordMode) {
-      return;
     }
   }
+
 
 
   // One-shot WebUI admin credential migration. Must run after the backend is

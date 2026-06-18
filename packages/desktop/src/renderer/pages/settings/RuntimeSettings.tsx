@@ -27,6 +27,26 @@ interface ConfigSchemaResponse {
 }
 
 type ConfigData = Record<string, unknown>;
+type ConnectionMode = 'local' | 'remote';
+
+interface RemoteConnectionConfig {
+  host: string;
+  port: number;
+  token: string;
+}
+
+type RuntimeElectronApi = {
+  getConnectionMode?: () => Promise<ConnectionMode>;
+  setConnectionMode?: (mode: ConnectionMode) => Promise<unknown>;
+  getRemoteConnectionConfig?: () => Promise<RemoteConnectionConfig>;
+  setRemoteConnectionConfig?: (config: RemoteConnectionConfig) => Promise<unknown>;
+};
+
+function getRuntimeElectronApi(): RuntimeElectronApi | null {
+  if (typeof window === 'undefined') return null;
+  const maybeWindow = window as Window & { electronAPI?: RuntimeElectronApi };
+  return maybeWindow.electronAPI ?? null;
+}
 
 function getConfigValue(obj: ConfigData, path: string): unknown {
   return path.split('.').reduce<unknown>((acc, key) => {
@@ -67,6 +87,38 @@ const RuntimeSettings: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [connectionMode, setConnectionModeState] = useState<ConnectionMode>('local');
+  const [remoteConfig, setRemoteConfigState] = useState<RemoteConnectionConfig>({ host: '', port: 9119, token: '' });
+  const [savingConnection, setSavingConnection] = useState(false);
+
+  const fetchConnectionSettings = useCallback(async () => {
+    const api = getRuntimeElectronApi();
+    if (!api?.getConnectionMode || !api.getRemoteConnectionConfig) return;
+    try {
+      const [mode, remote] = await Promise.all([api.getConnectionMode(), api.getRemoteConnectionConfig()]);
+      setConnectionModeState(mode);
+      setRemoteConfigState(remote);
+    } catch (err) {
+      console.error('[RuntimeSettings] failed to load connection settings', err);
+    }
+  }, []);
+
+  const handleSaveConnection = useCallback(async () => {
+    const api = getRuntimeElectronApi();
+    if (!api?.setConnectionMode || !api.setRemoteConnectionConfig) return;
+    setSavingConnection(true);
+    try {
+      await api.setRemoteConnectionConfig(remoteConfig);
+      await api.setConnectionMode(connectionMode);
+      Message.success(t('settings.runtime.connectionSaved', { defaultValue: 'Connection settings saved. Restart Headmaster to apply.' }));
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      Message.error(message);
+      console.error('[RuntimeSettings] failed to save connection settings', err);
+    } finally {
+      setSavingConnection(false);
+    }
+  }, [connectionMode, remoteConfig, t]);
 
   const fetchConfig = useCallback(async () => {
     setLoading(true);
@@ -89,7 +141,8 @@ const RuntimeSettings: React.FC = () => {
 
   useEffect(() => {
     void fetchConfig();
-  }, [fetchConfig]);
+    void fetchConnectionSettings();
+  }, [fetchConfig, fetchConnectionSettings]);
 
   const handleChange = useCallback((path: string, value: unknown) => {
     setConfig((prev) => (prev ? setConfigValue(prev, path, value) : prev));
@@ -217,6 +270,69 @@ const RuntimeSettings: React.FC = () => {
               : t('settings.runtime.save', { defaultValue: 'Save' })}
           </Button>
         </header>
+
+        <Card
+          bordered
+          title={t('settings.runtime.connectionTitle', { defaultValue: 'Runtime Connection' })}
+          extra={
+            <Button size='small' loading={savingConnection} onClick={() => void handleSaveConnection()}>
+              {t('settings.runtime.connectionSave', { defaultValue: 'Save connection' })}
+            </Button>
+          }
+        >
+          <div className='grid gap-16px' style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))' }}>
+            <div className='flex flex-col gap-6px'>
+              <label className='text-14px font-medium'>
+                {t('settings.runtime.connectionMode', { defaultValue: 'Connection mode' })}
+              </label>
+              <Select
+                value={connectionMode}
+                onChange={(value) => setConnectionModeState(value as ConnectionMode)}
+                options={[
+                  { label: t('settings.runtime.connectionLocal', { defaultValue: 'Local Hermes' }), value: 'local' },
+                  { label: t('settings.runtime.connectionRemote', { defaultValue: 'Remote Hermes' }), value: 'remote' },
+                ]}
+              />
+              <Text type='secondary'>
+                {t('settings.runtime.connectionHelp', {
+                  defaultValue: 'Local starts Hermes on this machine. Remote connects to a Hermes dashboard on another machine.',
+                })}
+              </Text>
+            </div>
+
+            <div className='flex flex-col gap-6px'>
+              <label className='text-14px font-medium'>{t('settings.runtime.remoteHost', { defaultValue: 'Remote host' })}</label>
+              <Input
+                disabled={connectionMode !== 'remote'}
+                placeholder='192.168.1.20'
+                value={remoteConfig.host}
+                onChange={(host) => setRemoteConfigState((prev) => ({ ...prev, host }))}
+              />
+            </div>
+
+            <div className='flex flex-col gap-6px'>
+              <label className='text-14px font-medium'>{t('settings.runtime.remotePort', { defaultValue: 'Remote port' })}</label>
+              <InputNumber
+                disabled={connectionMode !== 'remote'}
+                min={1}
+                max={65535}
+                value={remoteConfig.port}
+                onChange={(port) =>
+                  setRemoteConfigState((prev) => ({ ...prev, port: typeof port === 'number' ? port : 9119 }))
+                }
+              />
+            </div>
+
+            <div className='flex flex-col gap-6px'>
+              <label className='text-14px font-medium'>{t('settings.runtime.remoteToken', { defaultValue: 'Session token' })}</label>
+              <Input.Password
+                disabled={connectionMode !== 'remote'}
+                value={remoteConfig.token}
+                onChange={(token) => setRemoteConfigState((prev) => ({ ...prev, token }))}
+              />
+            </div>
+          </div>
+        </Card>
 
         {loading ? (
           <Card bordered>

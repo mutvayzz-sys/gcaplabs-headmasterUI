@@ -186,7 +186,7 @@ export interface IConfigStorageRefer {
 }
 
 export interface IEnvStorageRefer {
-  'aionui.dir': {
+  'headmaster.dir': {
     workDir: string;
     cacheDir: string;
     logDir?: string;

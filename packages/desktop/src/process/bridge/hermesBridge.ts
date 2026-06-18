@@ -7,7 +7,7 @@
 /**
  * Hermes Bridge — IPC handlers exposing the HermesBootstrap to the renderer.
  *
- * Replaces the legacy `ipcMain.on('get-backend-port', ...)` aioncore plumbing
+ * Replaces the legacy `ipcMain.on('get-backend-port', ...)` Hermes plumbing
  * with three bridge providers under the `hermes.*` namespace:
  *
  *   - `hermes.getDashboardPort()` — returns the OS-assigned port the dashboard

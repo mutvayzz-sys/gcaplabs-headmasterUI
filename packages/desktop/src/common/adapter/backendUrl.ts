@@ -7,6 +7,7 @@
 declare global {
   interface Window {
     __backendPort?: number;
+    __backendHost?: string;
     __hermesSessionToken?: string;
   }
 }
@@ -18,9 +19,10 @@ declare global {
  *
  * - In WebUI browser mode (no preload) we use the same-origin host so its
  *   static server can reverse-proxy /api/* to the backend.
- * - In Electron we use the loopback port that the main process publishes via
- *   the `get-backend-port` IPC handler, defaulting to 13400 for safety if the
- *   IPC value has not arrived yet.
+ * - In Electron we use the host + port that the main process publishes via
+ *   the `get-backend-port` IPC handler. For remote connections, the host
+ *   comes from `window.__backendHost` (set by preload from connection config).
+ *   Default: `127.0.0.1:{port}` for local mode.
  */
 export function getBackendBase(): string {
   if (typeof window === 'undefined') return '';
@@ -28,7 +30,8 @@ export function getBackendBase(): string {
     return '';
   }
   const port = window.__backendPort || 13400;
-  return `http://127.0.0.1:${port}`;
+  const host = window.__backendHost || '127.0.0.1';
+  return `http://${host}:${port}`;
 }
 
 /**
