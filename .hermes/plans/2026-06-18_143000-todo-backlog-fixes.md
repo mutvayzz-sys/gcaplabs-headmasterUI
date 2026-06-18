@@ -4,7 +4,7 @@
 
 **Goal:** Work through all six items in `todo.md` — settings restructure, agent detection fix, memory panel fix, feature removals, composer scoping, and workspace panel fix.
 
-**Architecture:** All changes are in `headmaster-desktop/packages/desktop/src/`. The app is Electron + Vite + React + TypeScript. Renderer code in `@renderer/`, main process in `@process/`, preload in `@preload/`. Uses Arco Design, IconPark, UnoCSS, i18n with `react-i18next`.
+**Architecture:** All changes are in `gcaplabs-headmaster/repo/gcaplabs-headmasterUI/packages/desktop/src/`. The app is Electron + Vite + React + TypeScript. Renderer code in `@renderer/`, main process in `@process/`, preload in `@preload/`. Uses Arco Design, IconPark, UnoCSS, i18n with `react-i18next`.
 
 **Tech Stack:** Electron 30+, React 18, TypeScript, Arco Design, Vite, Vitest
 
@@ -15,7 +15,7 @@
 - Baseline SHA: `e2227bb`
 
 **Critical notes for implementer:**
-- Read `headmaster-desktop/AGENTS.md` for conventions. Arco-only for interactive components (no raw `<button>` except where existing code already uses it with custom styling). i18n for all user-facing strings. `@arco-design/web-react` + `@icon-park/react`.
+- Read `gcaplabs-headmaster/repo/gcaplabs-headmasterUI/AGENTS.md` for conventions. Arco-only for interactive components (no raw `<button>` except where existing code already uses it with custom styling). i18n for all user-facing strings. `@arco-design/web-react` + `@icon-park/react`.
 - "Hermes" is allowed in env vars, IPC channel names, and backend code, but NEVER in user-visible UI strings. Use "Headmaster" instead.
 - The Hermes Python runtime lives at `runtime/hermes-agent/` — DO NOT edit it. All fixes are in the desktop app source.
 

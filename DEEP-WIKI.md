@@ -9,7 +9,7 @@
 1. [Workspace Overview](#workspace-overview)
 2. [Project Architecture](#project-architecture)
 3. [Directory Structure](#directory-structure)
-4. [Headmaster Desktop](#gcaplabs-headmaster/repo/gcaplabs-headmasterUI)
+4. [Headmaster Desktop](#headmaster-desktop)
 5. [GCAP Labs Marketing Site](#gcap-labs-marketing-site)
 6. [Headmaster Hub](#headmaster-hub)
 7. [Hermes Runtime](#hermes-runtime)
