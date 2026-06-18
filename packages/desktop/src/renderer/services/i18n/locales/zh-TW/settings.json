@@ -1057,6 +1057,6 @@
     "claudeAgentAcp": "Claude ACP 執行元件"
   },
   "integrations": "Integrations",
-  "hermes": "Hermes",
-  "groupHeadmasterUI": "HeadmasterUI"
+  "hermes": "Runtime",
+  "groupHeadmasterUI": "Headmaster"
 }

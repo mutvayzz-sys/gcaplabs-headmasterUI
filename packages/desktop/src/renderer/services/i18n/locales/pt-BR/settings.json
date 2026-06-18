@@ -1058,6 +1058,6 @@
     "title": "CDP (Chrome DevTools Protocol)"
   },
   "integrations": "Integrations",
-  "hermes": "Hermes",
-  "groupHeadmasterUI": "HeadmasterUI"
+  "hermes": "Runtime",
+  "groupHeadmasterUI": "Headmaster"
 }

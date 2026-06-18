@@ -1056,6 +1056,6 @@
     "customAgent": "自定义 Agent"
   },
   "integrations": "Integrations",
-  "hermes": "Hermes",
-  "groupHeadmasterUI": "HeadmasterUI"
+  "hermes": "Runtime",
+  "groupHeadmasterUI": "Headmaster"
 }

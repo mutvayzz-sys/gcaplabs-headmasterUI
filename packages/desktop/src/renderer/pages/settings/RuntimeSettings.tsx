@@ -19,8 +19,8 @@ const { Text, Title } = Typography;
 /**
  * Each row in the comparison view.
  * - `kept` items are Headmaster settings the user already has and we keep as-is.
- * - `porting` items are Hermes surfaces we are folding in, with live status pulled
- *   from the running Hermes runtime.
+ * - `porting` items are Runtime surfaces we are folding in, with live status pulled
+ *   from the running Runtime.
  */
 type Readiness = 'ready' | 'partial' | 'unavailable' | 'unknown';
 
@@ -48,7 +48,7 @@ const buildDefaultPorting = (t: Translator): PortRow[] => [
     id: 'runtime.status',
     title: t('settings.runtime.row.runtimeStatusTitle', { defaultValue: 'Runtime status' }),
     subtitle: t('settings.runtime.row.runtimeStatusSubtitle', {
-      defaultValue: 'Hermes runtime health and version surfaced in the app shell.',
+      defaultValue: 'Runtime health and version surfaced in the app shell.',
     }),
     endpoint: '/api/status',
     readiness: 'unknown',
@@ -57,7 +57,7 @@ const buildDefaultPorting = (t: Translator): PortRow[] => [
     id: 'runtime.sessions',
     title: t('settings.runtime.row.sessionsTitle', { defaultValue: 'Session history' }),
     subtitle: t('settings.runtime.row.sessionsSubtitle', {
-      defaultValue: 'Live conversation log from the Hermes session store.',
+      defaultValue: 'Live conversation log from the Runtime store.',
     }),
     endpoint: '/api/sessions',
     readiness: 'unknown',
@@ -75,7 +75,7 @@ const buildDefaultPorting = (t: Translator): PortRow[] => [
     id: 'runtime.skills',
     title: t('settings.runtime.row.skillsTitle', { defaultValue: 'Skills' }),
     subtitle: t('settings.runtime.row.skillsSubtitle', {
-      defaultValue: 'Hermes-side skills available across all profiles.',
+      defaultValue: 'Runtime skills available across all profiles.',
     }),
     endpoint: '/api/skills',
     readiness: 'unknown',
@@ -163,7 +163,7 @@ const buildDefaultKept = (t: Translator): KeepRow[] => [
     id: 'keep.webui',
     title: t('settings.runtime.keep.webuiTitle', { defaultValue: 'Web UI' }),
     subtitle: t('settings.runtime.keep.webuiSubtitle', {
-      defaultValue: 'Optional in-app web UI for the Hermes dashboard.',
+      defaultValue: 'Optional in-app web UI for the Runtime dashboard.',
     }),
     path: '/settings/webui',
   },
@@ -329,7 +329,7 @@ const RuntimeSettings: React.FC = () => {
             <Text type='secondary'>
               {t('settings.runtime.subtitle', {
                 defaultValue:
-                  'A side-by-side view of the settings we keep today and the Hermes surfaces we are bringing in.',
+                  'A side-by-side view of the settings we keep today and the Runtime surfaces we are bringing in.',
               })}
             </Text>
           </div>
@@ -413,7 +413,7 @@ const RuntimeSettings: React.FC = () => {
                 <Avatar size={20} style={{ background: 'var(--color-primary-light-3, #e8f3ff)' }}>
                   <Thunderbolt theme='outline' size='12' />
                 </Avatar>
-                {t('settings.runtime.portingHeading', { defaultValue: 'Porting from Hermes' })}
+                {t('settings.runtime.portingHeading', { defaultValue: 'Porting from Runtime' })}
               </Space>
             }
             bordered
@@ -492,7 +492,7 @@ const RuntimeSettings: React.FC = () => {
             <Text type='secondary'>
               {t('settings.runtime.footerBody', {
                 defaultValue:
-                  'Readiness is checked live against the running Hermes runtime. Endpoints marked Live are returning data; Unavailable means the runtime did not respond; Partial means the endpoint exists but returned an unexpected payload. The Kept column links back to the existing settings tabs in this app.',
+                  'Readiness is checked live against the running Runtime. Endpoints marked Live are returning data; Unavailable means the runtime did not respond; Partial means the endpoint exists but returned an unexpected payload. The Kept column links back to the existing settings tabs in this app.',
               })}
             </Text>
           </Space>
