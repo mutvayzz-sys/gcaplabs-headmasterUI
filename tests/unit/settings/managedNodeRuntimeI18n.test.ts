@@ -29,7 +29,7 @@ describe('managed node runtime settings copy', () => {
     const zh = loadSettingsLocale('zh-CN');
 
     expect(en.mcpErrorNodeCommandNotFound).not.toContain('Install Node.js');
-    expect(en.mcpErrorNodeCommandNotFound).toContain('managed Node runtime');
+    expect(en.mcpErrorNodeCommandNotFound).toContain('managed Node environment');
 
     expect(zh.mcpErrorNodeCommandNotFound).not.toContain('安装 Node.js');
     expect(zh.mcpErrorNodeCommandNotFound).toContain('托管的 Node');

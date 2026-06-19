@@ -134,8 +134,8 @@ describe('feedback logs', () => {
     const logsDir = mkdtempSync(path.join(tmpdir(), 'aionui-feedback-logs-'));
     try {
       writeFileSync(path.join(logsDir, '2026-05-25.log'), 'today frontend\n');
-      writeFileSync(path.join(logsDir, '2026-05-25.aioncore.log'), 'today backend\n');
-      writeFileSync(path.join(logsDir, '2026-05-24.aionrs.log'), 'yesterday rust\n');
+      writeFileSync(path.join(logsDir, '2026-05-25.hermes.log'), 'today backend\n');
+      writeFileSync(path.join(logsDir, '2026-05-24.hermes-agent.log'), 'yesterday rust\n');
       writeFileSync(path.join(logsDir, '2026-05-23.log'), 'third day frontend\n');
       writeFileSync(path.join(logsDir, '2026-05-22.log'), 'too old frontend\n');
       writeFileSync(path.join(logsDir, '2026-05-25.txt'), 'not a log\n');

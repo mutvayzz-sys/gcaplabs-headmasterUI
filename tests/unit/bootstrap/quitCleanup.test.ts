@@ -40,9 +40,7 @@ describe('installQuitCleanup', () => {
       setIsQuitting: (value) => calls.push(`set-quitting:${value}`),
       markExplicitQuit: () => calls.push('mark-explicit-quit'),
       destroyTray: () => calls.push('destroy-tray'),
-      disposeCronResumeListener: () => calls.push('dispose-cron'),
       stopBackend,
-      destroyPetWindow: () => calls.push('destroy-pet'),
       logInfo: vi.fn(),
       logWarn: vi.fn(),
       logError: vi.fn(),
@@ -58,7 +56,6 @@ describe('installQuitCleanup', () => {
       'set-quitting:true',
       'mark-explicit-quit',
       'destroy-tray',
-      'dispose-cron',
       'stop-backend-start',
     ]);
 
@@ -70,9 +67,7 @@ describe('installQuitCleanup', () => {
       'set-quitting:true',
       'mark-explicit-quit',
       'destroy-tray',
-      'dispose-cron',
       'stop-backend-start',
-      'destroy-pet',
       'quit-app',
     ]);
   });
@@ -88,9 +83,7 @@ describe('installQuitCleanup', () => {
       setIsQuitting: vi.fn(),
       markExplicitQuit: vi.fn(),
       destroyTray: vi.fn(),
-      disposeCronResumeListener: vi.fn(),
       stopBackend: async () => {},
-      destroyPetWindow: vi.fn(),
       logInfo: vi.fn(),
       logWarn: vi.fn(),
       logError: vi.fn(),

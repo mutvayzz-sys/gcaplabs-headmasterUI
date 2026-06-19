@@ -136,13 +136,13 @@ describe('updateBridge CDN URL rewriting', () => {
 
       const macAsset = assets.find((a: { name: string }) => a.name === 'Headmaster-1.9.22-mac-arm64.dmg');
       expect(macAsset).toBeDefined();
-      expect(macAsset?.url).toBe('https://static.aionui.com/releases/1.9.22/Headmaster-1.9.22-mac-arm64.dmg');
+      expect(macAsset?.url).toBe('https://static.gcaplabs.com/releases/1.9.22/Headmaster-1.9.22-mac-arm64.dmg');
       expect(macAsset?.fallbackUrl).toBe(
         'https://github.com/iOfficeAI/Headmaster/releases/download/v1.9.22/Headmaster-1.9.22-mac-arm64.dmg'
       );
 
       const linuxAsset = assets.find((a: { name: string }) => a.name === 'Headmaster-1.9.22-linux-amd64.deb');
-      expect(linuxAsset?.url).toBe('https://static.aionui.com/releases/1.9.22/Headmaster-1.9.22-linux-amd64.deb');
+      expect(linuxAsset?.url).toBe('https://static.gcaplabs.com/releases/1.9.22/Headmaster-1.9.22-linux-amd64.deb');
     } finally {
       vi.unstubAllGlobals();
     }
@@ -159,7 +159,7 @@ describe('updateBridge CDN URL rewriting', () => {
       const handler = await getCheckHandler();
       const result = await handler({ repo: 'iOfficeAI/Headmaster' });
       const asset = result.data?.latest?.assets?.[0];
-      expect(asset?.url).toMatch(/^https:\/\/static\.aionui\.com\/releases\/1\.9\.22\//);
+      expect(asset?.url).toMatch(/^https:\/\/static\.gcaplabs\.com\/releases\/1\.9\.22\//);
       expect(asset?.url).not.toMatch(/\/v1\.9\.22\//);
     } finally {
       vi.unstubAllGlobals();
@@ -168,7 +168,7 @@ describe('updateBridge CDN URL rewriting', () => {
 });
 
 describe('updateBridge allowlist includes CDN host', () => {
-  it('accepts static.aionui.com URLs for download', async () => {
+  it('accepts static.gcaplabs.com URLs for download', async () => {
     vi.resetModules();
     vi.clearAllMocks();
 
@@ -195,7 +195,7 @@ describe('updateBridge allowlist includes CDN host', () => {
       const handler = lastCall[0];
 
       const result = await handler({
-        url: 'https://static.aionui.com/releases/1.9.22/Headmaster-1.9.22-mac-arm64.dmg',
+        url: 'https://static.gcaplabs.com/releases/1.9.22/Headmaster-1.9.22-mac-arm64.dmg',
         file_name: 'Headmaster-1.9.22-mac-arm64.dmg',
       });
 
