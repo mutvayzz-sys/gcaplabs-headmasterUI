@@ -94,6 +94,13 @@ import {
   fromBackendWorkspaceList,
   type RawWorkspaceFlatFile,
 } from './workspaceMapper';
+import {
+  deleteHermesConversation,
+  getHermesConversation,
+  getHermesConversationMessages,
+  listHermesConversations,
+  updateHermesConversation,
+} from './hermesSessionAdapter';
 
 // ---------------------------------------------------------------------------
 // Shell — routed to POST /api/shell/*
@@ -118,13 +125,16 @@ export const shell = {
 // We map Hermes `profiles[]` -> Assistant[] (treating the `name` as both id
 // and display name; `description` is the soul/personality).
 interface AdonisAssistantConfig {
-  'acp.config'?: Record<string, {
-    preferredModelId?: string;
-    cli_path?: string;
-    auth_methodId?: string;
-    yoloMode?: boolean;
-    sandboxMode?: string;
-  }>;
+  'acp.config'?: Record<
+    string,
+    {
+      preferredModelId?: string;
+      cli_path?: string;
+      auth_methodId?: string;
+      yoloMode?: boolean;
+      sandboxMode?: string;
+    }
+  >;
 }
 
 interface AdonisConversationsAssistantEnvelope {
@@ -134,22 +144,29 @@ interface AdonisConversationsAssistantEnvelope {
 async function buildAssistantsFromAdonis(): Promise<Assistant[]> {
   const [settingsEnvelope, conversationsEnvelope] = await Promise.all([
     httpRequest<AdonisAssistantConfig>('GET', '/api/settings/client').catch((_error: unknown): null => null),
-    httpRequest<AdonisConversationsAssistantEnvelope>('GET', '/api/conversations').catch((_error: unknown): null => null),
+    httpRequest<AdonisConversationsAssistantEnvelope>('GET', '/api/conversations').catch(
+      (_error: unknown): null => null
+    ),
   ]);
 
-  const acpConfig = settingsEnvelope && typeof settingsEnvelope === 'object' && 'data' in settingsEnvelope
-    ? (settingsEnvelope as { data?: AdonisAssistantConfig }).data?.['acp.config'] ?? {}
-    : {};
+  const acpConfig =
+    settingsEnvelope && typeof settingsEnvelope === 'object' && 'data' in settingsEnvelope
+      ? ((settingsEnvelope as { data?: AdonisAssistantConfig }).data?.['acp.config'] ?? {})
+      : {};
 
-  const conversationsData = conversationsEnvelope && typeof conversationsEnvelope === 'object' && 'data' in conversationsEnvelope
-    ? (conversationsEnvelope as { data?: { items?: unknown[] } }).data
-    : undefined;
+  const conversationsData =
+    conversationsEnvelope && typeof conversationsEnvelope === 'object' && 'data' in conversationsEnvelope
+      ? (conversationsEnvelope as { data?: { items?: unknown[] } }).data
+      : undefined;
   const items = conversationsData?.items ?? [];
 
   const byBackend = new Map<string, Assistant>();
   for (const item of items) {
     const conversation = item as Record<string, unknown>;
-    const extra = (conversation.extra && typeof conversation.extra === 'object' ? conversation.extra : {}) as Record<string, unknown>;
+    const extra = (conversation.extra && typeof conversation.extra === 'object' ? conversation.extra : {}) as Record<
+      string,
+      unknown
+    >;
     const backend = String(extra.backend ?? extra.provider_id ?? conversation.type ?? '').toLowerCase();
     const agentName = typeof extra.agent_name === 'string' ? extra.agent_name : backend;
     if (!backend || byBackend.has(backend)) continue;
@@ -194,7 +211,12 @@ export const assistants = {
   update: stubProvider<Assistant, UpdateAssistantRequest>('assistants.update', {} as Assistant),
   delete: stubProvider<void, { id: string }>('assistants.delete', undefined as unknown as void),
   setState: stubProvider<Assistant, SetAssistantStateRequest>('assistants.setState', {} as Assistant),
-  import: stubProvider<ImportAssistantsResult, ImportAssistantsRequest>('assistants.import', { imported: 0, failed: 0, skipped: 0, errors: [] } as ImportAssistantsResult),
+  import: stubProvider<ImportAssistantsResult, ImportAssistantsRequest>('assistants.import', {
+    imported: 0,
+    failed: 0,
+    skipped: 0,
+    errors: [],
+  } as ImportAssistantsResult),
 };
 
 // ---------------------------------------------------------------------------
@@ -239,10 +261,10 @@ export const conversation = {
     }),
     fromApiConversation
   ),
-  get: withResponseMap(
-    httpGet<TChatConversation, { id: string }>((p) => `/api/conversations/${p.id}`, { silentStatuses: [404] }),
-    fromApiConversation
-  ),
+  get: {
+    provider: () => {},
+    invoke: (params: { id: string }) => getHermesConversation(params.id),
+  },
   getAssociateConversation: withResponseMap(
     httpGet<TChatConversation[], { conversation_id: string }>(
       (p) => `/api/conversations/${p.conversation_id}/associated`
@@ -253,27 +275,25 @@ export const conversation = {
     httpGet<TChatConversation[], { cron_job_id: string }>((p) => `/api/cron/jobs/${p.cron_job_id}/conversations`),
     (list) => list.map(fromApiConversation)
   ),
-  remove: httpDelete<boolean, { id: string }>((p) => `/api/conversations/${p.id}`),
-  update: httpPatch<boolean, { id: string; updates: Partial<TChatConversation>; merge_extra?: boolean }>(
-    (p) => `/api/conversations/${p.id}`,
-    (p) => {
-      const updates = p.updates as Record<string, unknown>;
-      const { model: rawModel, ...rest } = updates;
-      const model = toApiModelOptional(rawModel as TProviderWithModel | undefined);
-      return {
-        ...rest,
-        ...(model ? { model } : {}),
-        merge_extra: p.merge_extra,
-      };
-    }
-  ),
+  remove: {
+    provider: () => {},
+    invoke: (params: { id: string }) => deleteHermesConversation(params.id),
+  },
+  update: {
+    provider: () => {},
+    invoke: (params: { id: string; updates: Partial<TChatConversation>; merge_extra?: boolean }) =>
+      updateHermesConversation(params.id, params.updates),
+  },
   reset: httpPost<void, IResetConversationParams>((p) => `/api/conversations/${p.id}/reset`),
   warmup: httpPost<void, { conversation_id: string }>((p) => `/api/conversations/${p.conversation_id}/warmup`),
   stop: httpPost<{ runtime: TConversationRuntimeSummary }, { conversation_id: string; turn_id: string }>(
     (p) => `/api/conversations/${p.conversation_id}/cancel`,
     (p) => ({ turn_id: p.turn_id })
   ),
-  activeCount: httpGet<{ count: number }>('/api/conversations/active-count'),
+  activeCount: {
+    provider: () => {},
+    invoke: async () => ({ count: 0 }),
+  },
   sendMessage: httpPost<ISendMessageResult, ISendMessageParams>(
     (p) => `/api/conversations/${p.conversation_id}/messages`,
     (p) => ({
@@ -559,9 +579,13 @@ export const browser = {
   /** Stop a CDP session */
   stopCdp: bridge.buildProvider<void, { targetId: string }>('browser.stop-cdp'),
   /** Get current CDP status (port, enabled, targets) */
-  getCdpStatus: bridge.buildProvider<import('@/process/utils/configureChromium').CdpStatus, void>('browser.get-cdp-status'),
+  getCdpStatus: bridge.buildProvider<import('@/process/utils/configureChromium').CdpStatus, void>(
+    'browser.get-cdp-status'
+  ),
   /** Forward a CDP command and return the result (passive only) */
-  sendCdpCommand: bridge.buildProvider<unknown, { targetId: string; method: string; params?: Record<string, unknown> }>('browser.send-cdp-command'),
+  sendCdpCommand: bridge.buildProvider<unknown, { targetId: string; method: string; params?: Record<string, unknown> }>(
+    'browser.send-cdp-command'
+  ),
 };
 
 // ---------------------------------------------------------------------------
@@ -818,11 +842,14 @@ export const bedrock = {
 // listProviders through with response-shape pass-through, and stub the
 // mutating methods (create/update/delete) which Hermes doesn't expose.
 interface AdonisSettingsClient {
-  'acp.config'?: Record<string, {
-    preferredModelId?: string;
-    cli_path?: string;
-    auth_methodId?: string;
-  }>;
+  'acp.config'?: Record<
+    string,
+    {
+      preferredModelId?: string;
+      cli_path?: string;
+      auth_methodId?: string;
+    }
+  >;
 }
 
 interface AdonisConversationsEnvelope {
@@ -835,21 +862,30 @@ async function buildProvidersFromAdonisConfig(): Promise<IProvider[]> {
     httpRequest<AdonisConversationsEnvelope>('GET', '/api/conversations').catch((_error: unknown): null => null),
   ]);
 
-  const acpConfig = settingsEnvelope && typeof settingsEnvelope === 'object' && 'data' in settingsEnvelope
-    ? (settingsEnvelope as { data?: AdonisSettingsClient }).data?.['acp.config'] ?? {}
-    : {};
+  const acpConfig =
+    settingsEnvelope && typeof settingsEnvelope === 'object' && 'data' in settingsEnvelope
+      ? ((settingsEnvelope as { data?: AdonisSettingsClient }).data?.['acp.config'] ?? {})
+      : {};
 
-  const conversationsData = conversationsEnvelope && typeof conversationsEnvelope === 'object' && 'data' in conversationsEnvelope
-    ? (conversationsEnvelope as { data?: { items?: unknown[] } }).data
-    : undefined;
+  const conversationsData =
+    conversationsEnvelope && typeof conversationsEnvelope === 'object' && 'data' in conversationsEnvelope
+      ? (conversationsEnvelope as { data?: { items?: unknown[] } }).data
+      : undefined;
   const items = conversationsData?.items ?? [];
 
   const modelsByBackend = new Map<string, Set<string>>();
   for (const item of items) {
     const conversationRecord = item as Record<string, unknown>;
-    const extra = (conversationRecord.extra && typeof conversationRecord.extra === 'object' ? conversationRecord.extra : {}) as Record<string, unknown>;
+    const extra = (
+      conversationRecord.extra && typeof conversationRecord.extra === 'object' ? conversationRecord.extra : {}
+    ) as Record<string, unknown>;
     const backend = String(extra.backend ?? extra.provider_id ?? conversationRecord.type ?? '').toLowerCase();
-    const model = typeof extra.current_model_id === 'string' ? extra.current_model_id : (typeof extra.model === 'string' ? extra.model : '');
+    const model =
+      typeof extra.current_model_id === 'string'
+        ? extra.current_model_id
+        : typeof extra.model === 'string'
+          ? extra.model
+          : '';
     if (!backend) continue;
     if (!modelsByBackend.has(backend)) modelsByBackend.set(backend, new Set());
     if (model) modelsByBackend.get(backend)!.add(model);
@@ -877,13 +913,18 @@ export const mode = {
     invoke: (async () => {
       const fromConfig = await buildProvidersFromAdonisConfig();
       if (fromConfig.length > 0) return fromConfig;
-      const providers = await httpGet<unknown[], void>('/api/providers').invoke().catch((_error: unknown): unknown[] => []);
+      const providers = await httpGet<unknown[], void>('/api/providers')
+        .invoke()
+        .catch((_error: unknown): unknown[] => []);
       return (Array.isArray(providers) ? providers : []) as IProvider[];
     }) as () => Promise<IProvider[]>,
   },
   // Hermes has no provider CRUD (profiles / oauth are config-only).
   createProvider: stubProvider<IProvider, CreateProviderRequest>('mode.createProvider', {} as IProvider),
-  updateProvider: stubProvider<IProvider, { id: string } & UpdateProviderRequest>('mode.updateProvider', {} as IProvider),
+  updateProvider: stubProvider<IProvider, { id: string } & UpdateProviderRequest>(
+    'mode.updateProvider',
+    {} as IProvider
+  ),
   deleteProvider: stubProvider<void, { id: string }>('mode.deleteProvider', undefined as unknown as void),
   fetchProviderModels: httpPost<FetchModelsResponse, { id: string; try_fix?: boolean }>(
     '/api/providers/validate',
@@ -923,10 +964,14 @@ export const acpConversation = {
       }
 
       // 2. Try backend ACP adapters endpoint
-      const adaptersEnvelope = await httpRequest<unknown>('GET', '/api/extensions/acp-adapters').catch((_error: unknown): null => null);
-      const adaptersRaw = (adaptersEnvelope && typeof adaptersEnvelope === 'object' && 'data' in adaptersEnvelope
-        ? (adaptersEnvelope as { data?: unknown }).data
-        : adaptersEnvelope) as unknown;
+      const adaptersEnvelope = await httpRequest<unknown>('GET', '/api/extensions/acp-adapters').catch(
+        (_error: unknown): null => null
+      );
+      const adaptersRaw = (
+        adaptersEnvelope && typeof adaptersEnvelope === 'object' && 'data' in adaptersEnvelope
+          ? (adaptersEnvelope as { data?: unknown }).data
+          : adaptersEnvelope
+      ) as unknown;
       const adapters = Array.isArray(adaptersRaw) ? adaptersRaw : [];
       const backendAgents: AgentMetadata[] = adapters.map((raw) => {
         const adapter = raw as Record<string, unknown>;
@@ -1182,29 +1227,18 @@ export type PaginatedResult<T> = {
 };
 
 export const database = {
-  getConversationMessages: httpGet<
-    PaginatedResult<import('@/common/chat/chatLib').TMessage>,
-    { conversation_id: string; page?: number; page_size?: number; order?: string; content_mode?: 'compact' | 'full' }
-  >(
-    (p) =>
-      `/api/conversations/${p.conversation_id}/messages?page=${p.page ?? 1}&page_size=${p.page_size ?? 50}${p.order ? `&order=${p.order}` : ''}${p.content_mode ? `&content_mode=${p.content_mode}` : ''}`
-  ),
+  getConversationMessages: {
+    provider: () => {},
+    invoke: getHermesConversationMessages,
+  },
   getConversationMessage: httpGet<
     import('@/common/chat/chatLib').TMessage,
     { conversation_id: string; message_id: string }
   >((p) => `/api/conversations/${p.conversation_id}/messages/${encodeURIComponent(p.message_id)}`),
-  getUserConversations: withResponseMap(
-    httpGet<PaginatedResult<import('@/common/config/storage').TChatConversation>, { cursor?: string; limit?: number }>(
-      (p) => {
-        const params = new URLSearchParams();
-        if (p.cursor) params.set('cursor', p.cursor);
-        if (p.limit) params.set('limit', String(p.limit));
-        const qs = params.toString();
-        return `/api/conversations${qs ? `?${qs}` : ''}`;
-      }
-    ),
-    fromApiPaginatedConversations
-  ),
+  getUserConversations: {
+    provider: () => {},
+    invoke: listHermesConversations,
+  },
   searchConversationMessages: withResponseMap(
     httpGet<PaginatedResult<ApiMessageSearchItem>, { keyword: string; page?: number; page_size?: number }>(
       (p) =>
@@ -2033,10 +2067,7 @@ export const team = {
     workspace_mode: params.workspace_mode,
     agents: params.agents.map(toBackendAgent),
   })),
-  list: withResponseMap(
-    httpGet<unknown[], { user_id: string }>('/api/teams'),
-    (raw) => fromBackendTeamList(raw)
-  ),
+  list: withResponseMap(httpGet<unknown[], { user_id: string }>('/api/teams'), (raw) => fromBackendTeamList(raw)),
   get: withResponseMap(
     httpGet<unknown, { id: string }>((p) => `/api/teams/${encodeURIComponent(p.id)}`),
     (raw) => fromBackendTeamOptional(raw)
