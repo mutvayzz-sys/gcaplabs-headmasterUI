@@ -86,7 +86,7 @@ const LocalAgents: React.FC = () => {
     [mutateAgents]
   );
 
-  // Headmaster CLI first among detected agents
+  // Headmaster runtime first among detected agents
   const aionrsAgent = detectedAgents?.find((a) => a.agent_type === 'aionrs' || a.backend === 'aionrs');
   const otherDetected = detectedAgents?.filter((a) => a.agent_type !== 'aionrs' && a.backend !== 'aionrs') ?? [];
 

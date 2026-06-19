@@ -65,7 +65,6 @@ import type {
 } from '../update/updateTypes';
 import type { Theme } from '@/common/theme/types';
 import type { ProtocolDetectionRequest, ProtocolDetectionResponse } from '../utils/protocolDetector';
-import { fromApiConversation, fromApiPaginatedConversations, toApiModelOptional } from './apiModelMapper';
 import {
   httpDelete,
   httpGet,
@@ -89,11 +88,16 @@ import {
 } from './teamMapper';
 import { fromBackendCompareResult, type RawCompareResult } from './fileSnapshotMapper';
 import {
-  absoluteToRelativePath,
   fromBackendWorkspaceFlatFiles,
-  fromBackendWorkspaceList,
   type RawWorkspaceFlatFile,
 } from './workspaceMapper';
+import {
+  createHermesChatConversation,
+  confirmHermesPendingRequest,
+  listHermesPendingRequests,
+  sendHermesMessage,
+  stopHermesConversation,
+} from './hermesChatAdapter';
 import {
   deleteHermesConversation,
   getHermesConversation,
@@ -101,6 +105,9 @@ import {
   listHermesConversations,
   updateHermesConversation,
 } from './hermesSessionAdapter';
+
+const acpModeStateByConversation = new Map<string, { mode: string; initialized: boolean }>();
+const acpModelStateByConversation = new Map<string, { model_info: AcpModelInfo | null }>();
 
 // ---------------------------------------------------------------------------
 // Shell — routed to POST /api/shell/*
@@ -124,85 +131,43 @@ export const shell = {
 // analog is `GET /api/profiles` (verified via headmaster-hermes/RECON.md).
 // We map Hermes `profiles[]` -> Assistant[] (treating the `name` as both id
 // and display name; `description` is the soul/personality).
-interface AdonisAssistantConfig {
-  'acp.config'?: Record<
-    string,
-    {
-      preferredModelId?: string;
-      cli_path?: string;
-      auth_methodId?: string;
-      yoloMode?: boolean;
-      sandboxMode?: string;
-    }
-  >;
+interface HermesProfileInfo {
+  has_env: boolean;
+  is_default: boolean;
+  model: string | null;
+  name: string;
+  path: string;
+  provider: string | null;
+  skill_count: number;
 }
 
-interface AdonisConversationsAssistantEnvelope {
-  data?: { items?: Array<Record<string, unknown>> };
-}
-
-async function buildAssistantsFromAdonis(): Promise<Assistant[]> {
-  const [settingsEnvelope, conversationsEnvelope] = await Promise.all([
-    httpRequest<AdonisAssistantConfig>('GET', '/api/settings/client').catch((_error: unknown): null => null),
-    httpRequest<AdonisConversationsAssistantEnvelope>('GET', '/api/conversations').catch(
-      (_error: unknown): null => null
-    ),
-  ]);
-
-  const acpConfig =
-    settingsEnvelope && typeof settingsEnvelope === 'object' && 'data' in settingsEnvelope
-      ? ((settingsEnvelope as { data?: AdonisAssistantConfig }).data?.['acp.config'] ?? {})
-      : {};
-
-  const conversationsData =
-    conversationsEnvelope && typeof conversationsEnvelope === 'object' && 'data' in conversationsEnvelope
-      ? (conversationsEnvelope as { data?: { items?: unknown[] } }).data
-      : undefined;
-  const items = conversationsData?.items ?? [];
-
-  const byBackend = new Map<string, Assistant>();
-  for (const item of items) {
-    const conversation = item as Record<string, unknown>;
-    const extra = (conversation.extra && typeof conversation.extra === 'object' ? conversation.extra : {}) as Record<
-      string,
-      unknown
-    >;
-    const backend = String(extra.backend ?? extra.provider_id ?? conversation.type ?? '').toLowerCase();
-    const agentName = typeof extra.agent_name === 'string' ? extra.agent_name : backend;
-    if (!backend || byBackend.has(backend)) continue;
-    byBackend.set(backend, {
-      id: backend,
-      name: agentName,
-      description: `Detected ${agentName} assistant from active conversations`,
-      role: 'specialist',
-      avatar: null,
-    } as unknown as Assistant);
-  }
-
-  for (const [backend, cfg] of Object.entries(acpConfig)) {
-    const key = backend.toLowerCase();
-    if (byBackend.has(key)) continue;
-    byBackend.set(key, {
-      id: backend,
-      name: backend.charAt(0).toUpperCase() + backend.slice(1),
-      description: `Configured ACP backend${cfg.preferredModelId ? ` (preferred model: ${cfg.preferredModelId})` : ''}`,
-      role: 'specialist',
-      avatar: null,
-    } as unknown as Assistant);
-  }
-
-  return [...byBackend.values()];
+async function buildAssistantsFromHermes(): Promise<Assistant[]> {
+  const result = await httpRequest<{ profiles?: HermesProfileInfo[] }>('GET', '/api/profiles').catch(
+    (): { profiles: HermesProfileInfo[] } => ({ profiles: [] })
+  );
+  return (result.profiles ?? []).map(
+    (profile) =>
+      ({
+        id: profile.name,
+        name: profile.name,
+        description: profile.model
+          ? `${profile.skill_count} skills · ${profile.model}`
+          : `${profile.skill_count} skills`,
+        role: 'specialist',
+        avatar: null,
+      }) as unknown as Assistant
+  );
 }
 
 export const assistants = {
   list: {
     provider: () => {},
-    invoke: (async () => buildAssistantsFromAdonis()) as () => Promise<Assistant[]>,
+    invoke: (async () => buildAssistantsFromHermes()) as () => Promise<Assistant[]>,
   },
   get: {
     provider: () => {},
     invoke: (async (params: { id: string; locale?: string }) => {
-      const all = await buildAssistantsFromAdonis();
+      const all = await buildAssistantsFromHermes();
       return (all.find((a) => a.id === params.id) ?? null) as unknown as AssistantDetail | null;
     }) as (params: { id: string; locale?: string }) => Promise<AssistantDetail | null>,
   },
@@ -224,57 +189,53 @@ export const assistants = {
 // ---------------------------------------------------------------------------
 
 export const conversation = {
-  create: withResponseMap(
-    httpPost<TChatConversation, ICreateConversationParams>('/api/conversations', (p) => {
-      // Top-level `model` is aionrs-only on the backend (spec 2026-05-12).
-      // Other agent types carry model info via `extra`.
-      const isAionrs = p.type === 'aionrs';
-      const body: Record<string, unknown> = {
-        type: p.type,
-        id: p.id,
-        name: p.name,
-        assistant: p.assistant,
-        extra: p.extra,
-      };
-      if (isAionrs) {
-        const model = toApiModelOptional(p.model);
-        if (model) body.model = model;
-      }
-      return body;
-    }),
-    fromApiConversation
-  ),
-  createWithConversation: withResponseMap(
-    httpPost<TChatConversation, { conversation: TChatConversation }>('/api/conversations/clone', (p) => {
-      const isAionrs = p.conversation.type === 'aionrs';
-      const { model: _rawModel, ...rest } = p.conversation as TChatConversation & {
-        model?: TProviderWithModel;
-      };
-      const clonedConversation: Record<string, unknown> = { ...rest };
-      if (isAionrs) {
-        const model = toApiModelOptional(_rawModel);
-        if (model) clonedConversation.model = model;
-      }
-      return {
-        conversation: clonedConversation,
-      };
-    }),
-    fromApiConversation
-  ),
+  create: {
+    provider: () => {},
+    invoke: createHermesChatConversation,
+  },
+  createWithConversation: {
+    provider: () => {},
+    invoke: async (params: { conversation: TChatConversation }): Promise<TChatConversation> => params.conversation,
+  },
   get: {
     provider: () => {},
     invoke: (params: { id: string }) => getHermesConversation(params.id),
   },
-  getAssociateConversation: withResponseMap(
-    httpGet<TChatConversation[], { conversation_id: string }>(
-      (p) => `/api/conversations/${p.conversation_id}/associated`
-    ),
-    (list) => list.map(fromApiConversation)
-  ),
-  listByCronJob: withResponseMap(
-    httpGet<TChatConversation[], { cron_job_id: string }>((p) => `/api/cron/jobs/${p.cron_job_id}/conversations`),
-    (list) => list.map(fromApiConversation)
-  ),
+  getAssociateConversation: {
+    provider: () => {},
+    invoke: async (params: { conversation_id: string }) => {
+      const current = await getHermesConversation(params.conversation_id);
+      if (!current) return [];
+      const workspace = (current.extra as { workspace?: string } | undefined)?.workspace?.trim();
+      if (!workspace) return [];
+      const { items } = await listHermesConversations({ limit: 200 });
+      return items.filter((conversation) => {
+        if (conversation.id === params.conversation_id) return false;
+        if (conversation.type !== current.type) return false;
+        const otherWorkspace = (conversation.extra as { workspace?: string } | undefined)?.workspace?.trim();
+        return Boolean(otherWorkspace && otherWorkspace === workspace);
+      });
+    },
+  },
+  listByCronJob: {
+    provider: () => {},
+    invoke: async (params: { cron_job_id: string }): Promise<TChatConversation[]> => {
+      const collected: TChatConversation[] = [];
+      let cursor = '0';
+      while (true) {
+        const page = await listHermesConversations({ cursor, limit: 200 });
+        collected.push(
+          ...page.items.filter((conversation) => {
+            const extra = conversation.extra as { cron_job_id?: string } | undefined;
+            return extra?.cron_job_id === params.cron_job_id;
+          })
+        );
+        if (!page.has_more || page.items.length === 0) break;
+        cursor = String(Number(cursor) + page.items.length);
+      }
+      return collected;
+    },
+  },
   remove: {
     provider: () => {},
     invoke: (params: { id: string }) => deleteHermesConversation(params.id),
@@ -284,46 +245,55 @@ export const conversation = {
     invoke: (params: { id: string; updates: Partial<TChatConversation>; merge_extra?: boolean }) =>
       updateHermesConversation(params.id, params.updates),
   },
-  reset: httpPost<void, IResetConversationParams>((p) => `/api/conversations/${p.id}/reset`),
-  warmup: httpPost<void, { conversation_id: string }>((p) => `/api/conversations/${p.conversation_id}/warmup`),
-  stop: httpPost<{ runtime: TConversationRuntimeSummary }, { conversation_id: string; turn_id: string }>(
-    (p) => `/api/conversations/${p.conversation_id}/cancel`,
-    (p) => ({ turn_id: p.turn_id })
-  ),
+  reset: {
+    provider: () => {},
+    invoke: async (_params: IResetConversationParams): Promise<void> => undefined,
+  },
+  warmup: {
+    provider: () => {},
+    invoke: async (_params: { conversation_id: string }): Promise<void> => undefined,
+  },
+  stop: {
+    provider: () => {},
+    invoke: (p: { conversation_id: string; turn_id: string }) => stopHermesConversation(p.conversation_id),
+  },
   activeCount: {
     provider: () => {},
     invoke: async () => ({ count: 0 }),
   },
-  sendMessage: httpPost<ISendMessageResult, ISendMessageParams>(
-    (p) => `/api/conversations/${p.conversation_id}/messages`,
-    (p) => ({
-      content: p.input,
-      files: p.files,
-      loading_id: p.loading_id,
-      inject_skills: p.inject_skills,
-    })
-  ),
-  getSlashCommands: httpGet<AcpSlashCommandApiItem[], { conversation_id: string }>(
-    (p) => `/api/conversations/${p.conversation_id}/slash-commands`
-  ),
-  askSideQuestion: httpPost<ConversationSideQuestionResult, { conversation_id: string; question: string }>(
-    (p) => `/api/conversations/${p.conversation_id}/side-question`,
-    (p) => ({ question: p.question })
-  ),
-  confirmMessage: httpPost<void, IConfirmMessageParams>(
-    (p) => `/api/conversations/${p.conversation_id}/confirmations/${encodeURIComponent(p.call_id)}/confirm`,
-    (p) => ({ msg_id: p.msg_id, data: p.confirm_key })
-  ),
-  listArtifacts: httpGet<IConversationArtifact[], { conversation_id: string }>(
-    (p) => `/api/conversations/${p.conversation_id}/artifacts`
-  ),
-  updateArtifact: httpPatch<
-    IConversationArtifact,
-    { conversation_id: string; artifact_id: string; status: IConversationArtifactStatus }
-  >(
-    (p) => `/api/conversations/${p.conversation_id}/artifacts/${p.artifact_id}`,
-    (p) => ({ status: p.status })
-  ),
+  sendMessage: {
+    provider: () => {},
+    invoke: sendHermesMessage,
+  },
+  getSlashCommands: {
+    provider: () => {},
+    invoke: async (_params: { conversation_id: string }): Promise<AcpSlashCommandApiItem[]> =>
+      [] as AcpSlashCommandApiItem[],
+  },
+  askSideQuestion: {
+    provider: () => {},
+    invoke: async (_params: { conversation_id: string; question: string }): Promise<ConversationSideQuestionResult> =>
+      ({
+        status: 'unsupported',
+      }) as ConversationSideQuestionResult,
+  },
+  confirmMessage: {
+    provider: () => {},
+    invoke: async (_params: IConfirmMessageParams): Promise<void> => undefined,
+  },
+  listArtifacts: {
+    provider: () => {},
+    invoke: async (_params: { conversation_id: string }): Promise<IConversationArtifact[]> =>
+      [] as IConversationArtifact[],
+  },
+  updateArtifact: {
+    provider: () => {},
+    invoke: async (_params: {
+      conversation_id: string;
+      artifact_id: string;
+      status: IConversationArtifactStatus;
+    }): Promise<IConversationArtifact> => undefined as unknown as IConversationArtifact,
+  },
   responseStream: wsEmitter<IResponseMessage>('message.stream'),
   userCreated: wsEmitter<{
     conversation_id: string;
@@ -382,16 +352,17 @@ export const conversation = {
     };
   }),
   listChanged: wsEmitter<IConversationListChangedEvent>('conversation.listChanged'),
-  // Uses httpRequest directly (instead of httpGet + withResponseMap) because the
-  // response mapper needs `workspace` from params to build fullPath/relativePath,
-  // and withResponseMap's map function does not receive the original params.
+  // Uses the filesystem IPC bridge directly so workspace reads stay local to
+  // the desktop shell instead of depending on a backend HTTP route.
   getWorkspace: {
     provider: () => {},
     invoke: (async (p: { conversation_id: string; workspace: string; path: string; search?: string }) => {
-      const rel = absoluteToRelativePath(p.path, p.workspace);
-      const url = `/api/conversations/${p.conversation_id}/workspace?path=${encodeURIComponent(rel)}${p.search ? `&search=${encodeURIComponent(p.search)}` : ''}`;
-      const raw = await httpRequest<Array<{ name: string; type: string }>>('GET', url);
-      return fromBackendWorkspaceList(raw, p.workspace, rel);
+      void p.conversation_id;
+      return fs.getFilesByDir.invoke({
+        dir: p.path,
+        root: p.workspace,
+        ...(p.search ? { search: p.search } : {}),
+      } as { dir: string; root: string; search?: string });
     }) as (p: { conversation_id: string; workspace: string; path: string; search?: string }) => Promise<IDirOrFile[]>,
   },
   responseSearchWorkSpace: stubProvider<void, { file: number; dir: number; match?: IDirOrFile }>(
@@ -401,23 +372,24 @@ export const conversation = {
   confirmation: {
     add: wsEmitter<IConfirmation<unknown> & { conversation_id: string }>('confirmation.add'),
     update: wsEmitter<IConfirmation<unknown> & { conversation_id: string }>('confirmation.update'),
-    confirm: httpPost<
-      void,
-      { conversation_id: string; msg_id: string; data: unknown; call_id: string; always_allow?: boolean }
-    >(
-      (p) => `/api/conversations/${p.conversation_id}/confirmations/${encodeURIComponent(p.call_id)}/confirm`,
-      (p) => ({ msg_id: p.msg_id, data: p.data, always_allow: p.always_allow ?? false })
-    ),
-    list: httpGet<IConfirmation<unknown>[], { conversation_id: string }>(
-      (p) => `/api/conversations/${p.conversation_id}/confirmations`
-    ),
+    confirm: {
+      provider: () => {},
+      invoke: confirmHermesPendingRequest,
+    },
+    list: {
+      provider: () => {},
+      invoke: async (params: { conversation_id: string }): Promise<IConfirmation<unknown>[]> =>
+        listHermesPendingRequests(params.conversation_id),
+    },
     remove: wsEmitter<{ conversation_id: string; id: string }>('confirmation.remove'),
   },
   approval: {
-    check: httpGet<{ approved: boolean }, { conversation_id: string; action: string; command_type?: string }>(
-      (p) =>
-        `/api/conversations/${p.conversation_id}/approvals/check?action=${encodeURIComponent(p.action)}${p.command_type ? `&command_type=${encodeURIComponent(p.command_type)}` : ''}`
-    ),
+    check: {
+      provider: () => {},
+      invoke: async (_params: { conversation_id: string; action: string; command_type?: string }) => ({
+        approved: false,
+      }),
+    },
   },
 };
 
@@ -636,7 +608,9 @@ export const dialog = {
 // ---------------------------------------------------------------------------
 
 export const fs = {
-  getFilesByDir: httpPost<Array<IDirOrFile>, { dir: string; root: string }>('/api/fs/dir'),
+  getFilesByDir: bridge.buildProvider<Array<IDirOrFile>, { dir: string; root: string; search?: string }>(
+    'fs.get-files-by-dir'
+  ),
   listWorkspaceFiles: withResponseMap(
     httpPost<Array<RawWorkspaceFlatFile>, { root: string }>('/api/fs/list'),
     fromBackendWorkspaceFlatFiles
@@ -841,82 +815,38 @@ export const bedrock = {
 // `/api/model/options` is pending Task 7's live probe — for v1 we map
 // listProviders through with response-shape pass-through, and stub the
 // mutating methods (create/update/delete) which Hermes doesn't expose.
-interface AdonisSettingsClient {
-  'acp.config'?: Record<
-    string,
-    {
-      preferredModelId?: string;
-      cli_path?: string;
-      auth_methodId?: string;
-    }
-  >;
+interface HermesModelOptions {
+  providers?: Array<{
+    authenticated?: boolean;
+    models?: string[];
+    name: string;
+    slug: string;
+  }>;
 }
 
-interface AdonisConversationsEnvelope {
-  data?: { items?: Array<Record<string, unknown>> };
-}
-
-async function buildProvidersFromAdonisConfig(): Promise<IProvider[]> {
-  const [settingsEnvelope, conversationsEnvelope] = await Promise.all([
-    httpRequest<AdonisSettingsClient>('GET', '/api/settings/client').catch((_error: unknown): null => null),
-    httpRequest<AdonisConversationsEnvelope>('GET', '/api/conversations').catch((_error: unknown): null => null),
-  ]);
-
-  const acpConfig =
-    settingsEnvelope && typeof settingsEnvelope === 'object' && 'data' in settingsEnvelope
-      ? ((settingsEnvelope as { data?: AdonisSettingsClient }).data?.['acp.config'] ?? {})
-      : {};
-
-  const conversationsData =
-    conversationsEnvelope && typeof conversationsEnvelope === 'object' && 'data' in conversationsEnvelope
-      ? (conversationsEnvelope as { data?: { items?: unknown[] } }).data
-      : undefined;
-  const items = conversationsData?.items ?? [];
-
-  const modelsByBackend = new Map<string, Set<string>>();
-  for (const item of items) {
-    const conversationRecord = item as Record<string, unknown>;
-    const extra = (
-      conversationRecord.extra && typeof conversationRecord.extra === 'object' ? conversationRecord.extra : {}
-    ) as Record<string, unknown>;
-    const backend = String(extra.backend ?? extra.provider_id ?? conversationRecord.type ?? '').toLowerCase();
-    const model =
-      typeof extra.current_model_id === 'string'
-        ? extra.current_model_id
-        : typeof extra.model === 'string'
-          ? extra.model
-          : '';
-    if (!backend) continue;
-    if (!modelsByBackend.has(backend)) modelsByBackend.set(backend, new Set());
-    if (model) modelsByBackend.get(backend)!.add(model);
-  }
-
-  return Object.entries(acpConfig).map(([backend, cfg]) => {
-    const preferred = cfg?.preferredModelId;
-    const models = [...(modelsByBackend.get(backend.toLowerCase()) ?? new Set())];
-    if (preferred && !models.includes(preferred)) models.unshift(preferred);
-    return {
-      id: backend,
-      platform: backend,
-      name: backend.charAt(0).toUpperCase() + backend.slice(1),
-      base_url: '',
-      api_key: '',
-      models,
-      enabled: true,
-    } as IProvider;
-  });
+async function buildProvidersFromHermes(): Promise<IProvider[]> {
+  const result = await httpRequest<HermesModelOptions>('GET', '/api/model/options').catch(
+    (): HermesModelOptions => ({ providers: [] })
+  );
+  return (result.providers ?? []).map(
+    (provider) =>
+      ({
+        id: provider.slug,
+        platform: provider.slug,
+        name: provider.name,
+        base_url: '',
+        api_key: '',
+        models: provider.models ?? [],
+        enabled: provider.authenticated !== false,
+      }) as IProvider
+  );
 }
 
 export const mode = {
   listProviders: {
     provider: () => {},
     invoke: (async () => {
-      const fromConfig = await buildProvidersFromAdonisConfig();
-      if (fromConfig.length > 0) return fromConfig;
-      const providers = await httpGet<unknown[], void>('/api/providers')
-        .invoke()
-        .catch((_error: unknown): unknown[] => []);
-      return (Array.isArray(providers) ? providers : []) as IProvider[];
+      return buildProvidersFromHermes();
     }) as () => Promise<IProvider[]>,
   },
   // Hermes has no provider CRUD (profiles / oauth are config-only).
@@ -1060,27 +990,68 @@ export const acpConversation = {
   checkProviderHealth: httpPost<ProviderHealthCheckResponse, ProviderHealthCheckRequest>(
     '/api/agents/provider-health-check'
   ),
-  setMode: httpPut<{ mode: string; initialized: boolean }, { conversation_id: string; mode: string }>(
-    (p) => `/api/conversations/${p.conversation_id}/mode`,
-    (p) => ({ mode: p.mode })
-  ),
-  // 404 is the expected pre-warmup response from `/api/conversations/:id/mode`
-  // and `/api/conversations/:id/model` — the agent has not attached yet, so
-  // we have nothing to read. AcpModeSelector / AcpModelSelector both fall back
-  // to handshake metadata in that case. Silence the bridge log so this
-  // ordinary state doesn't pollute Sentry breadcrumbs (ELECTRON-1BT).
-  getMode: httpGet<{ mode: string; initialized: boolean }, { conversation_id: string }>(
-    (p) => `/api/conversations/${p.conversation_id}/mode`,
-    { silentStatuses: [404] }
-  ),
-  getModel: httpGet<{ model_info: AcpModelInfo | null }, { conversation_id: string }>(
-    (p) => `/api/conversations/${p.conversation_id}/model`,
-    { silentStatuses: [404] }
-  ),
-  setModel: httpPut<{ model_info: AcpModelInfo | null }, { conversation_id: string; model_id: string }>(
-    (p) => `/api/conversations/${p.conversation_id}/model`,
-    (p) => ({ model_id: p.model_id })
-  ),
+  setMode: {
+    provider: () => {},
+    invoke: async (params: { conversation_id: string; mode: string }): Promise<{ mode: string; initialized: boolean }> => {
+      acpModeStateByConversation.set(params.conversation_id, { mode: params.mode, initialized: true });
+      return { mode: params.mode, initialized: true };
+    },
+  },
+  // Hermes does not expose the old ACP mode/model REST endpoints. Keep a
+  // small local cache so the existing selector hooks continue to work.
+  getMode: {
+    provider: () => {},
+    invoke: async (params: { conversation_id: string }): Promise<{ mode: string; initialized: boolean }> => {
+      const cached = acpModeStateByConversation.get(params.conversation_id);
+      if (cached) return cached;
+      const conversationInfo = await getHermesConversation(params.conversation_id).catch((): null => null);
+      const extra = conversationInfo?.extra as { session_mode?: string } | undefined;
+      const mode = extra?.session_mode?.trim();
+      if (mode) {
+        const resolved = { mode, initialized: true };
+        acpModeStateByConversation.set(params.conversation_id, resolved);
+        return resolved;
+      }
+      return { mode: 'default', initialized: false };
+    },
+  },
+  getModel: {
+    provider: () => {},
+    invoke: async (params: { conversation_id: string }): Promise<{ model_info: AcpModelInfo | null }> => {
+      const cached = acpModelStateByConversation.get(params.conversation_id);
+      if (cached) return cached;
+      const conversationInfo = await getHermesConversation(params.conversation_id).catch((): null => null);
+      const extra = conversationInfo?.extra as { current_model_id?: string; current_model_label?: string } | undefined;
+      const conversationModel = conversationInfo as { model?: TProviderWithModel } | null;
+      const current_model_id = extra?.current_model_id?.trim() || conversationModel?.model?.use_model?.trim() || null;
+      if (!current_model_id) return { model_info: null };
+      const model_info: AcpModelInfo = {
+        current_model_id,
+        current_model_label: extra?.current_model_label?.trim() || current_model_id,
+        available_models: [{ id: current_model_id, label: extra?.current_model_label?.trim() || current_model_id }],
+      };
+      const result = { model_info };
+      acpModelStateByConversation.set(params.conversation_id, result);
+      return result;
+    },
+  },
+  setModel: {
+    provider: () => {},
+    invoke: async (params: { conversation_id: string; model_id: string }): Promise<{ model_info: AcpModelInfo | null }> => {
+      const previous = acpModelStateByConversation.get(params.conversation_id)?.model_info ?? null;
+      const label = previous?.available_models.find((model) => model.id === params.model_id)?.label || params.model_id;
+      const model_info: AcpModelInfo = {
+        current_model_id: params.model_id,
+        current_model_label: label,
+        available_models: previous?.available_models.length
+          ? previous.available_models
+          : [{ id: params.model_id, label }],
+      };
+      const result = { model_info };
+      acpModelStateByConversation.set(params.conversation_id, result);
+      return result;
+    },
+  },
 };
 
 // ---------------------------------------------------------------------------
@@ -1153,37 +1124,6 @@ export const mcpService = {
   loginMcpOAuth: httpPost<{ success: boolean; error?: string }, { server_url: string }>('/api/mcp/oauth/login'),
   logoutMcpOAuth: httpPost<void, { server_url: string }>('/api/mcp/oauth/logout'),
   getAuthenticatedServers: httpGet<string[], void>('/api/mcp/oauth/authenticated'),
-};
-
-export const openclawConversation = {
-  sendMessage: conversation.sendMessage,
-  responseStream: conversation.responseStream,
-  getRuntime: httpGet<
-    {
-      conversation_id: string;
-      runtime: {
-        workspace?: string;
-        backend?: string;
-        agent_name?: string;
-        cli_path?: string;
-        model?: string;
-        session_key?: string | null;
-        is_connected?: boolean;
-        has_active_session?: boolean;
-        identity_hash?: string | null;
-      };
-      expected?: {
-        expected_workspace?: string;
-        expected_backend?: string;
-        expected_agent_name?: string;
-        expected_cli_path?: string;
-        expected_model?: string;
-        expected_identity_hash?: string | null;
-        switched_at?: number;
-      };
-    },
-    { conversation_id: string }
-  >((p) => `/api/conversations/${p.conversation_id}/openclaw/runtime`),
 };
 
 // ---------------------------------------------------------------------------
@@ -1381,40 +1321,30 @@ export const runtimeApi = {
 };
 
 // ---------------------------------------------------------------------------
-// System Settings — routed to /api/settings/* unless they need Electron-native side effects.
+// System Settings — desktop-owned preferences stay in local ProcessConfig.
 // ---------------------------------------------------------------------------
 
 export const systemSettings = {
   getCloseToTray: bridge.buildProvider<boolean, void>('system-settings:get-close-to-tray'),
   setCloseToTray: bridge.buildProvider<void, { enabled: boolean }>('system-settings:set-close-to-tray'),
-  getNotificationEnabled: httpGet<boolean, void>('/api/settings/client?key=notificationEnabled'),
-  setNotificationEnabled: httpPut<void, { enabled: boolean }>('/api/settings/client', (p) => ({
-    notificationEnabled: p.enabled,
-  })),
-  getCronNotificationEnabled: httpGet<boolean, void>('/api/settings/client?key=cronNotificationEnabled'),
-  setCronNotificationEnabled: httpPut<void, { enabled: boolean }>('/api/settings/client', (p) => ({
-    cronNotificationEnabled: p.enabled,
-  })),
-  getKeepAwake: httpGet<boolean, void>('/api/settings/client?key=keepAwake'),
-  setKeepAwake: httpPut<void, { enabled: boolean }>('/api/settings/client', (p) => ({ keepAwake: p.enabled })),
-  changeLanguage: httpPatch<void, { language: string }>('/api/settings', (p) => ({ language: p.language })),
+  getNotificationEnabled: bridge.buildProvider<boolean, void>('system-settings:get-notification-enabled'),
+  setNotificationEnabled: bridge.buildProvider<void, { enabled: boolean }>('system-settings:set-notification-enabled'),
+  getCronNotificationEnabled: bridge.buildProvider<boolean, void>('system-settings:get-cron-notification-enabled'),
+  setCronNotificationEnabled: bridge.buildProvider<void, { enabled: boolean }>(
+    'system-settings:set-cron-notification-enabled'
+  ),
+  getKeepAwake: bridge.buildProvider<boolean, void>('system-settings:get-keep-awake'),
+  setKeepAwake: bridge.buildProvider<void, { enabled: boolean }>('system-settings:set-keep-awake'),
+  changeLanguage: bridge.buildProvider<void, { language: string }>('system-settings:change-language'),
   languageChanged: wsEmitter<{ language: string }>('system-settings:language-changed'),
-  getSaveUploadToWorkspace: httpGet<boolean, void>('/api/settings/client?key=saveUploadToWorkspace'),
-  setSaveUploadToWorkspace: httpPut<void, { enabled: boolean }>('/api/settings/client', (p) => ({
-    saveUploadToWorkspace: p.enabled,
-  })),
-  getAutoPreviewOfficeFiles: httpGet<boolean, void>('/api/settings/client?key=autoPreviewOfficeFiles'),
-  setAutoPreviewOfficeFiles: httpPut<void, { enabled: boolean }>('/api/settings/client', (p) => ({
-    autoPreviewOfficeFiles: p.enabled,
-  })),
-  getPetEnabled: bridge.buildProvider<boolean, void>('system-settings:get-pet-enabled'),
-  setPetEnabled: bridge.buildProvider<void, { enabled: boolean }>('system-settings:set-pet-enabled'),
-  getPetSize: bridge.buildProvider<number, void>('system-settings:get-pet-size'),
-  setPetSize: bridge.buildProvider<void, { size: number }>('system-settings:set-pet-size'),
-  getPetDnd: bridge.buildProvider<boolean, void>('system-settings:get-pet-dnd'),
-  setPetDnd: bridge.buildProvider<void, { dnd: boolean }>('system-settings:set-pet-dnd'),
-  getPetConfirmEnabled: bridge.buildProvider<boolean, void>('system-settings:get-pet-confirm-enabled'),
-  setPetConfirmEnabled: bridge.buildProvider<void, { enabled: boolean }>('system-settings:set-pet-confirm-enabled'),
+  getSaveUploadToWorkspace: bridge.buildProvider<boolean, void>('system-settings:get-save-upload-to-workspace'),
+  setSaveUploadToWorkspace: bridge.buildProvider<void, { enabled: boolean }>(
+    'system-settings:set-save-upload-to-workspace'
+  ),
+  getAutoPreviewOfficeFiles: bridge.buildProvider<boolean, void>('system-settings:get-auto-preview-office-files'),
+  setAutoPreviewOfficeFiles: bridge.buildProvider<void, { enabled: boolean }>(
+    'system-settings:set-auto-preview-office-files'
+  ),
   ensureNodeRuntime: httpPost<{ ready: boolean }, { scope: IRuntimeStatusScope }>('/api/system/ensure-node-runtime'),
   ensureManagedAcpTool: httpPost<{ ready: boolean }, { scope: IRuntimeStatusScope; tool_id: string }>(
     '/api/system/ensure-managed-acp-tool'
@@ -1629,10 +1559,12 @@ export interface ISendMessageResult {
 }
 
 export interface IConfirmMessageParams {
-  confirm_key: string;
-  msg_id: string;
   conversation_id: string;
   call_id: string;
+  msg_id: string;
+  confirm_key?: string;
+  data?: unknown;
+  always_allow?: boolean;
 }
 
 export interface ICreateConversationParams {

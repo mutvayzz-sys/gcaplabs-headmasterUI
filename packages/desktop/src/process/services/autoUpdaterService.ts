@@ -9,6 +9,8 @@ import type { ProgressInfo, UpdateInfo } from 'electron-updater';
 import { app } from 'electron';
 import log from 'electron-log';
 import { EventEmitter } from 'events';
+import { existsSync } from 'node:fs';
+import { join } from 'node:path';
 import { recordAutoUpdateQuitAndInstall, recordAutoUpdateStatus } from './autoUpdateDiagnostics';
 
 /**
@@ -266,6 +268,10 @@ class AutoUpdaterService extends EventEmitter {
       if (!this._isInitialized) {
         throw new Error('AutoUpdaterService not initialized');
       }
+      const updateConfig = join(process.resourcesPath, 'app-update.yml');
+      if (!app.isPackaged || !existsSync(updateConfig)) {
+        return { success: false, error: 'Automatic updates are unavailable in this portable build.' };
+      }
 
       const result = await autoUpdater.checkForUpdates();
       if (!result) {
@@ -296,6 +302,10 @@ class AutoUpdaterService extends EventEmitter {
     try {
       if (!this._isInitialized) {
         throw new Error('AutoUpdaterService not initialized');
+      }
+      const updateConfig = join(process.resourcesPath, 'app-update.yml');
+      if (!app.isPackaged || !existsSync(updateConfig)) {
+        return { success: false, error: 'Automatic updates are unavailable in this portable build.' };
       }
 
       await autoUpdater.downloadUpdate();

@@ -9,7 +9,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { networkInterfaces } from 'os';
 import { getSystemDir } from './initStorage';
-import { httpRequest } from '@/common/adapter/httpBridge';
+import { ProcessConfig } from './initStorage';
 import { startWebHost, type WebHostHandle } from '@aionui/web-host';
 import { getDataPath } from './utils';
 
@@ -19,15 +19,8 @@ const DESKTOP_WEBUI_ALLOW_REMOTE_KEY = 'webui.desktop.allowRemote';
 const DESKTOP_WEBUI_PORT_KEY = 'webui.desktop.port';
 
 /**
- * Read WebUI preferences from the backend's /api/settings/client store.
- *
- * Historical note: this used to read from `ProcessConfig` (a local JSON file).
- * The renderer's `configService` was migrated to the backend HTTP store, but
- * this main-process path was not, so `webui.desktop.enabled` that the user
- * toggled via Settings was only ever persisted to SQLite — the next launch's
- * auto-restore always read `undefined` from the local file and did nothing,
- * yet the Settings page still showed the Switch as "on" (reading the SQLite
- * value), so users clicked the saved URL and got ERR_CONNECTION_REFUSED.
+ * Read desktop-only WebUI preferences from Headmaster's local config.
+ * Hermes does not expose the inherited `/api/settings/client` store.
  */
 async function readWebUIDesktopPreferences(): Promise<{
   enabled: boolean;
@@ -35,23 +28,26 @@ async function readWebUIDesktopPreferences(): Promise<{
   port: number | undefined;
 }> {
   try {
-    const settings = await httpRequest<Record<string, unknown>>('GET', '/api/settings/client');
-    const enabled = settings?.[DESKTOP_WEBUI_ENABLED_KEY] === true;
-    const allowRemote = settings?.[DESKTOP_WEBUI_ALLOW_REMOTE_KEY] === true;
-    const rawPort = settings?.[DESKTOP_WEBUI_PORT_KEY];
+    const [enabledValue, allowRemoteValue, rawPort] = await Promise.all([
+      ProcessConfig.get(DESKTOP_WEBUI_ENABLED_KEY),
+      ProcessConfig.get(DESKTOP_WEBUI_ALLOW_REMOTE_KEY),
+      ProcessConfig.get(DESKTOP_WEBUI_PORT_KEY),
+    ]);
+    const enabled = enabledValue === true;
+    const allowRemote = allowRemoteValue === true;
     const port = typeof rawPort === 'number' && rawPort > 0 ? rawPort : undefined;
     return { enabled, allowRemote, port };
   } catch (error) {
-    console.error('[WebUI] Failed to read preferences from backend:', error);
+    console.error('[WebUI] Failed to read desktop preferences:', error);
     return { enabled: false, allowRemote: false, port: undefined };
   }
 }
 
 async function writeWebUIDesktopEnabled(enabled: boolean): Promise<void> {
   try {
-    await httpRequest<void>('PUT', '/api/settings/client', { [DESKTOP_WEBUI_ENABLED_KEY]: enabled });
+    await ProcessConfig.set(DESKTOP_WEBUI_ENABLED_KEY, enabled);
   } catch (error) {
-    console.error('[WebUI] Failed to reconcile webui.desktop.enabled on backend:', error);
+    console.error('[WebUI] Failed to reconcile webui.desktop.enabled:', error);
   }
 }
 

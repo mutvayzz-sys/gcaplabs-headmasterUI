@@ -1,6 +1,6 @@
 {
   "name": "headmaster",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "description": "Headmaster — a Work Along AI agent desktop app by GCAP Labs. White-label of AionUi (Apache-2.0) with the Hermes Python runtime.",
   "keywords": [],
   "license": "Apache-2.0",
@@ -25,11 +25,6 @@
     "start": "electron-vite dev --config packages/desktop/electron.vite.config.ts",
     "start:multi": "cross-env AIONUI_MULTI_INSTANCE=1 electron-vite dev --config packages/desktop/electron.vite.config.ts",
     "cli": "electron-vite dev --config packages/desktop/electron.vite.config.ts",
-    "webui": "tsx scripts/webui.ts",
-    "webui:remote": "tsx scripts/webui.ts --remote",
-    "webui:prod": "cross-env NODE_ENV=production tsx scripts/webui.ts",
-    "webui:prod:remote": "cross-env NODE_ENV=production tsx scripts/webui.ts --remote",
-    "resetpass": "tsx scripts/resetpass.ts",
     "package": "electron-vite build --config packages/desktop/electron.vite.config.ts",
     "make": "electron-vite build --config packages/desktop/electron.vite.config.ts",
     "dist": "node scripts/build-with-builder.js",
@@ -270,7 +265,6 @@
   "engines": {
     "node": ">=22 <25"
   },
-  "aioncoreVersion": "v0.1.28",
   "electronRebuild": {
     "electronVersion": "^37.3.1"
   },

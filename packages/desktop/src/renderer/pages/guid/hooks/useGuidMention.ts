@@ -63,7 +63,7 @@ export const useGuidMention = ({
     return agents.map((agent) => {
       const key = getAgentKey(agent);
       const rawLabel = agent.name || agent.backend || agent.agent_type;
-      const label = rawLabel.replace(/\s+/g, '').toLowerCase() === 'aioncli' ? 'Headmaster CLI' : rawLabel;
+      const label = rawLabel.replace(/\s+/g, '').toLowerCase() === 'aioncli' ? 'Headmaster' : rawLabel;
       const avatarValue = agent.custom_agent_id
         ? agent.avatar || customAgentAvatarMap.get(agent.custom_agent_id)
         : undefined;
@@ -130,7 +130,7 @@ export const useGuidMention = ({
 
   const selectedAgentLabelRaw = selectedAgentInfo?.name || selectedAgentKey;
   const selectedAgentLabel =
-    selectedAgentLabelRaw.replace(/\s+/g, '').toLowerCase() === 'aioncli' ? 'Headmaster CLI' : selectedAgentLabelRaw;
+    selectedAgentLabelRaw.replace(/\s+/g, '').toLowerCase() === 'aioncli' ? 'Headmaster' : selectedAgentLabelRaw;
   const mentionMenuActiveOption = filteredMentionOptions[mentionActiveIndex] || filteredMentionOptions[0];
   const mentionMenuSelectedKey =
     mentionOpen || mentionSelectorOpen ? mentionMenuActiveOption?.key || selectedAgentKey : selectedAgentKey;

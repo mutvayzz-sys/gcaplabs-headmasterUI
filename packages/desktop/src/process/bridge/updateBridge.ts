@@ -246,23 +246,17 @@ const fetchWithAllowlistedRedirects = async (rawUrl: string, signal: AbortSignal
   throw new Error((await getI18n()).t('update.errors.tooManyRedirects'));
 };
 
-const fetchGitHubReleases = async (repo: string): Promise<GitHubReleaseApi[]> => {
-  // If a local GitHub token is set, hit GitHub directly (dev / power-user override).
-  // Otherwise use the gcaplabs.com proxy which holds the token server-side.
-  const ghToken = process.env.HEADMASTER_GITHUB_TOKEN || process.env.GH_TOKEN;
-  const url = ghToken ? `https://api.github.com/repos/${repo}/releases` : RELEASE_PROXY_URL;
-
+const fetchGitHubReleases = async (_repo: string): Promise<GitHubReleaseApi[]> => {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 30000);
 
   const headers: Record<string, string> = {
     Accept: 'application/vnd.github+json',
     'User-Agent': DEFAULT_USER_AGENT,
-    ...(ghToken ? { Authorization: `Bearer ${ghToken}` } : {}),
   };
 
   try {
-    const res = await fetch(url, {
+    const res = await fetch(RELEASE_PROXY_URL, {
       headers,
       signal: controller.signal,
     });

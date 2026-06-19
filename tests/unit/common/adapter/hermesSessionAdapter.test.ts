@@ -95,4 +95,40 @@ describe('Hermes session adapter', () => {
       },
     ]);
   });
+
+  it('maps stored tool calls and tool results into tool groups', () => {
+    const assistant: HermesSessionMessage = {
+      role: 'assistant',
+      content: '',
+      tool_calls: [
+        {
+          id: 'call-1',
+          function: { name: 'terminal', arguments: '{"command":"pwd"}' },
+        },
+      ],
+    };
+    const result: HermesSessionMessage = {
+      role: 'tool',
+      content: '/workspace',
+      tool_call_id: 'call-1',
+      tool_name: 'terminal',
+    };
+
+    expect(fromHermesMessage(assistant, 'session-1', 0)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: 'tool_group',
+          content: [expect.objectContaining({ call_id: 'call-1', name: 'terminal' })],
+        }),
+      ])
+    );
+    expect(fromHermesMessage(result, 'session-1', 1)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: 'tool_group',
+          content: [expect.objectContaining({ call_id: 'call-1', result_display: '/workspace' })],
+        }),
+      ])
+    );
+  });
 });

@@ -96,6 +96,9 @@ function isBackendStartupSecondaryEvent(event: { tags?: Record<string, unknown> 
 }
 
 export function initSentry(): void {
+  if (!process.env.SENTRY_DSN) {
+    return;
+  }
   Sentry.init({
     dsn: process.env.SENTRY_DSN,
     environment: app.isPackaged ? 'production' : 'development',
@@ -122,6 +125,7 @@ export function initSentry(): void {
  * a stable device identifier.
  */
 export function setSentryDeviceId(): void {
+  if (!process.env.SENTRY_DSN) return;
   const id = getOrCreateAnalyticsId();
   Sentry.setUser({ id });
   Sentry.setTag('device_id', id);
@@ -257,7 +261,6 @@ export async function captureBackendStartupFailure(error: unknown): Promise<void
       ['headmaster.backend_startup.missing_runtime_dir', getBooleanTagValue(failureInfo.missingRuntimeDir)],
       ['headmaster.backend_startup.missing_binary', getBooleanTagValue(failureInfo.missingBackendBinary)],
       ['headmaster.backend_startup.missing_hub_dir', getBooleanTagValue(failureInfo.missingHubDir)],
-      ['headmaster.backend_startup.missing_pet_states_dir', getBooleanTagValue(failureInfo.missingPetStatesDir)],
       ['headmaster.backend_startup.missing_pwa_dir', getBooleanTagValue(failureInfo.missingPwaDir)],
       ['headmaster.backend_startup.install_path_kind', getInstallPathKind(details?.resourcesPath)],
       ['headmaster.backend_startup.last_update_status', getString(autoUpdateDiagnostics?.lastEvent?.status)],
@@ -476,7 +479,7 @@ async function runStartupLogReport(): Promise<void> {
 
   Sentry.withScope((scope) => {
     scope.addAttachment({
-      filename: 'aionui-logs.log.gz',
+      filename: 'headmaster-logs.log.gz',
       data: pack.gzipped,
       contentType: 'application/gzip',
     });

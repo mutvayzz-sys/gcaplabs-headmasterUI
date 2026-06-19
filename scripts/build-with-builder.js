@@ -455,33 +455,11 @@ try {
     return;
   }
 
-  // 5. Prepare legacy aioncore only when explicitly requested.
-  // Headmaster now defaults to the real Hermes dashboard/runtime (`hermes dashboard`,
-  // `/api/*`, `/api/ws`, `/v1/*`) and white-labels on top of that. Requiring a
-  // bundled Adonis/aioncore release asset blocks packaging when that upstream
-  // release is missing, even though the runtime is no longer the default path.
-  const projectRoot = path.resolve(__dirname, '..');
-  const runtimeMode = (process.env.HEADMASTER_RUNTIME || 'hermes').toLowerCase();
-  if (runtimeMode === 'aioncore') {
-    const { prepareAioncore } = require('../packages/shared-scripts/src/prepare-aioncore.js');
-    const { resolveAioncoreVersion } = require('./resolveAioncoreVersion.js');
-    prepareAioncore({
-      projectRoot,
-      platform: process.platform,
-      arch: targetArch,
-      version: resolveAioncoreVersion(projectRoot),
-    });
-  } else {
-    console.log(`⏭️  Skipping bundled aioncore prepare (HEADMASTER_RUNTIME=${runtimeMode})`);
-  }
-
-  // 6. Prepare hub resources (index.json + extension zips for offline fallback).
-  // The white-label hub repo can be absent/private during local Hermes-runtime
-  // builds. Treat it as optional unless explicitly requested.
-  if (runtimeMode === 'aioncore' || process.env.HEADMASTER_HUB_REQUIRED === '1') {
+  // 5. Prepare optional hub resources (index.json + extension zips for offline fallback).
+  if (process.env.HEADMASTER_HUB_REQUIRED === '1') {
     execSync('node scripts/prepareHubResources.js', { stdio: 'inherit', env: process.env });
   } else {
-    console.log(`⏭️  Skipping hub resource prepare (HEADMASTER_RUNTIME=${runtimeMode})`);
+    console.log('⏭️  Skipping optional hub resource prepare');
   }
 
   // 6. 运行 electron-builder 生成分发包（DMG/ZIP/EXE等）

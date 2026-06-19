@@ -75,9 +75,20 @@ export function usePendingConfirmationsRecovery(conversation_id: string) {
       updateMessageList((list) => removePermissionMessage(list, { id: event.id, call_id: event.id }));
     });
 
+    const onAdd = ipcBridge.conversation.confirmation.add.on((event) => {
+      if (event.conversation_id !== conversation_id) return;
+      updateMessageList((list) => {
+        if (hasPermissionMessageForCallId(list, event.call_id)) {
+          return list;
+        }
+        return list.concat(buildPendingConfirmationMessage(conversation_id, event));
+      });
+    });
+
     return () => {
       cancelled = true;
       off();
+      onAdd();
     };
   }, [conversation_id, updateMessageList]);
 }

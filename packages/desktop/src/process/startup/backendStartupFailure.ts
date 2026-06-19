@@ -141,7 +141,6 @@ function classifyIncompleteInstallation(details: ErrorWithDetails['details']): B
       missingBundledHermesDir || missingRuntimeDir || missingManagedResourcesDir || missingRuntimeBinary,
     missingBundledHermesDir,
     missingHubDir: getMissingDirectoryFlag(resourcesDirEntries, 'hub/'),
-    missingPetStatesDir: getMissingDirectoryFlag(resourcesDirEntries, 'pet-states/'),
     missingPwaDir: getMissingDirectoryFlag(resourcesDirEntries, 'pwa/'),
     reason: 'backend_incomplete_installation',
     missingResources,

@@ -345,7 +345,7 @@ const TelegramConfigForm: React.FC<TelegramConfigFormProps> = ({
     backend?: string;
     name: string;
     id?: string;
-  }> = availableAgents.length > 0 ? availableAgents : [{ agent_type: 'aionrs', name: 'Headmaster CLI' }];
+  }> = availableAgents.length > 0 ? availableAgents : [{ agent_type: 'aionrs', name: 'Headmaster' }];
 
   return (
     <div className='flex flex-col gap-24px'>

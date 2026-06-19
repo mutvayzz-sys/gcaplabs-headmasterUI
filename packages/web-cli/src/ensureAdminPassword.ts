@@ -10,12 +10,8 @@
  * stdout so the user can log in.
  *
  * Mirrors Electron's maybeSeedInitialPassword in
- * packages/desktop/src/process/bridge/webuiBridge.ts:52-77 and the Bun dev
- * helper in scripts/webui.ts — when either changes, keep this in sync.
- *
- * The printed format is load-bearing: scripts/smoke-test-web-cli.sh greps for
- * "Generated initial admin password: <pw>". Do not change it without updating
- * that script.
+ * packages/desktop/src/process/bridge/webuiBridge.ts:52-77. Keep the printed
+ * format stable if any caller depends on the stdout line.
  */
 
 export type EnsureAdminPasswordDeps = {

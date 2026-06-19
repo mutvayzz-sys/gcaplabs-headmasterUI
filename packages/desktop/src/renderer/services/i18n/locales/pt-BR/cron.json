@@ -104,7 +104,7 @@
       "selectFolder": "Selecionar Pasta",
       "clearFolder": "Limpar",
       "model": "Modelo",
-      "aionrsModelRequired": "Por favor, selecione um modelo para a CLI do Aion",
+      "modelRequired": "Selecione um modelo.",
       "aionrsNoProvider": "Nenhum modelo disponível"
     },
     "freq": {

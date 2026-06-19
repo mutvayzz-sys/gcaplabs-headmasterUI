@@ -90,13 +90,7 @@ export const ensureBackendMcpCatalog = async (): Promise<{
   builtinServers: IMcpServer[];
   allServers: IMcpServer[];
 }> => {
-  const settings: Record<string, unknown> =
-    (await httpRequest<Record<string, unknown>>('GET', '/api/settings/client').catch(
-      () => ({}) as Record<string, unknown>
-    )) || {};
-  const localServers = Array.isArray(settings['mcp.config'])
-    ? (settings['mcp.config'] as IMcpServer[])
-    : (configService.get('mcp.config') ?? []);
+  const localServers = configService.get('mcp.config') ?? [];
   const builtinServers = dedupeServers(localServers.filter(isBuiltinServer));
   let userServers = dedupeServers(await mcpService.listServers.invoke());
 

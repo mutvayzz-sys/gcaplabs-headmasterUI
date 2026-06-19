@@ -45,7 +45,9 @@ export interface HermesSessionMessage {
   text?: unknown;
   timestamp?: number;
   tool_call_id?: string | null;
+  tool_calls?: unknown;
   tool_name?: string;
+  context?: unknown;
 }
 
 export interface HermesSessionMessagesResponse {
@@ -157,7 +159,7 @@ export function fromHermesMessage(message: HermesSessionMessage, conversationId:
   }
 
   const text = contentToText(message.text ?? message.content);
-  if (text || message.role !== 'assistant') {
+  if (message.role !== 'tool' && (text || message.role !== 'assistant')) {
     mapped.push({
       id: idBase,
       msg_id: idBase,
@@ -166,6 +168,85 @@ export function fromHermesMessage(message: HermesSessionMessage, conversationId:
       content: { content: text },
       created_at: createdAt,
       position: message.role === 'user' ? 'right' : message.role === 'system' ? 'center' : 'left',
+      status: 'finish',
+      hidden: message.role === 'system',
+    });
+  }
+
+  if (message.role === 'assistant' && Array.isArray(message.tool_calls)) {
+    const tools = message.tool_calls.map((raw, toolIndex) => {
+      const call = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
+      const fn =
+        call.function && typeof call.function === 'object'
+          ? (call.function as Record<string, unknown>)
+          : call;
+      const callId = String(call.id ?? call.call_id ?? `${idBase}:tool:${toolIndex}`);
+      let args: Record<string, unknown> = {};
+      const rawArgs = fn.arguments ?? call.arguments ?? call.input;
+      if (typeof rawArgs === 'string') {
+        try {
+          args = JSON.parse(rawArgs) as Record<string, unknown>;
+        } catch {
+          args = { input: rawArgs };
+        }
+      } else if (rawArgs && typeof rawArgs === 'object') {
+        args = rawArgs as Record<string, unknown>;
+      }
+      return {
+        call_id: callId,
+        description: String(fn.name ?? call.name ?? 'Tool'),
+        name: String(fn.name ?? call.name ?? 'tool'),
+        render_output_as_markdown: true,
+        status: 'Success' as const,
+        result_display: JSON.stringify(args, null, 2),
+      };
+    });
+    mapped.push({
+      id: `${idBase}:tools`,
+      msg_id: `${idBase}:tools`,
+      conversation_id: conversationId,
+      type: 'tool_group',
+      content: tools,
+      created_at: createdAt,
+      position: 'left',
+      status: 'finish',
+    });
+  }
+
+  if (message.role === 'tool') {
+    mapped.push({
+      id: `${idBase}:tool-result`,
+      msg_id: `${idBase}:tool-result`,
+      conversation_id: conversationId,
+      type: 'tool_group',
+      content: [
+        {
+          call_id: message.tool_call_id || `${idBase}:tool`,
+          description: message.tool_name || message.name || 'Tool result',
+          name: message.tool_name || message.name || 'tool',
+          render_output_as_markdown: true,
+          status: 'Success',
+          result_display: text,
+        },
+      ],
+      created_at: createdAt,
+      position: 'left',
+      status: 'finish',
+    });
+  }
+
+  if (!text && message.context) {
+    mapped.push({
+      id: `${idBase}:metadata`,
+      msg_id: `${idBase}:metadata`,
+      conversation_id: conversationId,
+      type: 'tips',
+      content: {
+        content: contentToText(message.context),
+        type: 'info',
+      },
+      created_at: createdAt,
+      position: 'center',
       status: 'finish',
       hidden: message.role === 'system',
     });

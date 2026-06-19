@@ -8,7 +8,6 @@ const {
   verifyModuleBinary,
   getModulesToRebuild,
 } = require('./rebuildNativeModules');
-const { verifyBundledAioncoreResources } = require('../packages/shared-scripts/src/verify-bundled-aioncore-resources');
 
 /**
  * afterPack hook for electron-builder
@@ -20,21 +19,6 @@ function resolveResourcesDir(electronPlatformName, appOutDir, packager) {
 
   const appName = packager?.appInfo?.productFilename || 'Headmaster';
   return path.join(appOutDir, `${appName}.app`, 'Contents', 'Resources');
-}
-
-function verifyBundledResources(resourcesDir, electronPlatformName, targetArch) {
-  const result = verifyBundledAioncoreResources({
-    resourcesDir,
-    electronPlatformName,
-    targetArch,
-  });
-
-  if (result.missing.length > 0) {
-    console.error(`   Missing bundled resources: ${result.missing.join(', ')}`);
-    throw new Error(`Packaged app is missing required bundled resource(s): ${result.missing.join(', ')}`);
-  }
-
-  console.log(`   ✓ Bundled resources verified for ${result.runtimeKey} (${result.checked.length} checks)`);
 }
 
 module.exports = async function afterPack(context) {
@@ -72,12 +56,6 @@ module.exports = async function afterPack(context) {
       console.warn(`   ⚠️  app.asar.unpacked not found`);
     }
 
-    const runtimeMode = (process.env.HEADMASTER_RUNTIME || 'hermes').toLowerCase();
-    if (runtimeMode === 'aioncore') {
-      verifyBundledResources(resourcesDir, electronPlatformName, targetArch);
-    } else {
-      console.log(`   ✓ Bundled aioncore verification skipped (HEADMASTER_RUNTIME=${runtimeMode})`);
-    }
   } else {
     throw new Error(`resources directory not found: ${resourcesDir}`);
   }

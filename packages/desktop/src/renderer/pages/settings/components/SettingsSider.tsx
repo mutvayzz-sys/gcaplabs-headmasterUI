@@ -52,7 +52,6 @@ export const LEGACY_ANCHOR_REMAP: Record<string, string> = {
   runtime: 'hermes',
   webui: 'advanced',
   integrations: 'advanced',
-  pet: 'model',
 };
 
 /**
