@@ -6,15 +6,7 @@
 
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import {
-  ChatCircle,
-  Brain,
-  Clock,
-  Users,
-  Kanban,
-  GearSix,
-  Package,
-} from '@phosphor-icons/react';
+import { ChatCircle, Brain, Clock, Users, Kanban, GearSix, Package } from '@phosphor-icons/react';
 import type { SiderTooltipProps } from '@renderer/utils/ui/siderTooltip';
 import { SiderNavEntry } from './index';
 

@@ -115,7 +115,8 @@ async function prepareHubResources() {
   console.log(`[hub] index.json downloaded from ${indexUrl}`);
 
   // Step 2: Parse index and download all extension zips
-  const rawIndex = fs.readFileSync(indexPath, 'utf-8')
+  const rawIndex = fs
+    .readFileSync(indexPath, 'utf-8')
     .replace(/Headmaster/g, 'Headmaster')
     .replace(/Adonis Core/g, 'Adonis Core')
     .replace(/mutvayzz-sys\/Headmaster/g, 'GCAPLabs/Headmaster')

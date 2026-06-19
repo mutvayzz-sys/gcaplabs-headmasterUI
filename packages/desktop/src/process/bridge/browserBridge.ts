@@ -146,7 +146,9 @@ export function initBrowserBridge(): void {
     return getBrowserCdpStatus();
   });
 
-  ipcBridge.browser.sendCdpCommand.provider(async ({ targetId, method, params }: { targetId: string; method: string; params?: Record<string, unknown> }) => {
-    return sendCdpCommand(targetId, method, params);
-  });
+  ipcBridge.browser.sendCdpCommand.provider(
+    async ({ targetId, method, params }: { targetId: string; method: string; params?: Record<string, unknown> }) => {
+      return sendCdpCommand(targetId, method, params);
+    }
+  );
 }

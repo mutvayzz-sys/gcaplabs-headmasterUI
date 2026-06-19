@@ -9,6 +9,7 @@ Running record of what was built, why, and what's next. Newest entries at the to
 **What:** Replaced the remaining primary inherited desktop/backend paths with Hermes session REST APIs, native Hermes JSON-RPC chat, local desktop services, and explicit unsupported-feature behavior. Removed the legacy desktop backend fallback and Desktop Pet, hardened runtime/update/settings behavior, and advanced the source version to `0.1.7`.
 
 **Conversation and runtime:**
+
 - Added `hermesChatAdapter.ts` for `session.create`, `session.resume`, `prompt.submit`, `session.interrupt`, event translation, reconnect handling, and interactive runtime prompts.
 - Expanded `hermesSessionAdapter.ts` transcript mapping for reasoning, tool calls, tool results, and context metadata.
 - Routed primary conversation create/send/stop/history/update/delete behavior through Hermes.
@@ -17,12 +18,14 @@ Running record of what was built, why, and what's next. Newest entries at the to
 - Replaced inherited workspace HTTP browsing with local filesystem IPC.
 
 **Settings and data adapters:**
+
 - Mapped assistants to `/api/profiles`, provider/model selection to `/api/model/options`, and memory operations to Hermes memory endpoints.
 - Converted Dashboard, Activity, and Documents to Hermes session/file data.
 - Refined Runtime Settings using `/api/config/schema` grouping, descriptions, defaults, and client-side validation.
 - Moved desktop-owned client, theme, tray, web UI, and related settings to local process configuration.
 
 **Cleanup and release behavior:**
+
 - Removed Desktop Pet process, preload, renderer, route, tray, configuration, and locale code.
 - Removed the legacy desktop backend binary resolver, fallback startup, bundled preparation, and obsolete web/reset/password packaging scripts.
 - Renamed the cron model-required key to neutral wording and removed user-facing legacy CLI terminology.
@@ -38,6 +41,7 @@ Running record of what was built, why, and what's next. Newest entries at the to
 **What:** Implemented Task 9 (local/remote Hermes gateway selector) and Task 10 (rename all internal aioncore/aionui to Headmaster/Hermes). Bumped version to 0.1.3.
 
 **Task 9 — Hermes detection + remote gateway:**
+
 - `hermesBootstrap.ts` — added `isInstalled()` method
 - New `process/connection/connectionConfig.ts` — stores connection mode (local/remote) and remote config (host, port, token) in `connection-config.json`
 - `index.ts handleAppReady()` — branches on connection mode: remote skips local spawn, sets `__backendHost` + `__backendPort` + `__hermesSessionToken` from config
@@ -47,6 +51,7 @@ Running record of what was built, why, and what's next. Newest entries at the to
 - `backendStartup.ts` — fixed stale "aioncore" log message to "Hermes"
 
 **Task 10 — Rename aioncore/aionui:**
+
 - `initStorage.ts` — storage files renamed: `aionui-config.txt` → `headmaster-config.txt`, etc. + migration function for old files
 - `applicationBridgeCore.ts` — `ProcessEnv.set('aionui.dir')` → `'headmaster.dir'`
 - `binaryResolver.ts` — `BINARY_NAME = 'aioncore'` → `'hermes'`
@@ -66,6 +71,7 @@ Running record of what was built, why, and what's next. Newest entries at the to
 **What:** Cleared the entire `todo.md` backlog. 16 tasks across 7 phases, 8 commits on `gcaplabs-headmaster/repo/gcaplabs-headmasterUI/main`.
 
 **Commits (oldest → newest):**
+
 1. `32add65` — Remove global BottomComposer (chat input only on Chat screen)
 2. `3463091` — Fix ChatSlider to render workspace panel for all conversation types with a workspace path
 3. `441ab25` — Rename Hermes→Runtime in settings sider, add Advanced Settings tab, remove Desktop Pet, rename Memory settings entry
@@ -76,6 +82,7 @@ Running record of what was built, why, and what's next. Newest entries at the to
 8. `8ce2485` — Doc updates (todo.md, AGENTS.md)
 
 **New files created:**
+
 - `packages/desktop/src/process/agent/agentScanner.ts` — local CLI binary scanner
 - `packages/desktop/src/process/bridge/agentBridge.ts` — IPC bridge for agent scanner
 - `packages/desktop/src/renderer/pages/settings/AdvancedSettings.tsx` — tabbed container for WebUI/Capabilities/Integrations
@@ -83,10 +90,12 @@ Running record of what was built, why, and what's next. Newest entries at the to
 - `packages/desktop/src/renderer/components/layout/Sider/SiderNav/UpdateChecker.tsx` — polls /api/hermes/update/check every 6h
 
 **Files deleted:**
+
 - `packages/desktop/src/renderer/pages/settings/PetSettings.tsx` — Desktop Pet removed
 - `packages/desktop/src/renderer/components/layout/BottomComposer.tsx` — global composer removed
 
 **Endpoints now wired:**
+
 - `GET /api/status` — gateway status (public, polled every 30s)
 - `GET /api/config` — runtime config settings page
 - `GET /api/config/schema` — config field schema for settings UI
@@ -96,6 +105,7 @@ Running record of what was built, why, and what's next. Newest entries at the to
 - `POST /api/gateway/restart` — restart gateway from sidebar footer
 
 **Remaining:**
+
 - Build + smoke test against live Hermes backend
 - DeepWiki index (requires Devin account for private repo)
 - Honcho server upgrade to 3.x+
@@ -108,51 +118,59 @@ Running record of what was built, why, and what's next. Newest entries at the to
 
 **Changes:**
 
-*Versioning:*
+_Versioning:_
+
 - Root `package.json` version reset from `2.1.18` (inherited from the white-label base) to **`0.1.3`** — Headmaster's own version line.
 
-*Removed the "installation incomplete" startup check:*
+_Removed the "installation incomplete" startup check:_
+
 - `get-backend-startup-failure` IPC (`packages/desktop/src/index.ts`) now always returns `null`; the renderer can never receive failure info to render the dialog.
 - `markBackendStartupFailed()` no longer classifies the failure; kept only the `backendStartupFailed` boolean (used for Sentry noise filtering + i18n language hint).
 - Removed the now-unused `backendStartupFailureInfo` state and the `classifyBackendStartupFailure` / `BackendStartupFailureInfo` imports.
 - Deleted the dead renderer component `InstallationIntegrityDialog.tsx`.
 
-*White-screen recovery:*
+_White-screen recovery:_
+
 - Added `AppErrorBoundary` (`packages/desktop/src/renderer/components/layout/AppErrorBoundary.tsx`) and wrapped both `<Outlet />` and the sidebar in `Layout.tsx`. A render crash now shows the actual error message + "Reload app" instead of an unrecoverable blank screen. The white screen + lingering install dialog were both traced to a stale build predating the prior session's renderer cleanup.
 
-*Build:*
+_Build:_
+
 - Fresh signed `Headmaster.exe` built to `out/win-unpacked/` (had to close the running stale exe that was locking the output dir).
 - Shortcut created at `GCAP-Labs/Headmaster.lnk` → the new exe.
 
 **Why:** The packaged app the user was running was stale, so a removed dialog and an uncatchable white screen both persisted. Resetting the version, removing the check at its source, and adding an error boundary make the app self-consistent and crash-recoverable going forward.
 
 **Files changed:**
+
 - `package.json` — version → 0.1.3
 - `packages/desktop/src/index.ts` — startup-failure check neutered
 - `packages/desktop/src/renderer/components/layout/Layout.tsx` — error boundaries
 - `packages/desktop/src/renderer/components/layout/AppErrorBoundary.tsx` — created
 
 **Files deleted:**
+
 - `packages/desktop/src/renderer/components/layout/InstallationIntegrityDialog.tsx`
 
 **Next:** See `gcaplabs-headmaster/repo/gcaplabs-headmasterUI/todo.md` — settings restructure (Hermes→main / others→Advanced), fix CLI agent detection, Memory panel = app + "Memory Settings" rename, remove Desktop Pet/Skills, drop persistent composer, fix missing file/document explorer.
 
 ---
 
-## 2026-06-17 — OpenConcho UI overhaul (_support/upstream/openconcho)
+## 2026-06-17 — OpenConcho UI overhaul (\_support/upstream/openconcho)
 
 **What:** Simplified and rebranded the OpenConcho web app to match Headmaster's design system and remove pages/features we don't use.
 
 **Changes:**
 
-*Structure:*
+_Structure:_
+
 - Replaced the sidebar nav with a slim top `Header` bar. Keeps instance switcher, health dot, theme/demo/metadata toggles, and a gear icon linking to Settings.
 - Removed the Seed Kits section entirely (route + 3 component files).
 - `/workspaces` list route now redirects to `/` — the Dashboard (which already shows all workspaces in a table with metrics) is the single main screen.
 - Workspace detail routes (`/workspaces/$workspaceId/...`) kept intact for drill-in.
 - Settings still accessible via gear icon in the header; the auto-redirect for first-run (no config → /settings) kept.
 
-*Design (Headmaster brand alignment):*
+_Design (Headmaster brand alignment):_
+
 - All CSS accent tokens repointed from indigo (`#6366f1`) to Headmaster's green (`#8fd5a8` dark / `#1f5a3d` light).
 - Dark/light background palette aligned to Headmaster tokens (`#0e0e0e` / `#ffffff` base).
 - Status colors updated to Headmaster semantic values (success `#23c343`, warning `#ff9a2e`, destructive `#f76560`).
@@ -162,6 +180,7 @@ Running record of what was built, why, and what's next. Newest entries at the to
 **Why:** OpenConcho is embedded in the Headmaster flow via the Memory page — it needs to feel native, not like a separate app. The sidebar added navigation overhead when there's only one real screen (workspaces). Seed Kits are a feature of the open-source tool, not something we use.
 
 **Files changed:**
+
 - `packages/web/src/index.css` — full theme retheme + font swap
 - `packages/web/src/lib/constants.ts` — status + accent comment updated
 - `packages/web/src/components/layout/Header.tsx` — created (replaces Sidebar)
@@ -170,6 +189,7 @@ Running record of what was built, why, and what's next. Newest entries at the to
 - `packages/web/src/routeTree.gen.ts` — seed-kits entries removed
 
 **Files deleted:**
+
 - `packages/web/src/components/layout/Sidebar.tsx`
 - `packages/web/src/routes/seed-kits.tsx`
 - `packages/web/src/components/seed-kits/SeedKitsView.tsx`
@@ -182,18 +202,21 @@ Running record of what was built, why, and what's next. Newest entries at the to
 
 **What:** Restructured the Settings page and wired the Kanban page to the real Hermes Kanban plugin.
 
-*Settings:*
+_Settings:_
+
 - Hermes is now the first tab in Settings (was buried). Group headers added: AI Core, HeadmasterUI, Memory, About.
 - Integrations moved from standalone sidebar item into Settings as a proper tab.
 - Skills (Capabilities) remains in Settings.
 - `/integrations` redirects to `/settings/integrations`.
 - Removed the Aion Core / Adonis Core startup check popup (`RuntimeFailureDialogs` + all supporting code in `main.tsx`).
 
-*Kanban:*
+_Kanban:_
+
 - `useKanban.ts` rewritten to call real Hermes Kanban API (`GET /api/plugins/kanban/board`, `PATCH /api/plugins/kanban/tasks/{id}`) with Bearer token from `useDashboardStatus()`.
 - Status mapping: backlog↔triage, todo↔ready, in_progress↔running, review↔blocked, done↔done.
 
 **Files changed:**
+
 - `SettingsSider.tsx`, `Router.tsx`, `Phase2Nav.tsx`, `main.tsx`, `useKanban.ts`
 
 ---
@@ -205,21 +228,25 @@ Running record of what was built, why, and what's next. Newest entries at the to
 **Why:** Needed to see what the agent is browsing without leaving the app. Rejected a permanent tab — it should appear only when in use, like an IDE terminal panel.
 
 **Decision trail:**
+
 - Bottom drawer (VS Code-style) vs right-side panel → chose **right panel** (Option B) — chat stays full height, panel fills the slot the old Preview panel used to occupy
 - No tab bar — panel has a simple header (live dot + "Browser" label + close button) and nothing else
 - Fixed VNC URL (`localhost:6080`) — Camofox always uses this port, no need to parse it from tool output
 
 **Files added:**
+
 - `gcaplabs-headmaster/repo/gcaplabs-headmasterUI/packages/desktop/src/renderer/pages/conversation/BrowserPanel/` (3 files)
 - `gcaplabs-headmaster/repo/gcaplabs-headmasterUI/packages/desktop/src/renderer/hooks/chat/useBrowserSessionWatch.ts`
 
 **Files changed:**
+
 - `ChatLayout/index.tsx` — BrowserPanel replaces PreviewPanel in the right panel slot
 - `main.tsx` — BrowserPanelProvider added to provider chain
 - `conversation/index.tsx` — useBrowserSessionWatch(id) wired in
 - All 9 `locales/*/conversation.json` — `browser.title` and `browser.close` keys added
 
 **Still to do:**
+
 - Remove old PreviewPanel tab system (PreviewPanel, PreviewProvider, PreviewContext) — user confirmed this is planned
 - Run `bun run i18n:types` to regenerate i18n TypeScript types
 - Test detection logic in `useBrowserSessionWatch` against real Camofox session
@@ -235,6 +262,7 @@ Running record of what was built, why, and what's next. Newest entries at the to
 **Removed from sidebar:** Dashboard, Activity, Documents, Skills/Workflows, Integrations, Browser
 
 **Why:**
+
 - Dashboard: Chat can be the landing page; stats are not a primary destination
 - Activity: sub-view, not a nav destination
 - Documents: accessible from chat; the OfficeCLI/Preview-panel document explorer is upstream AionUI functionality, not wired in Headmaster
@@ -245,6 +273,7 @@ Running record of what was built, why, and what's next. Newest entries at the to
 **Deliverables (was Assets):** Maps to "Artifacts" in the hermes-desktop GUI. Kept as own sidebar item.
 
 **Files changed:**
+
 - `Phase2Nav.tsx` — NAV_ITEMS reduced to 7, unused icon imports removed
 - `SettingsSider.tsx` — `integrations` added to BUILTIN_TAB_IDS + builtinMap, after `capabilities` in AI Core group
 - `Router.tsx` — `/settings/integrations` route added; `/integrations` now redirects there
@@ -260,6 +289,7 @@ Running record of what was built, why, and what's next. Newest entries at the to
 **What:** Read through Hermes agent browser docs (`runtime/hermes-agent/website/docs/user-guide/features/browser.md`) and mapped what's available for embedding in the desktop app.
 
 **Key findings:**
+
 - Camofox (Firefox-based, local) exposes noVNC at port 6080 when `ENABLE_VNC=1` — this is the live view mechanism
 - Cloud providers (Browserbase, Browser Use, Firecrawl) don't expose VNC — screenshots via `browser_vision` only
 - `WebviewHost` component already exists in the app and can embed any URL as an Electron webview

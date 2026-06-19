@@ -265,7 +265,9 @@ const JsonFileBuilder = <S extends object = Record<string, unknown>>(file_path: 
 
 const envFile = JsonFileBuilder<IEnvStorageRefer>(path.join(getHomePage(), STORAGE_PATH.env));
 
-const dirConfig = envFile.getSync('headmaster.dir') ?? (envFile.getSync as (key: string) => IEnvStorageRefer['headmaster.dir'] | undefined)('aionui.dir');
+const dirConfig =
+  envFile.getSync('headmaster.dir') ??
+  (envFile.getSync as (key: string) => IEnvStorageRefer['headmaster.dir'] | undefined)('aionui.dir');
 
 const cacheDir = dirConfig?.cacheDir || getHomePage();
 

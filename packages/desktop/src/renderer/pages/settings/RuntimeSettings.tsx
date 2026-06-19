@@ -4,7 +4,18 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Button, Card, Empty, Input, InputNumber, Message, Select, Spin, Switch, Typography } from '@arco-design/web-react';
+import {
+  Button,
+  Card,
+  Empty,
+  Input,
+  InputNumber,
+  Message,
+  Select,
+  Spin,
+  Switch,
+  Typography,
+} from '@arco-design/web-react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { httpGet, httpPut } from '@/common/adapter/httpBridge';
@@ -108,7 +119,9 @@ function deleteConfigValue(obj: ConfigData, path: string): ConfigData {
 }
 
 function isSchemaFieldType(value: unknown): value is SchemaFieldType {
-  return typeof value === 'string' && ['string', 'text', 'number', 'boolean', 'list', 'object', 'select'].includes(value);
+  return (
+    typeof value === 'string' && ['string', 'text', 'number', 'boolean', 'list', 'object', 'select'].includes(value)
+  );
 }
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
@@ -349,7 +362,11 @@ const RuntimeSettings: React.FC = () => {
         token: remoteConfig.token,
       });
       await api.setConnectionMode(connectionMode);
-      Message.success(t('settings.runtime.connectionSaved', { defaultValue: 'Connection settings saved. Restart Headmaster to apply.' }));
+      Message.success(
+        t('settings.runtime.connectionSaved', {
+          defaultValue: 'Connection settings saved. Restart Headmaster to apply.',
+        })
+      );
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       Message.error(message);
@@ -394,7 +411,7 @@ const RuntimeSettings: React.FC = () => {
       }
     }
 
-    for (const field of Object.values(schema.fields)) {
+    for (const field of Object.values(schema.fields ?? {})) {
       if (!field || typeof field !== 'object') continue;
       const category = typeof field.category === 'string' ? field.category : 'other';
       if (!seen.has(category)) {
@@ -409,7 +426,7 @@ const RuntimeSettings: React.FC = () => {
   const fieldsByCategory = useMemo(() => {
     if (!schema) return new Map<string, [string, ConfigSchemaField][]>();
     const map = new Map<string, [string, ConfigSchemaField][]>();
-    for (const [path, field] of Object.entries(schema.fields)) {
+    for (const [path, field] of Object.entries(schema.fields ?? {})) {
       if (!field || typeof field !== 'object') continue;
       if (!isSchemaFieldType(field.type)) continue;
       const category = field.category || 'other';
@@ -480,7 +497,13 @@ const RuntimeSettings: React.FC = () => {
       default:
         return (
           <Input
-            value={typeof effectiveValue === 'string' ? effectiveValue : typeof effectiveValue === 'number' ? String(effectiveValue) : ''}
+            value={
+              typeof effectiveValue === 'string'
+                ? effectiveValue
+                : typeof effectiveValue === 'number'
+                  ? String(effectiveValue)
+                  : ''
+            }
             onChange={(value) => setFieldValue(path, field, value)}
             placeholder={typeof field.placeholder === 'string' ? field.placeholder : undefined}
           />
@@ -504,8 +527,15 @@ const RuntimeSettings: React.FC = () => {
               })}
             </Text>
           </div>
-          <Button type='primary' loading={saving || loading} disabled={loading || !config || hasBlockingErrors} onClick={() => void handleSave()}>
-            {saving ? t('settings.runtime.saving', { defaultValue: 'Saving…' }) : t('settings.runtime.save', { defaultValue: 'Save' })}
+          <Button
+            type='primary'
+            loading={saving || loading}
+            disabled={loading || !config || hasBlockingErrors}
+            onClick={() => void handleSave()}
+          >
+            {saving
+              ? t('settings.runtime.saving', { defaultValue: 'Saving…' })
+              : t('settings.runtime.save', { defaultValue: 'Save' })}
           </Button>
         </header>
 
@@ -520,24 +550,32 @@ const RuntimeSettings: React.FC = () => {
         >
           <div className='grid gap-16px' style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))' }}>
             <div className='flex flex-col gap-6px'>
-              <label className='text-14px font-medium'>{t('settings.runtime.connectionMode', { defaultValue: 'Connection mode' })}</label>
+              <label className='text-14px font-medium'>
+                {t('settings.runtime.connectionMode', { defaultValue: 'Connection mode' })}
+              </label>
               <Select
                 value={connectionMode}
                 onChange={(value) => setConnectionModeState(value as ConnectionMode)}
                 options={[
                   { label: t('settings.runtime.connectionLocal', { defaultValue: 'Local Runtime' }), value: 'local' },
-                  { label: t('settings.runtime.connectionRemote', { defaultValue: 'Remote Runtime' }), value: 'remote' },
+                  {
+                    label: t('settings.runtime.connectionRemote', { defaultValue: 'Remote Runtime' }),
+                    value: 'remote',
+                  },
                 ]}
               />
               <Text type='secondary'>
                 {t('settings.runtime.connectionHelp', {
-                  defaultValue: 'Local starts the runtime on this machine. Remote connects to a runtime on another machine.',
+                  defaultValue:
+                    'Local starts the runtime on this machine. Remote connects to a runtime on another machine.',
                 })}
               </Text>
             </div>
 
             <div className='flex flex-col gap-6px'>
-              <label className='text-14px font-medium'>{t('settings.runtime.remoteHost', { defaultValue: 'Remote host' })}</label>
+              <label className='text-14px font-medium'>
+                {t('settings.runtime.remoteHost', { defaultValue: 'Remote host' })}
+              </label>
               <Input
                 disabled={connectionMode !== 'remote'}
                 placeholder='192.168.1.20'
@@ -547,7 +585,9 @@ const RuntimeSettings: React.FC = () => {
             </div>
 
             <div className='flex flex-col gap-6px'>
-              <label className='text-14px font-medium'>{t('settings.runtime.remotePort', { defaultValue: 'Remote port' })}</label>
+              <label className='text-14px font-medium'>
+                {t('settings.runtime.remotePort', { defaultValue: 'Remote port' })}
+              </label>
               <InputNumber
                 disabled={connectionMode !== 'remote'}
                 min={1}
@@ -560,7 +600,9 @@ const RuntimeSettings: React.FC = () => {
             </div>
 
             <div className='flex flex-col gap-6px'>
-              <label className='text-14px font-medium'>{t('settings.runtime.remoteToken', { defaultValue: 'Session token' })}</label>
+              <label className='text-14px font-medium'>
+                {t('settings.runtime.remoteToken', { defaultValue: 'Session token' })}
+              </label>
               <Input.Password
                 disabled={connectionMode !== 'remote'}
                 value={remoteConfig.token}
@@ -574,7 +616,9 @@ const RuntimeSettings: React.FC = () => {
           <Card bordered>
             <div className='flex flex-col items-center gap-12px py-32px'>
               <Spin />
-              <Text type='secondary'>{t('settings.runtime.loading', { defaultValue: 'Loading runtime settings…' })}</Text>
+              <Text type='secondary'>
+                {t('settings.runtime.loading', { defaultValue: 'Loading runtime settings…' })}
+              </Text>
             </div>
           </Card>
         ) : error ? (
@@ -583,7 +627,9 @@ const RuntimeSettings: React.FC = () => {
               <Text type='error'>
                 {t('settings.runtime.loadError', { defaultValue: 'Failed to load runtime settings' })}: {error}
               </Text>
-              <Button onClick={() => void fetchConfig()}>{t('settings.runtime.retry', { defaultValue: 'Retry' })}</Button>
+              <Button onClick={() => void fetchConfig()}>
+                {t('settings.runtime.retry', { defaultValue: 'Retry' })}
+              </Button>
             </div>
           </Card>
         ) : categories.length === 0 ? (
@@ -607,18 +653,23 @@ const RuntimeSettings: React.FC = () => {
             return (
               <Card
                 key={category}
-                title={<span className='capitalize'>{category === 'other' ? t('settings.runtime.unknownCategory', { defaultValue: 'Other' }) : category}</span>}
+                title={
+                  <span className='capitalize'>
+                    {category === 'other' ? t('settings.runtime.unknownCategory', { defaultValue: 'Other' }) : category}
+                  </span>
+                }
                 bordered
               >
                 <div className='flex flex-col gap-18px'>
                   {Array.from(grouped.entries()).map(([section, sectionFields]) => (
                     <div key={`${category}:${section}`} className='flex flex-col gap-12px'>
                       {sectionFields.some(([path]) => path.includes('.')) ? (
-                        <div className='text-12px font-600 uppercase tracking-[0.08em] text-t-secondary'>
-                          {section}
-                        </div>
+                        <div className='text-12px font-600 uppercase tracking-[0.08em] text-t-secondary'>{section}</div>
                       ) : null}
-                      <div className='grid gap-16px' style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))' }}>
+                      <div
+                        className='grid gap-16px'
+                        style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))' }}
+                      >
                         {sectionFields.map(([path, field]) => {
                           const currentValue = getConfigValue(config, path);
                           const defaultValue = defaults ? getConfigValue(defaults, path) : field.default;
@@ -626,18 +677,27 @@ const RuntimeSettings: React.FC = () => {
                           const hasError = Boolean(fieldState?.error);
 
                           return (
-                            <div key={path} className='flex flex-col gap-6px rounded-8px border border-solid border-color-border-2 p-12px'>
+                            <div
+                              key={path}
+                              className='flex flex-col gap-6px rounded-8px border border-solid border-color-border-2 p-12px'
+                            >
                               <div className='flex items-start justify-between gap-8px'>
                                 <div className='flex flex-col gap-4px'>
                                   <label className='text-14px font-medium'>{field.description || path}</label>
                                   <Text type='secondary' style={{ fontSize: 12 }}>
-                                    {t('settings.runtime.defaultValue', { defaultValue: 'Default' })}: {prettyValue(defaultValue)}
+                                    {t('settings.runtime.defaultValue', { defaultValue: 'Default' })}:{' '}
+                                    {prettyValue(defaultValue)}
                                   </Text>
                                   <Text type='secondary' style={{ fontSize: 12 }}>
-                                    {t('settings.runtime.currentValue', { defaultValue: 'Current' })}: {prettyValue(currentValue)}
+                                    {t('settings.runtime.currentValue', { defaultValue: 'Current' })}:{' '}
+                                    {prettyValue(currentValue)}
                                   </Text>
                                 </div>
-                                <Button size='mini' onClick={() => handleResetField(path, field)} disabled={defaults === null}>
+                                <Button
+                                  size='mini'
+                                  onClick={() => handleResetField(path, field)}
+                                  disabled={defaults === null}
+                                >
                                   {t('settings.runtime.resetField', { defaultValue: 'Reset' })}
                                 </Button>
                               </div>

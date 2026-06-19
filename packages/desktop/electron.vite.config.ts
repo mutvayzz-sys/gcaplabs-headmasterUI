@@ -62,11 +62,12 @@ function iconParkPlugin() {
               const local = (parts[1] ?? parts[0]).trim();
               return { source, local };
             });
-          const importComponent =
-            str.replace(
-              match,
-              components.map(({ source, local }: { source: string; local: string }) => `${source} as _${source}`).join(', ')
-            );
+          const importComponent = str.replace(
+            match,
+            components
+              .map(({ source, local }: { source: string; local: string }) => `${source} as _${source}`)
+              .join(', ')
+          );
           const hoc = `import IconParkHOC from '@renderer/components/IconParkHOC';
           ${components.map(({ source, local }: { source: string; local: string }) => `const ${local} = IconParkHOC(_${source})`).join(';\n')}`;
           return importComponent + ';' + hoc;

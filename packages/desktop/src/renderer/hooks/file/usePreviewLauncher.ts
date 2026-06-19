@@ -8,7 +8,6 @@ import type { PreviewContentType } from '@/common/types/office/preview';
 import type { PreviewErrorKind } from '@/renderer/utils/previewError';
 import { useCallback, useState } from 'react';
 
-
 /**
  * 预览启动选项 / Preview launch options
  */
@@ -43,12 +42,9 @@ export const usePreviewLauncher = () => {
   const [loading] = useState(false);
   const [errorKind] = useState<PreviewErrorKind | null>(null);
 
-  const launchPreview = useCallback(
-    async (_options: PreviewLaunchOptions) => {
-      // Preview functionality has been removed
-    },
-    []
-  );
+  const launchPreview = useCallback(async (_options: PreviewLaunchOptions) => {
+    // Preview functionality has been removed
+  }, []);
 
   return { launchPreview, loading, errorKind };
 };

@@ -3,9 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const mocks = vi.hoisted(() => ({
   request: vi.fn(),
   broadcast: vi.fn(),
-  gatewayListener: undefined as
-    | ((event: { type: string; session_id?: string; payload?: unknown }) => void)
-    | undefined,
+  gatewayListener: undefined as ((event: { type: string; session_id?: string; payload?: unknown }) => void) | undefined,
 }));
 
 vi.mock('../../../../packages/desktop/src/common/adapter/httpBridge', () => ({
@@ -128,5 +126,182 @@ describe('Hermes chat adapter', () => {
       ['session.interrupt', { session_id: 'live-resumed' }],
     ]);
     expect(result.runtime.state).toBe('idle');
+  });
+});
+
+describe('gateway edge cases', () => {
+  beforeEach(() => {
+    mocks.request.mockReset();
+    mocks.broadcast.mockReset();
+    resetHermesChatRuntimeState();
+  });
+
+  it('handles unknown event types silently without broadcasting', () => {
+    mocks.request.mockResolvedValue({
+      session_id: 'live-1',
+      stored_session_id: 'stored-1',
+    });
+
+    mocks.gatewayListener?.({
+      type: 'unknown.xyz',
+      session_id: 'live-1',
+      payload: {},
+    });
+
+    expect(mocks.broadcast).not.toHaveBeenCalled();
+  });
+
+  it('drops events for sessions with no active turn', async () => {
+    mocks.request.mockResolvedValueOnce({
+      session_id: 'live-1',
+      stored_session_id: 'stored-1',
+    });
+    await createHermesChatConversation({
+      type: 'aionrs',
+      model: {
+        id: 'openai',
+        name: 'OpenAI',
+        platform: 'openai',
+        api_key: '',
+        base_url: '',
+        use_model: 'openai/gpt-5',
+      },
+      extra: {},
+    });
+
+    mocks.broadcast.mockClear();
+
+    // Event for an unregistered session_id
+    mocks.gatewayListener?.({
+      type: 'message.delta',
+      session_id: 'live-unknown',
+      payload: { text: 'orphaned' },
+    });
+
+    expect(mocks.broadcast).not.toHaveBeenCalled();
+  });
+
+  it('ignores rpc_error events when no active turn is tracked', async () => {
+    mocks.request.mockResolvedValueOnce({
+      session_id: 'live-1',
+      stored_session_id: 'stored-1',
+    });
+    mocks.request.mockImplementation(() => new Promise(() => {})); // hang forever
+
+    await createHermesChatConversation({
+      type: 'aionrs',
+      model: {
+        id: 'openai',
+        name: 'OpenAI',
+        platform: 'openai',
+        api_key: '',
+        base_url: '',
+        use_model: 'openai/gpt-5',
+      },
+      extra: {},
+    });
+    mocks.broadcast.mockClear();
+
+    // rpc_error has no session_id; adapter returns immediately with no active turn to notify
+    mocks.gatewayListener?.({
+      type: 'rpc_error',
+      payload: { error: 'connection closed' },
+    });
+
+    expect(mocks.broadcast).not.toHaveBeenCalled();
+  });
+
+  it('handles RPC error frames', async () => {
+    mocks.request.mockResolvedValueOnce({
+      session_id: 'live-1',
+      stored_session_id: 'stored-1',
+    });
+    mocks.request.mockResolvedValueOnce({ status: 'streaming' });
+
+    await createHermesChatConversation({
+      type: 'aionrs',
+      model: {
+        id: 'openai',
+        name: 'OpenAI',
+        platform: 'openai',
+        api_key: '',
+        base_url: '',
+        use_model: 'openai/gpt-5',
+      },
+      extra: {},
+    });
+
+    await sendHermesMessage({ conversation_id: 'stored-1', input: 'test' });
+    mocks.broadcast.mockClear();
+
+    mocks.gatewayListener?.({
+      type: 'error',
+      session_id: 'live-1',
+      payload: { message: 'model rate limited' },
+    });
+
+    expect(mocks.broadcast).toHaveBeenCalledWith(
+      'message.stream',
+      expect.objectContaining({
+        type: 'tips',
+        data: expect.objectContaining({ content: 'model rate limited' }),
+      }),
+    );
+  });
+
+  it('completes turn without double-firing on interrupt', async () => {
+    mocks.request.mockResolvedValueOnce({
+      session_id: 'live-1',
+      stored_session_id: 'stored-1',
+    });
+    mocks.request.mockResolvedValueOnce({ status: 'streaming' });
+
+    await createHermesChatConversation({
+      type: 'aionrs',
+      model: {
+        id: 'openai',
+        name: 'OpenAI',
+        platform: 'openai',
+        api_key: '',
+        base_url: '',
+        use_model: 'openai/gpt-5',
+      },
+      extra: {},
+    });
+
+    const sent = await sendHermesMessage({
+      conversation_id: 'stored-1',
+      input: 'test',
+    });
+    mocks.broadcast.mockClear();
+
+    mocks.gatewayListener?.({
+      type: 'message.start',
+      session_id: 'live-1',
+      payload: {},
+    });
+    mocks.gatewayListener?.({
+      type: 'message.delta',
+      session_id: 'live-1',
+      payload: { text: 'Part of response' },
+    });
+    mocks.gatewayListener?.({
+      type: 'message.complete',
+      session_id: 'live-1',
+      payload: { text: 'Part of response', finish_reason: 'stop' },
+    });
+
+    const completedCalls = mocks.broadcast.mock.calls.filter((call) => call[0] === 'turn.completed');
+    expect(completedCalls).toHaveLength(1);
+  });
+
+  it('handles malformed events without crashing', () => {
+    mocks.gatewayListener?.({
+      type: 'message.delta',
+      session_id: 'live-1',
+      payload: null, // malformed payload
+    });
+
+    expect(mocks.broadcast).not.toHaveBeenCalled();
   });
 });

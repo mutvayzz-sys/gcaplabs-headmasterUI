@@ -38,12 +38,7 @@ const SiderScheduledEntry: React.FC<SiderScheduledEntryProps> = ({
           )}
           onClick={onClick}
         >
-          <Alarm
-            size={20}
-            weight='regular'
-            className='block leading-none shrink-0'
-            style={{ lineHeight: 0 }}
-          />
+          <Alarm size={20} weight='regular' className='block leading-none shrink-0' style={{ lineHeight: 0 }} />
         </div>
       </Tooltip>
     );
@@ -60,12 +55,7 @@ const SiderScheduledEntry: React.FC<SiderScheduledEntryProps> = ({
         onClick={onClick}
       >
         <span className='size-22px flex items-center justify-center shrink-0 text-t-primary'>
-          <Alarm
-            size={16}
-            weight='regular'
-            className='block leading-none'
-            style={{ lineHeight: 0 }}
-          />
+          <Alarm size={16} weight='regular' className='block leading-none' style={{ lineHeight: 0 }} />
         </span>
         <span className='collapsed-hidden text-t-primary text-14px font-[500] leading-24px'>
           {t('cron.scheduledTasks')}

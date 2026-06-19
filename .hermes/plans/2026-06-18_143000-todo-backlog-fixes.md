@@ -9,12 +9,14 @@
 **Tech Stack:** Electron 30+, React 18, TypeScript, Arco Design, Vite, Vitest
 
 **Branch state (Phase 0):**
+
 - Branch: `main`
 - Commit: `e2227bb feat(desktop): contextual BrowserPanel, remove install check, error boundary, v0.1.2`
 - Working tree: clean (no uncommitted changes)
 - Baseline SHA: `e2227bb`
 
 **Critical notes for implementer:**
+
 - Read `gcaplabs-headmaster/repo/gcaplabs-headmasterUI/AGENTS.md` for conventions. Arco-only for interactive components (no raw `<button>` except where existing code already uses it with custom styling). i18n for all user-facing strings. `@arco-design/web-react` + `@icon-park/react`.
 - "Hermes" is allowed in env vars, IPC channel names, and backend code, but NEVER in user-visible UI strings. Use "Headmaster" instead.
 - The Hermes Python runtime lives at `runtime/hermes-agent/` — DO NOT edit it. All fixes are in the desktop app source.
@@ -28,6 +30,7 @@
 **Objective:** Replace the "Hermes" tab label with "Headmaster" (or "Runtime") in the settings sidebar.
 
 **Files:**
+
 - Modify: `packages/desktop/src/renderer/pages/settings/components/SettingsSider.tsx:92-97`
 - Modify: `packages/desktop/src/renderer/services/i18n/locales/en-US/settings.json:1136`
 
@@ -46,15 +49,17 @@
 **Objective:** Replace the keep/port comparison view (`RuntimeSettings.tsx`) with a real settings page that surfaces actual Hermes runtime configuration. The old page was a dev/status diagnostic; the new page should show editable settings sourced from Hermes `/api/config`.
 
 **Files:**
+
 - Rewrite: `packages/desktop/src/renderer/pages/settings/RuntimeSettings.tsx`
 - Modify: `packages/desktop/src/renderer/services/i18n/locales/en-US/settings.json` (remove `runtime.keep.*` and `runtime.row.*` keys, add new keys for the settings page)
 
 **Step 1:** Rewrite `RuntimeSettings.tsx` to fetch config from `GET /api/config` (already exists in Hermes backend at line 2912 of `web_server.py`) and display editable fields. Start minimal — show:
-  - Model provider (dropdown from `/api/model/options`)
-  - Default model (dropdown)
-  - Active profile (from `/api/profiles/active`)
-  - System prompt override (textarea, reads from `/api/profiles/{name}/soul`)
-  - Config save button (PUT `/api/config`)
+
+- Model provider (dropdown from `/api/model/options`)
+- Default model (dropdown)
+- Active profile (from `/api/profiles/active`)
+- System prompt override (textarea, reads from `/api/profiles/{name}/soul`)
+- Config save button (PUT `/api/config`)
 
 **Step 2:** Remove the `buildDefaultPorting` and `buildDefaultKept` functions, `PortRow`, `KeepRow`, and `readinessTag` types. Replace with a simpler form component.
 
@@ -69,6 +74,7 @@
 **Objective:** Create a new "Advanced Settings" tab that holds the settings that were ported from Hermes but don't belong in the main Settings category. Move webui, integrations, and capabilities there.
 
 **Files:**
+
 - Modify: `packages/desktop/src/renderer/pages/settings/components/SettingsSider.tsx:29-42` (BUILTIN_TAB_IDS array)
 - Create: `packages/desktop/src/renderer/pages/settings/AdvancedSettings.tsx`
 - Modify: `packages/desktop/src/renderer/components/layout/Router.tsx`
@@ -91,6 +97,7 @@
 **Objective:** Clean up i18n keys and dead code from the white-label base. Remove `runtime.keep.*`, `runtime.row.*`, and any settings entries that are no longer referenced.
 
 **Files:**
+
 - Modify: `packages/desktop/src/renderer/services/i18n/locales/en-US/settings.json`
 
 **Step 1:** Search for all i18n keys that are no longer referenced in source code (grep for `settings.runtime.keep`, `settings.runtime.row`, `settings.runtime.status`, `settings.runtime.keptHeading`, `settings.runtime.portingHeading`, `settings.runtime.footerTitle`, `settings.runtime.footerBody`). Remove the dead ones.
@@ -108,15 +115,17 @@
 **Objective:** The Hermes backend has no `/api/agents` endpoint and no `/api/extensions/acp-adapters` endpoint. The current `getAvailableAgents.invoke()` tries both and gets empty results. Fix by implementing a local scanner in the Electron main process that probes `$PATH` for known CLI agent binaries.
 
 **Files:**
+
 - Create: `packages/desktop/src/process/agent/agentScanner.ts`
 - Modify: `packages/desktop/src/process/bridge/index.ts` (register new bridge)
 - Modify: `packages/desktop/src/common/adapter/ipcBridge.ts:914-970` (rewrite `getAvailableAgents`)
 
 **Step 1:** Create `agentScanner.ts` in the process layer. It should:
-  - Define a catalog of known CLI agents: `claude` (Claude Code), `codex` (OpenAI Codex), `grok` (Grok CLI), `hermes` (Hermes Agent), `kimi` (if installed)
-  - For each, check if the binary exists on `$PATH` using `which`/`where` (Windows) or `execSync`
-  - Return `AgentMetadata[]` with `agent_source: 'builtin'`, `agent_type: 'acp'`, `available: true` for each found binary
-  - Include the binary path and version if obtainable
+
+- Define a catalog of known CLI agents: `claude` (Claude Code), `codex` (OpenAI Codex), `grok` (Grok CLI), `hermes` (Hermes Agent), `kimi` (if installed)
+- For each, check if the binary exists on `$PATH` using `which`/`where` (Windows) or `execSync`
+- Return `AgentMetadata[]` with `agent_source: 'builtin'`, `agent_type: 'acp'`, `available: true` for each found binary
+- Include the binary path and version if obtainable
 
 ```typescript
 // agentScanner.ts — skeleton
@@ -159,10 +168,11 @@ export function scanForAgents(): AgentMetadata[] {
 **Step 2:** Register an IPC handler in the process bridge that calls `scanForAgents()`. Wire it through `packages/desktop/src/process/bridge/index.ts`.
 
 **Step 3:** Rewrite `getAvailableAgents` in `ipcBridge.ts` (lines 914-970) to:
-  1. First try the local scanner via IPC (fast, always works)
-  2. Then merge with any custom agents from `GET /api/agents/custom` (if the backend supports it)
-  3. Then merge with any ACP adapters from `/api/extensions/acp-adapters` (if available)
-  4. Return the combined list
+
+1. First try the local scanner via IPC (fast, always works)
+2. Then merge with any custom agents from `GET /api/agents/custom` (if the backend supports it)
+3. Then merge with any ACP adapters from `/api/extensions/acp-adapters` (if available)
+4. Return the combined list
 
 **Step 4:** Run `bunx tsc --noEmit` — expect pass.
 
@@ -173,6 +183,7 @@ export function scanForAgents(): AgentMetadata[] {
 **Objective:** The `refreshCustomAgents` IPC channel is currently a stub (`stubProvider`). Wire it to re-scan agents and re-fetch custom agents from the backend.
 
 **Files:**
+
 - Modify: `packages/desktop/src/common/adapter/ipcBridge.ts:971`
 
 **Step 1:** Replace the `stubProvider` for `refreshCustomAgents` with a real implementation that calls the local scanner + backend fetch, then returns void (the SWR revalidation handles the UI update).
@@ -202,6 +213,7 @@ export function scanForAgents(): AgentMetadata[] {
 **Objective:** The Memory tab in the left nav should render the Memory app directly (the `MemoryPage` at `/memory`), not a placeholder. The current `MemoryPage` at `packages/desktop/src/renderer/pages/memory/index.tsx` is real — it shows memory providers with enable/disable toggles. Verify it's rendering properly and not behind a placeholder.
 
 **Files:**
+
 - Verify: `packages/desktop/src/renderer/components/layout/Sider/SiderNav/Phase2Nav.tsx:30` (Memory nav entry points to `/memory`)
 - Verify: `packages/desktop/src/renderer/pages/memory/index.tsx` (the Memory page)
 - Verify: `packages/desktop/src/renderer/pages/memory/useMemory.ts` (the data hook)
@@ -219,6 +231,7 @@ export function scanForAgents(): AgentMetadata[] {
 **Objective:** The Memory entry under Settings (`/settings/memory` → `MemorySettings.tsx`) should be renamed to "Memory Settings" to distinguish it from the main Memory app.
 
 **Files:**
+
 - Modify: `packages/desktop/src/renderer/pages/settings/components/SettingsSider.tsx:131-136`
 - Modify: `packages/desktop/src/renderer/services/i18n/locales/en-US/settings.json`
 
@@ -239,6 +252,7 @@ export function scanForAgents(): AgentMetadata[] {
 **Objective:** Remove the Desktop Pet settings tab and all pet-related functionality.
 
 **Files:**
+
 - Delete: `packages/desktop/src/renderer/pages/settings/PetSettings.tsx`
 - Modify: `packages/desktop/src/renderer/components/layout/Router.tsx:15,88` (remove PetSettings import and route)
 - Modify: `packages/desktop/src/renderer/pages/settings/components/SettingsSider.tsx:130` (remove pet from BUILTIN_TAB_IDS and builtinMap)
@@ -263,6 +277,7 @@ export function scanForAgents(): AgentMetadata[] {
 **Objective:** Remove the Skills settings tab and the Workflows page that consumes skills.
 
 **Files:**
+
 - Check if Skills is already merged into Capabilities (it is — `SkillsHubSettings` was merged into `CapabilitiesSettings` with redirect from `/settings/skills-hub` → `/settings/capabilities?tab=skills`). If so, this may be partially done.
 - Modify: `packages/desktop/src/renderer/pages/settings/components/SettingsSider.tsx` (if there's a skills entry, remove it)
 - Check: `packages/desktop/src/renderer/pages/workflows/index.tsx` and `useSkills.ts` — if these are Phase 2 stubs, remove or stub them differently.
@@ -282,6 +297,7 @@ export function scanForAgents(): AgentMetadata[] {
 **Objective:** Review the Appearance settings page and remove old/unused items from the white-label base.
 
 **Files:**
+
 - Review: `packages/desktop/src/renderer/components/settings/SettingsModal/contents/AppearanceModalContent.tsx`
 - Review: `packages/desktop/src/renderer/pages/settings/AppearanceSettings/` directory
 
@@ -302,6 +318,7 @@ export function scanForAgents(): AgentMetadata[] {
 **Objective:** The `BottomComposer` is rendered on every screen in `Layout.tsx:428`. Remove it from the global layout so the chat input only appears on the Chat screen.
 
 **Files:**
+
 - Modify: `packages/desktop/src/renderer/components/layout/Layout.tsx:21,428`
 - Delete (optional): `packages/desktop/src/renderer/components/layout/BottomComposer.tsx`
 
@@ -324,6 +341,7 @@ export function scanForAgents(): AgentMetadata[] {
 **Objective:** The workspace panel (`ChatWorkspace`) only renders when `conversation.extra.workspace` exists AND `conversation.type` is one of `acp`, `codex`, or `aionrs`. If the conversation type doesn't match or there's no workspace path, it returns an empty `<div>`. Fix so the workspace panel shows for all conversation types that have a workspace path.
 
 **Files:**
+
 - Modify: `packages/desktop/src/renderer/pages/conversation/components/ChatSlider.tsx`
 
 **Step 1:** Rewrite `ChatSlider.tsx` to check for workspace presence regardless of conversation type. Instead of three separate `if` blocks for `acp`/`codex`/`aionrs`, use a single check:
@@ -379,9 +397,10 @@ const ChatSlider: React.FC<{ conversation?: TChatConversation }> = ({ conversati
 **Step 2:** Verify the file explorer panel appears on the right side of the chat.
 
 **Step 3:** If it still doesn't appear, check:
-  - `ChatLayout` receives `workspaceEnabled={true}` (not `false`)
-  - `rightSiderCollapsed` isn't stuck at `true` (check `useWorkspaceCollapse` hook default)
-  - The conversation actually has `extra.workspace` set in the database
+
+- `ChatLayout` receives `workspaceEnabled={true}` (not `false`)
+- `rightSiderCollapsed` isn't stuck at `true` (check `useWorkspaceCollapse` hook default)
+- The conversation actually has `extra.workspace` set in the database
 
 ---
 
@@ -400,17 +419,19 @@ grep -rn '"Hermes\|"AionUi\|"aionui\|"aionrs\|"Cowork' packages/desktop/src/rend
 ```
 
 **Step 2:** For each hit, determine if it's:
-  - User-visible UI string → replace with "Headmaster"
-  - Env var / IPC channel / internal identifier → leave as-is (allowed per WHITE-LABEL-AUDIT.md)
-  - i18n key name → leave as-is (internal)
+
+- User-visible UI string → replace with "Headmaster"
+- Env var / IPC channel / internal identifier → leave as-is (allowed per WHITE-LABEL-AUDIT.md)
+- i18n key name → leave as-is (internal)
 
 **Step 3:** Fix all user-visible occurrences. The main known ones from the settings page:
-  - `settings.json:1136` — `"hermes": "Hermes"` → `"hermes": "Runtime"` (done in Task 1)
-  - `settings.json:1137` — `"groupHeadmasterUI": "HeadmasterUI"` → `"groupHeadmasterUI": "Headmaster"` (done in Task 1)
-  - `settings.json:229` — runtime subtitle mentions "Hermes" → update
-  - `settings.json:234` — footerBody mentions "Hermes" → remove (page is being rewritten)
-  - `settings.json:237` — portingHeading "Porting from Hermes" → remove
-  - `settings.json:246,248,252,274` — various subtitles mentioning "Hermes" → remove
+
+- `settings.json:1136` — `"hermes": "Hermes"` → `"hermes": "Runtime"` (done in Task 1)
+- `settings.json:1137` — `"groupHeadmasterUI": "HeadmasterUI"` → `"groupHeadmasterUI": "Headmaster"` (done in Task 1)
+- `settings.json:229` — runtime subtitle mentions "Hermes" → update
+- `settings.json:234` — footerBody mentions "Hermes" → remove (page is being rewritten)
+- `settings.json:237` — portingHeading "Porting from Hermes" → remove
+- `settings.json:246,248,252,274` — various subtitles mentioning "Hermes" → remove
 
 **Step 4:** Commit: `chore(white-label): remove remaining Hermes mentions from UI strings`
 

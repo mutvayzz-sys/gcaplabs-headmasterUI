@@ -24,11 +24,41 @@ import { useLayoutContext } from '@renderer/hooks/context/LayoutContext';
 import { useDashboard } from './useDashboard';
 
 const STAT_CARDS = [
-  { key: 'activeSessions', icon: Pulse, label: 'Active Sessions', color: 'bg-amber-500/10 text-amber-300', route: '/activity' },
-  { key: 'messagesToday', icon: ChatCircle, label: 'Messages Today', color: 'bg-blue-500/10 text-blue-300', route: '/guid' },
-  { key: 'pendingTasks', icon: CheckSquare, label: 'Pending Tasks', color: 'bg-purple-500/10 text-purple-300', route: '/kanban' },
-  { key: 'connectedPlatforms', icon: Plugs, label: 'Connected Platforms', color: 'bg-emerald-500/10 text-emerald-300', route: '/integrations' },
-  { key: 'documentsCount', icon: Books, label: 'Documents', color: 'bg-slate-500/10 text-slate-300', route: '/documents' },
+  {
+    key: 'activeSessions',
+    icon: Pulse,
+    label: 'Active Sessions',
+    color: 'bg-amber-500/10 text-amber-300',
+    route: '/activity',
+  },
+  {
+    key: 'messagesToday',
+    icon: ChatCircle,
+    label: 'Messages Today',
+    color: 'bg-blue-500/10 text-blue-300',
+    route: '/guid',
+  },
+  {
+    key: 'pendingTasks',
+    icon: CheckSquare,
+    label: 'Pending Tasks',
+    color: 'bg-purple-500/10 text-purple-300',
+    route: '/kanban',
+  },
+  {
+    key: 'connectedPlatforms',
+    icon: Plugs,
+    label: 'Connected Platforms',
+    color: 'bg-emerald-500/10 text-emerald-300',
+    route: '/integrations',
+  },
+  {
+    key: 'documentsCount',
+    icon: Books,
+    label: 'Documents',
+    color: 'bg-slate-500/10 text-slate-300',
+    route: '/documents',
+  },
   { key: 'totalTokens', icon: Brain, label: 'Total Tokens', color: 'bg-rose-500/10 text-rose-300', route: '/memory' },
 ] as const;
 
@@ -69,9 +99,7 @@ const DashboardPage: React.FC = () => {
             className='cursor-pointer bg-fill-1 rd-10px border border-border-2 px-16px py-14px flex flex-col gap-8px hover:border-t-primary transition-colors'
           >
             <div className='flex items-center justify-between'>
-              <span className={classNames('px-8px py-4px rd-6px text-11px font-medium', card.color)}>
-                {card.label}
-              </span>
+              <span className={classNames('px-8px py-4px rd-6px text-11px font-medium', card.color)}>{card.label}</span>
               <card.icon size={18} className='text-t-secondary' />
             </div>
             <span className='text-24px font-bold text-t-primary'>
@@ -121,7 +149,10 @@ const DashboardPage: React.FC = () => {
                 }}
               >
                 <div className='flex items-center gap-10px'>
-                  <Tag size='small' color={item.type === 'session' ? 'arcoblue' : item.type === 'task' ? 'purple' : 'gray'}>
+                  <Tag
+                    size='small'
+                    color={item.type === 'session' ? 'arcoblue' : item.type === 'task' ? 'purple' : 'gray'}
+                  >
                     {item.type}
                   </Tag>
                   <span className='text-13px text-t-primary truncate max-w-300px'>{item.title}</span>
@@ -131,12 +162,16 @@ const DashboardPage: React.FC = () => {
                     {new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   </span>
                   {item.meta && (
-                    <span className={classNames(
-                      'text-10px px-6px py-2px rd-4px font-medium',
-                      item.meta === 'running' || item.meta === 'in_progress' ? 'bg-amber-500/10 text-amber-300'
-                        : item.meta === 'done' ? 'bg-emerald-500/10 text-emerald-300'
-                        : 'bg-slate-500/10 text-slate-300'
-                    )}>
+                    <span
+                      className={classNames(
+                        'text-10px px-6px py-2px rd-4px font-medium',
+                        item.meta === 'running' || item.meta === 'in_progress'
+                          ? 'bg-amber-500/10 text-amber-300'
+                          : item.meta === 'done'
+                            ? 'bg-emerald-500/10 text-emerald-300'
+                            : 'bg-slate-500/10 text-slate-300'
+                      )}
+                    >
                       {item.meta}
                     </span>
                   )}

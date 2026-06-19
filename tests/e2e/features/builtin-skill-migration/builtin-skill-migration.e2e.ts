@@ -76,9 +76,10 @@ interface MaterializeResponse {
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
 function resolveBackendBinary(): string {
-  const candidates = [process.env.HEADMASTER_BACKEND_BINARY, path.join(os.homedir(), '.cargo', 'bin', 'aioncore')].filter(
-    (x): x is string => typeof x === 'string' && x.length > 0
-  );
+  const candidates = [
+    process.env.HEADMASTER_BACKEND_BINARY,
+    path.join(os.homedir(), '.cargo', 'bin', 'aioncore'),
+  ].filter((x): x is string => typeof x === 'string' && x.length > 0);
   for (const c of candidates) {
     if (fs.existsSync(c)) return c;
   }

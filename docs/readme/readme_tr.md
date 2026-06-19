@@ -56,7 +56,7 @@
 
 **Headmaster sadece bir sohbet istemcisi değil.** AI Agents'ın bilgisayarınızda sizinle çalıştığı bir Work Along platformudur — dosya okuma, kod yazma, web'de gezinme ve görevleri otomatikleştirme. Agent'ın yaptığı her şeyi görürsünüz ve her zaman kontrol sizdedir.
 
-|                                        | Geleneksel AI Sohbet İstemcileri | **Headmaster (Work Along)**                                                                                                             |
+|                                        | Geleneksel AI Sohbet İstemcileri | **Headmaster (Work Along)**                                                                                                     |
 | :------------------------------------- | :------------------------------- | :------------------------------------------------------------------------------------------------------------------------------ |
 | AI dosyalarınızda işlem yapabilir      | Sınırlı veya Yok                 | **Evet — tam dosya erişimi ile yerleşik Agent**                                                                                 |
 | AI çok adımlı görevleri çalıştırabilir | Sınırlı                          | **Evet — onayınızla özerk**                                                                                                     |
@@ -133,13 +133,13 @@ Birden fazla AI Agent'ı organize bir ekip olarak çalıştırın: bir **Leader*
 
 Diğer AI uygulamaları size API anahtarınızla bir sohbet kutusu verir. **Headmaster size tam bir Work Along Agent verir.**
 
-| API Anahtarınız            | Ne Alırsınız                 |
-| :------------------------- | :--------------------------- |
+| API Anahtarınız            | Ne Alırsınız                     |
+| :------------------------- | :------------------------------- |
 | Gemini API Anahtarı        | Gemini destekli Work Along Agent |
 | OpenAI API Anahtarı        | GPT destekli Work Along Agent    |
 | Anthropic API Anahtarı     | Claude destekli Work Along Agent |
 | Ollama / LM Studio (yerel) | Yerel model Work Along Agent     |
-| NewAPI Gateway             | 20+ modele birleşik erişim   |
+| NewAPI Gateway             | 20+ modele birleşik erişim       |
 
 Aynı Agent yetenekleri — dosya okuma/yazma, web arama, görüntü oluşturma, araç kullanımı — hangi modelin güç verdiğine bakılmaksızın. Headmaster bulut hizmetleri ve yerel dağıtımlar dahil **30+ AI platformunu** destekler.
 
@@ -459,13 +459,13 @@ _Birden fazla konuşma açın, görevler karışmaz, bağımsız bellek, verimli
 
 Headmaster **ücretsiz ve açık kaynaklı bir Çoklu AI Agent Masaüstü** uygulamasıdır. Sadece macOS'ta çalışan ve Claude'ye kilitli Claude Work Along ile karşılaştırıldığında, Headmaster tam model, çapraz platform geliştirilmiş versiyonudur.
 
-| Boyut           | Claude Work Along | Headmaster                                            |
-| :-------------- | :------------ | :------------------------------------------------ |
-| İşletim Sistemi | Sadece macOS  | macOS / Windows / Linux                           |
-| Model Desteği   | Sadece Claude | Gemini, Claude, DeepSeek, OpenAI, Ollama, ...     |
-| Etkileşim       | Masaüstü GUI  | Masaüstü GUI + WebUI + Telegram / Lark / DingTalk |
-| Otomasyon       | Sadece manuel | Cron zamanlanmış görevler — 7/24 gözetimsiz       |
-| Maliyet         | $100/ay       | Ücretsiz ve Açık Kaynak                           |
+| Boyut           | Claude Work Along | Headmaster                                        |
+| :-------------- | :---------------- | :------------------------------------------------ |
+| İşletim Sistemi | Sadece macOS      | macOS / Windows / Linux                           |
+| Model Desteği   | Sadece Claude     | Gemini, Claude, DeepSeek, OpenAI, Ollama, ...     |
+| Etkileşim       | Masaüstü GUI      | Masaüstü GUI + WebUI + Telegram / Lark / DingTalk |
+| Otomasyon       | Sadece manuel     | Cron zamanlanmış görevler — 7/24 gözetimsiz       |
+| Maliyet         | $100/ay           | Ücretsiz ve Açık Kaynak                           |
 
 Derin AI Ofis Senaryosu Desteği:
 

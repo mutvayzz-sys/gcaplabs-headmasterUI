@@ -442,6 +442,9 @@ export async function runBackendMigrations(configFile: ConfigFile): Promise<void
     await syncBuiltinMcpConfig(configFile);
     console.info(`[Headmaster] Backend migration step completed: syncBuiltinMcpConfig (${Date.now() - syncStart}ms)`);
   } catch (error) {
-    console.error(`[Headmaster] Backend migration step failed: syncBuiltinMcpConfig (${Date.now() - syncStart}ms)`, error);
+    console.error(
+      `[Headmaster] Backend migration step failed: syncBuiltinMcpConfig (${Date.now() - syncStart}ms)`,
+      error
+    );
   }
 }

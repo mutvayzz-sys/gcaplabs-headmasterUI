@@ -190,12 +190,12 @@ function getInstallPathKind(resourcesPath: unknown): string | undefined {
   if (!pathValue) return undefined;
 
   const normalized = pathValue.replace(/\//g, '\\').toLowerCase();
-  if (normalized.includes('\\appdata\\local\\programs\\aionui\\resources')) {
+  if (normalized.includes('\\appdata\\local\\programs\\headmaster\\resources')) {
     return 'user_local_programs';
   }
   if (
-    normalized.includes('\\program files\\aionui\\resources') ||
-    normalized.includes('\\program files (x86)\\aionui\\resources')
+    normalized.includes('\\program files\\headmaster\\resources') ||
+    normalized.includes('\\program files (x86)\\headmaster\\resources')
   ) {
     return 'program_files';
   }
@@ -248,7 +248,10 @@ export async function captureBackendStartupFailure(error: unknown): Promise<void
       scope.setTag('headmaster.backend_startup.expected_download_arch', failureInfo.expectedDownloadArch);
     }
     if (typeof failureInfo.isRosettaTranslated === 'boolean') {
-      scope.setTag('headmaster.backend_startup.rosetta_translated', getBooleanTagValue(failureInfo.isRosettaTranslated));
+      scope.setTag(
+        'headmaster.backend_startup.rosetta_translated',
+        getBooleanTagValue(failureInfo.isRosettaTranslated)
+      );
     }
     if (typeof details?.stage === 'string') {
       scope.setTag('headmaster.backend_startup.stage', details.stage);
@@ -275,8 +278,14 @@ export async function captureBackendStartupFailure(error: unknown): Promise<void
         'headmaster.backend_startup.health_attempt_deficit_bucket',
         getHealthAttemptBucket(details?.healthCheckAttemptDeficit),
       ],
-      ['headmaster.backend_startup.health_timeout_overrun_bucket', getDurationBucket(details?.healthCheckTimeoutOverrunMs)],
-      ['headmaster.backend_startup.health_max_attempt_gap_bucket', getDurationBucket(details?.healthCheckMaxAttemptGapMs)],
+      [
+        'headmaster.backend_startup.health_timeout_overrun_bucket',
+        getDurationBucket(details?.healthCheckTimeoutOverrunMs),
+      ],
+      [
+        'headmaster.backend_startup.health_max_attempt_gap_bucket',
+        getDurationBucket(details?.healthCheckMaxAttemptGapMs),
+      ],
       [
         'headmaster.backend_startup.seconds_since_quit_and_install',
         getSecondsSince(autoUpdateDiagnostics?.lastQuitAndInstallAt),

@@ -55,7 +55,6 @@ module.exports = async function afterPack(context) {
     } else {
       console.warn(`   ⚠️  app.asar.unpacked not found`);
     }
-
   } else {
     throw new Error(`resources directory not found: ${resourcesDir}`);
   }

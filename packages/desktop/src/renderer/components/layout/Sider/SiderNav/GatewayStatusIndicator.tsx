@@ -37,7 +37,14 @@ const GatewayStatusIndicator: React.FC<{ collapsed?: boolean }> = ({ collapsed =
 
   return (
     <div className={classNames('flex items-center gap-6px px-10px h-28px', collapsed && 'justify-center px-0')}>
-      <Tooltip content={running ? t('common.runtimeActive', { defaultValue: 'Headmaster: Active' }) : t('common.runtimeInactive', { defaultValue: 'Headmaster: Inactive' })} position='right'>
+      <Tooltip
+        content={
+          running
+            ? t('common.runtimeActive', { defaultValue: 'Headmaster: Active' })
+            : t('common.runtimeInactive', { defaultValue: 'Headmaster: Inactive' })
+        }
+        position='right'
+      >
         <span className='flex items-center gap-4px cursor-pointer' onClick={handleRestart}>
           <span
             className={classNames('inline-block w-8px h-8px rd-full', running ? 'bg-success-6' : 'bg-danger-6')}

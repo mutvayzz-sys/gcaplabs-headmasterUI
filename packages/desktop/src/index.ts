@@ -254,9 +254,7 @@ const RUNTIME_STATUS_ENDPOINTS: Array<{ id: string; endpoint: string; countKey: 
 ];
 
 ipcMain.handle('runtime:get-status', async () => {
-  const port =
-    (globalThis as typeof globalThis & { __backendPort?: number }).__backendPort ??
-    hermesBootstrap.port;
+  const port = (globalThis as typeof globalThis & { __backendPort?: number }).__backendPort ?? hermesBootstrap.port;
   const token =
     (globalThis as typeof globalThis & { __hermesSessionToken?: string }).__hermesSessionToken ??
     hermesBootstrap.sessionToken ??
@@ -281,14 +279,29 @@ ipcMain.handle('runtime:get-status', async () => {
       try {
         const res = await fetch(`http://127.0.0.1:${port}${entry.endpoint}`, { headers });
         if (res.status === 404) {
-          return { id: entry.id, endpoint: entry.endpoint, readiness: 'unavailable' as const, detail: 'Not exposed by this runtime build' };
+          return {
+            id: entry.id,
+            endpoint: entry.endpoint,
+            readiness: 'unavailable' as const,
+            detail: 'Not exposed by this runtime build',
+          };
         }
         if (!res.ok) {
-          return { id: entry.id, endpoint: entry.endpoint, readiness: 'unavailable' as const, detail: `HTTP ${res.status}` };
+          return {
+            id: entry.id,
+            endpoint: entry.endpoint,
+            readiness: 'unavailable' as const,
+            detail: `HTTP ${res.status}`,
+          };
         }
         const ct = res.headers.get('content-type') || '';
         if (!ct.includes('application/json')) {
-          return { id: entry.id, endpoint: entry.endpoint, readiness: 'partial' as const, detail: `Unexpected content-type: ${ct}` };
+          return {
+            id: entry.id,
+            endpoint: entry.endpoint,
+            readiness: 'partial' as const,
+            detail: `Unexpected content-type: ${ct}`,
+          };
         }
         const data = (await res.json()) as Record<string, unknown>;
         let detail = 'OK';
@@ -638,8 +651,6 @@ const handleAppReady = async (): Promise<void> => {
     }
   }
 
-
-
   try {
     initializeZoomFactor(await ProcessConfig.get('ui.zoomFactor'));
     mark('initializeZoomFactor');
@@ -715,7 +726,9 @@ const handleAppReady = async (): Promise<void> => {
             // Spawning a second backend here would race the first on SQLite.
             const port = (globalThis as typeof globalThis & { __backendPort?: number }).__backendPort;
             if (!port) {
-              throw new Error('[WebUI] Cannot start: Headmaster runtime is not running (globalThis.__backendPort unset)');
+              throw new Error(
+                '[WebUI] Cannot start: Headmaster runtime is not running (globalThis.__backendPort unset)'
+              );
             }
             return port;
           })(),

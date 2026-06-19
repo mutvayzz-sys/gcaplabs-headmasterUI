@@ -17,8 +17,13 @@ const NAV = path.join(ROOT, 'src/renderer/components/layout/Sider/SiderNav/Phase
 const I18N = path.join(ROOT, 'src/renderer/services/i18n/locales/en-US/common.json');
 
 let exitCode = 0;
-function fail(msg) { console.error('❌', msg); exitCode = 1; }
-function pass(msg) { console.log('✅', msg); }
+function fail(msg) {
+  console.error('❌', msg);
+  exitCode = 1;
+}
+function pass(msg) {
+  console.log('✅', msg);
+}
 
 const REQUIRED_PAGES = [
   'dashboard',
@@ -34,16 +39,16 @@ const REQUIRED_PAGES = [
 ];
 
 const REQUIRED_ROUTES = [
-  "/dashboard",
-  "/activity",
-  "/documents",
-  "/memory",
-  "/workflows",
-  "/agents",
-  "/integrations",
-  "/kanban",
-  "/browser",
-  "/assets",
+  '/dashboard',
+  '/activity',
+  '/documents',
+  '/memory',
+  '/workflows',
+  '/agents',
+  '/integrations',
+  '/kanban',
+  '/browser',
+  '/assets',
 ];
 
 const REQUIRED_NAV = [
@@ -59,13 +64,9 @@ const REQUIRED_NAV = [
   'Kanban',
 ];
 
-const FORBIDDEN_ROUTES = [
-  '/approvals',
-];
+const FORBIDDEN_ROUTES = ['/approvals'];
 
-const FORBIDDEN_NAV = [
-  'Approvals',
-];
+const FORBIDDEN_NAV = ['Approvals'];
 
 // --- Page files exist + export default ---
 for (const page of REQUIRED_PAGES) {
@@ -118,8 +119,16 @@ for (const label of FORBIDDEN_NAV) {
 
 // --- i18n keys ---
 const REQUIRED_I18N_KEYS = [
-  'dashboard', 'activity', 'documents', 'memory', 'skills',
-  'agents', 'integrations', 'kanban', 'browser', 'assets',
+  'dashboard',
+  'activity',
+  'documents',
+  'memory',
+  'skills',
+  'agents',
+  'integrations',
+  'kanban',
+  'browser',
+  'assets',
 ];
 const i18nContent = fs.readFileSync(I18N, 'utf8');
 for (const key of REQUIRED_I18N_KEYS) {
@@ -132,7 +141,18 @@ for (const key of REQUIRED_I18N_KEYS) {
 }
 
 // --- Brand scan: no @icon-park in new pages ---
-const NEW_PAGES = ['dashboard', 'activity', 'documents', 'memory', 'workflows', 'agents', 'integrations', 'kanban', 'browser', 'assets'];
+const NEW_PAGES = [
+  'dashboard',
+  'activity',
+  'documents',
+  'memory',
+  'workflows',
+  'agents',
+  'integrations',
+  'kanban',
+  'browser',
+  'assets',
+];
 for (const page of NEW_PAGES) {
   const indexFile = path.join(PAGES_DIR, page, 'index.tsx');
   if (!fs.existsSync(indexFile)) continue;

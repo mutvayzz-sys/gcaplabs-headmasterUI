@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { classifyBackendStartupFailure } from '@/process/startup/backendStartupFailure';
 import { detectStartupArchitectureMismatch } from '@/process/startup/architectureCompatibility';
-import { getDownloadLatestModalActionProps } from '@/renderer/components/layout/InstallationIntegrityDialog';
 
 describe('classifyBackendStartupFailure', () => {
   it('classifies missing GLIBC symbols as an incompatible backend runtime', () => {
@@ -80,11 +79,10 @@ describe('classifyBackendStartupFailure', () => {
       reason: 'backend_incomplete_installation',
       incompleteInstallationKind: 'missing_directory_resources',
       missingBackendBinary: true,
-      missingBundledAioncoreDir: true,
+      missingBundledHermesDir: true,
       missingHubDir: true,
-      missingPetStatesDir: true,
       missingPwaDir: true,
-      missingResources: ['bundled-aioncore/', 'bundled-aioncore/win32-x64/'],
+      missingResources: ['bundled-hermes/', 'bundled-hermes/win32-x64/'],
       missingRuntimeDir: true,
     });
   });
@@ -105,11 +103,10 @@ describe('classifyBackendStartupFailure', () => {
         'app.asar',
         'app.asar.unpacked/',
         'app.png',
-        'bundled-aioncore/',
+        'bundled-hermes/',
         'elevate.exe',
         'hub/',
         'manifest.webmanifest',
-        'pet-states/',
         'pwa/',
         'sw.js',
       ],
@@ -120,11 +117,10 @@ describe('classifyBackendStartupFailure', () => {
       reason: 'backend_incomplete_installation',
       incompleteInstallationKind: 'missing_directory_resources',
       missingBackendBinary: true,
-      missingBundledAioncoreDir: false,
+      missingBundledHermesDir: false,
       missingHubDir: false,
-      missingPetStatesDir: false,
       missingPwaDir: false,
-      missingResources: ['bundled-aioncore/win32-x64/managed-resources/', 'bundled-aioncore/win32-x64/aioncore.exe'],
+      missingResources: ['bundled-hermes/win32-x64/managed-resources/', 'bundled-hermes/win32-x64/aioncore.exe'],
       missingRuntimeDir: false,
     });
   });
@@ -207,17 +203,3 @@ describe('detectStartupArchitectureMismatch', () => {
   });
 });
 
-describe('getDownloadLatestModalActionProps', () => {
-  it('hides the cancel action for blocking download-latest dialogs', () => {
-    const t = (key: string) => key;
-
-    expect(getDownloadLatestModalActionProps(t)).toMatchObject({
-      okText: 'common.backendStartup.incompleteInstallation.downloadLatest',
-      cancelButtonProps: {
-        style: {
-          display: 'none',
-        },
-      },
-    });
-  });
-});

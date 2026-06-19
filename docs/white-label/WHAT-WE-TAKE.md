@@ -8,11 +8,11 @@
 
 **3 open-source apps** (people who already built similar things):
 
-| App | What's in it | Good for |
-|---|---|---|
-| **Nous** (NousResearch) | The cleanest, most stable base. Deep settings, chat, file browser, MCP/tools, voice. | **Our base** — we start here |
-| **fathah's fork** | 12-screen UI grid, clean installer. Has PostHog tracking, crypto token badge, and Atlas Cloud sponsor (we drop those). | Almost nothing — too much cruft |
-| **workspace** (outsourc-e) | Multi-agent Swarm, terminal, memory, cron, theme system, skills marketplace. Has 3D Office, Greek god avatars, Claude assets (we drop those). | We cherry-pick a few screens |
+| App                        | What's in it                                                                                                                                  | Good for                        |
+| -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------- |
+| **Nous** (NousResearch)    | The cleanest, most stable base. Deep settings, chat, file browser, MCP/tools, voice.                                                          | **Our base** — we start here    |
+| **fathah's fork**          | 12-screen UI grid, clean installer. Has PostHog tracking, crypto token badge, and Atlas Cloud sponsor (we drop those).                        | Almost nothing — too much cruft |
+| **workspace** (outsourc-e) | Multi-agent Swarm, terminal, memory, cron, theme system, skills marketplace. Has 3D Office, Greek god avatars, Claude assets (we drop those). | We cherry-pick a few screens    |
 
 **12 design pictures** (`References/01-12`) that show exactly what we want to build. The real spec. These are the boss.
 
@@ -22,22 +22,22 @@
 
 The 14 sidebar items in the real Headmaster design. Each one has a single source:
 
-| # | Screen | Where it comes from | How |
-|---|---|---|---|
-| 1 | **Dashboard** | 🔨 Build it | Nobody has it. 4 KPI cards + 6 panels. Custom. |
-| 2 | **Chat** | 📋 Nous | Already built, just rename it |
-| 3 | **Workflows** | 📋 workspace | Already built, just rename + restyle |
-| 4 | **Kanban** | 📋 workspace | Already built, just rename + restyle |
-| 5 | **Runs** | 📋 workspace | Already built, just rename + restyle |
-| 6 | **Approvals** | 🔨 Build it | Nobody has the ✓/✗/💬 queue UI. Custom. |
-| 7 | **Documents** | 📋 Nous | Already built, just rename + restyle |
-| 8 | **Memory** | 📋 workspace | Already built, just rename + restyle |
-| 9 | **Automations** | 📋 workspace | Already built, just rename + restyle |
-| 10 | **Agents** | 🔨 Build it | workspace has the config, but the Paperclip-style roster UI is custom. |
-| 11 | **Integrations** | 📋 Nous | Already built (MCP/Tools), just rename |
-| 12 | **Channels** | 📋 Nous | Already built (messaging), just rename |
-| 13 | **Analytics** | 🔨 Build it | Custom — the 4-panel metrics + the 5 status indicators |
-| 14 | **Settings** | 📋 Nous | Already built (deepest settings), just rename |
+| #   | Screen           | Where it comes from | How                                                                    |
+| --- | ---------------- | ------------------- | ---------------------------------------------------------------------- |
+| 1   | **Dashboard**    | 🔨 Build it         | Nobody has it. 4 KPI cards + 6 panels. Custom.                         |
+| 2   | **Chat**         | 📋 Nous             | Already built, just rename it                                          |
+| 3   | **Workflows**    | 📋 workspace        | Already built, just rename + restyle                                   |
+| 4   | **Kanban**       | 📋 workspace        | Already built, just rename + restyle                                   |
+| 5   | **Runs**         | 📋 workspace        | Already built, just rename + restyle                                   |
+| 6   | **Approvals**    | 🔨 Build it         | Nobody has the ✓/✗/💬 queue UI. Custom.                                |
+| 7   | **Documents**    | 📋 Nous             | Already built, just rename + restyle                                   |
+| 8   | **Memory**       | 📋 workspace        | Already built, just rename + restyle                                   |
+| 9   | **Automations**  | 📋 workspace        | Already built, just rename + restyle                                   |
+| 10  | **Agents**       | 🔨 Build it         | workspace has the config, but the Paperclip-style roster UI is custom. |
+| 11  | **Integrations** | 📋 Nous             | Already built (MCP/Tools), just rename                                 |
+| 12  | **Channels**     | 📋 Nous             | Already built (messaging), just rename                                 |
+| 13  | **Analytics**    | 🔨 Build it         | Custom — the 4-panel metrics + the 5 status indicators                 |
+| 14  | **Settings**     | 📋 Nous             | Already built (deepest settings), just rename                          |
 
 Plus one more thing: the **persistent chat composer at the bottom of every screen**. The "Ask Headmaster anything..." input + the 4 quick chips. Use Nous's chat composer, just restyle.
 
@@ -55,19 +55,19 @@ Total: **14 screens + 1 shared composer.**
 
 ## What we throw away (don't need it)
 
-| Thing | From | Why we drop it |
-|---|---|---|
-| 3D Office scene (the office3d folder) | workspace | Not in the design. Heavy. |
-| Greek god characters (apollo, artemis, **hermes**, iris, nike, pan) | workspace | Replacing with Sorting Hat. The `hermes.png` one specifically is a direct upstream name leak. |
-| Claude assets (claude-avatar, claude-logo, claude-caduceus, claude-banner, claude-favicon) | workspace | Branding leak from an old Claude fork. 13 files. |
-| Conductor name | workspace | We call it "Orchestrator" not "Conductor." |
-| PostHog tracking | fathah | Compliance red flag. |
-| $HD token badge (bankr.bot) | fathah | Crypto shilling in the README. |
-| Atlas Cloud sponsor block | fathah | Third-party endorsement we don't have. |
-| "v2 — zero-fork" admission | workspace | Public README literally admits we're a fork. |
-| RAZSOC codename | workspace | Internal name. Don't leak it. |
-| gbrain, gstack-for-hermes skills | workspace | Don't exist in the parent. |
-| Old unnumbered reference images | References/ | Same screens, older versions. Ignore. |
+| Thing                                                                                      | From        | Why we drop it                                                                                |
+| ------------------------------------------------------------------------------------------ | ----------- | --------------------------------------------------------------------------------------------- |
+| 3D Office scene (the office3d folder)                                                      | workspace   | Not in the design. Heavy.                                                                     |
+| Greek god characters (apollo, artemis, **hermes**, iris, nike, pan)                        | workspace   | Replacing with Sorting Hat. The `hermes.png` one specifically is a direct upstream name leak. |
+| Claude assets (claude-avatar, claude-logo, claude-caduceus, claude-banner, claude-favicon) | workspace   | Branding leak from an old Claude fork. 13 files.                                              |
+| Conductor name                                                                             | workspace   | We call it "Orchestrator" not "Conductor."                                                    |
+| PostHog tracking                                                                           | fathah      | Compliance red flag.                                                                          |
+| $HD token badge (bankr.bot)                                                                | fathah      | Crypto shilling in the README.                                                                |
+| Atlas Cloud sponsor block                                                                  | fathah      | Third-party endorsement we don't have.                                                        |
+| "v2 — zero-fork" admission                                                                 | workspace   | Public README literally admits we're a fork.                                                  |
+| RAZSOC codename                                                                            | workspace   | Internal name. Don't leak it.                                                                 |
+| gbrain, gstack-for-hermes skills                                                           | workspace   | Don't exist in the parent.                                                                    |
+| Old unnumbered reference images                                                            | References/ | Same screens, older versions. Ignore.                                                         |
 
 ---
 
@@ -83,13 +83,13 @@ Total: **14 screens + 1 shared composer.**
 
 ## Brand stack (final)
 
-| Element | Name | Tribute to | Notes |
-|---|---|---|---|
-| **Product** | **Headmaster** | **Lina** (your mum) | Her thought process is the inspiration. Plan a month ahead. Multiple Linas deliberating. Meticulous. The whole product is the tribute. |
-| **Mascot** | **Sorting Hat** | **Harry Potter** | Magical authority. Sorts the student. The brand's visual identity. |
-| **Multi-agent feature** | **The Council** | **Lina** (her process) | Multi-perspective deliberation = the "talking to multiple Linas" pattern. Inside Headmaster. |
-| **Model** | **Adonis** | **Lebanese** heritage (name only) | Phoenician, died-and-resurrected. No Cedar in the visual brand. |
-| **Brand color** | **#1A4D2E** (dark green) | Slytherin-coded, fits the Sorting Hat | Accent color, not background |
+| Element                 | Name                     | Tribute to                            | Notes                                                                                                                                  |
+| ----------------------- | ------------------------ | ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| **Product**             | **Headmaster**           | **Lina** (your mum)                   | Her thought process is the inspiration. Plan a month ahead. Multiple Linas deliberating. Meticulous. The whole product is the tribute. |
+| **Mascot**              | **Sorting Hat**          | **Harry Potter**                      | Magical authority. Sorts the student. The brand's visual identity.                                                                     |
+| **Multi-agent feature** | **The Council**          | **Lina** (her process)                | Multi-perspective deliberation = the "talking to multiple Linas" pattern. Inside Headmaster.                                           |
+| **Model**               | **Adonis**               | **Lebanese** heritage (name only)     | Phoenician, died-and-resurrected. No Cedar in the visual brand.                                                                        |
+| **Brand color**         | **#1A4D2E** (dark green) | Slytherin-coded, fits the Sorting Hat | Accent color, not background                                                                                                           |
 
 ### The tribute map in one line
 
@@ -142,4 +142,4 @@ All three tributes (Lina, HP, Lebanese) sit together without conflicting.
 
 ---
 
-*See `WHITE-LABEL-AUDIT.md` in this folder for the line-by-line scrub plan (Parts 1-2: branding touchpoints in the source code, Part 3: corrected design intent).*
+_See `WHITE-LABEL-AUDIT.md` in this folder for the line-by-line scrub plan (Parts 1-2: branding touchpoints in the source code, Part 3: corrected design intent)._

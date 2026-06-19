@@ -63,7 +63,12 @@ export const HermesStatusBar: React.FC = () => {
         Retry
       </button>
       {window.electronAPI?.restartRuntime && (
-        <button className='text-11px text-white underline disabled:opacity-50' disabled={restarting} onClick={() => void restart()} type='button'>
+        <button
+          className='text-11px text-white underline disabled:opacity-50'
+          disabled={restarting}
+          onClick={() => void restart()}
+          type='button'
+        >
           Restart
         </button>
       )}

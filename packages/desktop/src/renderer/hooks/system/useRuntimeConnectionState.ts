@@ -55,9 +55,12 @@ export function useRuntimeConnectionState(): RuntimeConnectionSnapshot {
 
   useEffect(() => {
     void probe();
-    const timer = window.setInterval((): void => {
-      void probe();
-    }, state === 'connected' ? 15_000 : 3_000);
+    const timer = window.setInterval(
+      (): void => {
+        void probe();
+      },
+      state === 'connected' ? 15_000 : 3_000
+    );
     return () => window.clearInterval(timer);
   }, [probe, state]);
 

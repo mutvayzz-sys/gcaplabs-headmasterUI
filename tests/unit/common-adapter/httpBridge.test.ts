@@ -40,7 +40,7 @@ describe('httpBridge', () => {
   describe('getBaseUrl', () => {
     it('returns fallback URL in node environment with no globalThis.__backendPort', () => {
       const result = getBaseUrl();
-      expect(result).toBe('http://127.0.0.1:13400');
+      expect(result).toBe('http://127.0.0.1:9119');
     });
 
     it('reads port from globalThis.__backendPort when set', () => {

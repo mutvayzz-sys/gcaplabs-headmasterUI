@@ -122,9 +122,7 @@ const MemoryModalContent: React.FC = () => {
         </Text>
       </header>
 
-      {error ? (
-        <Alert type='error' content={error} />
-      ) : null}
+      {error ? <Alert type='error' content={error} /> : null}
 
       <Card bordered>
         <div className='flex items-center gap-12px'>
@@ -142,8 +140,7 @@ const MemoryModalContent: React.FC = () => {
             </div>
             <Text type='secondary' style={{ fontSize: 12 }} ellipsis>
               {t('settings.memory.openconchoSubtitle', {
-                defaultValue:
-                  'Browse memories, peers, sessions, and conclusions for the active Honcho instance.',
+                defaultValue: 'Browse memories, peers, sessions, and conclusions for the active Honcho instance.',
               })}
             </Text>
           </div>
@@ -185,7 +182,8 @@ const MemoryModalContent: React.FC = () => {
           <Form.Item
             label={t('settings.memory.memoryUrlLabel', { defaultValue: 'Memory screen URL' })}
             extra={t('settings.memory.memoryUrlHelp', {
-              defaultValue: 'The web URL where openconcho is hosted. Defaults to the published container on localhost:8080.',
+              defaultValue:
+                'The web URL where openconcho is hosted. Defaults to the published container on localhost:8080.',
             })}
           >
             <Input
@@ -213,11 +211,7 @@ const MemoryModalContent: React.FC = () => {
         </Form>
 
         <div className='flex items-center justify-end gap-8px mt-8px'>
-          <Button
-            icon={<Refresh theme='outline' size='14' />}
-            onClick={handleReset}
-            disabled={saving}
-          >
+          <Button icon={<Refresh theme='outline' size='14' />} onClick={handleReset} disabled={saving}>
             {t('settings.memory.reset', { defaultValue: 'Reset to defaults' })}
           </Button>
           <Button type='primary' onClick={handleSave} disabled={saving || !dirty}>

@@ -315,10 +315,7 @@ const buildMaskedRequest = (
       action: kind,
       id: requestId,
       call_id: requestId,
-      description:
-        kind === 'secret'
-          ? prompt || envVar || 'Secret input required'
-          : 'Sudo password required',
+      description: kind === 'secret' ? prompt || envVar || 'Secret input required' : 'Sudo password required',
       title: kind === 'secret' ? prompt || envVar || 'Secret input required' : 'Sudo password required',
       options: [],
       ...(kind === 'secret' && envVar ? { command_type: envVar } : {}),
@@ -326,10 +323,7 @@ const buildMaskedRequest = (
   };
 };
 
-async function respondToPendingRequest(
-  request: PendingInteractiveRequest,
-  responseValue: string
-): Promise<void> {
+async function respondToPendingRequest(request: PendingInteractiveRequest, responseValue: string): Promise<void> {
   switch (request.kind) {
     case 'approval':
       await gatewayRpcRequest('approval.respond', {
@@ -425,7 +419,12 @@ export function handleHermesGatewayEvent(event: HermesGatewayEvent): void {
         name: String(payload.name ?? 'tool'),
         render_output_as_markdown: true,
         result_display:
-          payload.inline_diff ?? payload.result_text ?? payload.result ?? payload.output ?? payload.summary ?? payload.preview,
+          payload.inline_diff ??
+          payload.result_text ??
+          payload.result ??
+          payload.output ??
+          payload.summary ??
+          payload.preview,
         status: payload.error ? 'Error' : event.type === 'tool.complete' ? 'Success' : 'Executing',
       });
       emitResponse(turn, 'tool_group', [...tools.values()]);
@@ -565,12 +564,7 @@ export async function sendHermesMessage(params: {
     hidden: false,
     created_at: Date.now(),
   });
-  const text = [
-    params.input,
-    ...(params.files ?? []).map((file) => `@file:${file}`),
-  ]
-    .filter(Boolean)
-    .join('\n');
+  const text = [params.input, ...(params.files ?? []).map((file) => `@file:${file}`)].filter(Boolean).join('\n');
 
   try {
     await gatewayRpcRequest('prompt.submit', { session_id: liveSessionId, text });
@@ -589,7 +583,9 @@ export async function sendHermesMessage(params: {
   return { msg_id: msgId, turn_id: turnId, runtime: runningRuntime(turnId) };
 }
 
-export async function stopHermesConversation(conversationId: string): Promise<{ runtime: TConversationRuntimeSummary }> {
+export async function stopHermesConversation(
+  conversationId: string
+): Promise<{ runtime: TConversationRuntimeSummary }> {
   let liveSessionId = await ensureLiveSession(conversationId);
   try {
     await gatewayRpcRequest('session.interrupt', { session_id: liveSessionId });
@@ -617,7 +613,9 @@ export function resetHermesChatRuntimeState(): void {
   pendingRequestsByConversation.clear();
 }
 
-export async function listHermesPendingRequests(conversationId: string): Promise<Array<PendingInteractiveRequest['confirmation']>> {
+export async function listHermesPendingRequests(
+  conversationId: string
+): Promise<Array<PendingInteractiveRequest['confirmation']>> {
   ensureSubscribed();
   return listPendingRequests(conversationId).map((request) => request.confirmation);
 }

@@ -45,19 +45,9 @@ const SiderFooter: React.FC<SiderFooterProps> = ({
   const { t } = useTranslation();
 
   const settingsIcon = isSettings ? (
-    <ArrowCircleLeft
-      size={16}
-      weight='regular'
-      className='block leading-none'
-      style={{ lineHeight: 0 }}
-    />
+    <ArrowCircleLeft size={16} weight='regular' className='block leading-none' style={{ lineHeight: 0 }} />
   ) : (
-    <GearSix
-      size={16}
-      weight='regular'
-      className='block leading-none'
-      style={{ lineHeight: 0 }}
-    />
+    <GearSix size={16} weight='regular' className='block leading-none' style={{ lineHeight: 0 }} />
   );
   const showThemeToggle = isSettings && !collapsed;
   const themeTooltip = theme === 'dark' ? t('settings.lightMode') : t('settings.darkMode');

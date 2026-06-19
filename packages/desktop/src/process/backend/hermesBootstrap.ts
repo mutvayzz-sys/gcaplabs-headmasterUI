@@ -35,13 +35,13 @@ import { homedir } from 'node:os';
 import { app } from 'electron';
 
 export type HermesBootstrapStatus =
-  | 'stopped'           // never started
-  | 'installing'        // running hermes_bootstrap.py to create the venv
-  | 'not-installed'     // bootstrap attempted, failed
-  | 'starting'          // dashboard process spawned, waiting for READY
-  | 'ready'             // dashboard is up, port + token available
-  | 'restarting'        // crashed, will restart
-  | 'failed';           // exhausted retries
+  | 'stopped' // never started
+  | 'installing' // running hermes_bootstrap.py to create the venv
+  | 'not-installed' // bootstrap attempted, failed
+  | 'starting' // dashboard process spawned, waiting for READY
+  | 'ready' // dashboard is up, port + token available
+  | 'restarting' // crashed, will restart
+  | 'failed'; // exhausted retries
 
 export interface HermesBootstrapStartOptions {
   /** If true, run the bootstrap installer if the venv is missing. Default: true. */
@@ -282,7 +282,10 @@ export class HermesBootstrap {
     });
   }
 
-  private spawnDashboard(hermesBin: string, opts: { maxRestarts: number; restartWindowMs: number; readyTimeoutMs: number }): Promise<HermesBootstrapStartResult> {
+  private spawnDashboard(
+    hermesBin: string,
+    opts: { maxRestarts: number; restartWindowMs: number; readyTimeoutMs: number }
+  ): Promise<HermesBootstrapStartResult> {
     return new Promise<HermesBootstrapStartResult>((resolve) => {
       const env: NodeJS.ProcessEnv = {
         ...process.env,

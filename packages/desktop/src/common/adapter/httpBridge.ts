@@ -393,11 +393,7 @@ export function stubProvider<Data, Params = undefined>(name: string, defaultValu
 
 type WsCallback = (data: unknown) => void;
 const wsListeners = new Map<string, Set<WsCallback>>();
-type GatewayEventCallback = (event: {
-  type: string;
-  session_id?: string;
-  payload?: unknown;
-}) => void;
+type GatewayEventCallback = (event: { type: string; session_id?: string; payload?: unknown }) => void;
 const gatewayEventListeners = new Set<GatewayEventCallback>();
 let ws: WebSocket | null = null;
 let wsReconnectTimer: ReturnType<typeof setTimeout> | null = null;

@@ -16,10 +16,10 @@ import { getAgentLogo } from '@renderer/utils/model/agentLogo';
 import type { AgentMetadata } from '@renderer/utils/model/agentTypes';
 
 const TYPE_META: Record<string, { icon: React.ReactNode; color: string; label: string }> = {
-  acp:       { icon: <Robot size={14} />,   color: 'bg-amber-500/10 text-amber-300',  label: 'ACP' },
-  aionrs:    { icon: <ChatCircle size={14} />, color: 'bg-emerald-500/10 text-emerald-300', label: 'CLI' },
-  remote:    { icon: <Code size={14} />,    color: 'bg-blue-500/10 text-blue-300',    label: 'Remote' },
-  nanobot:   { icon: <Robot size={14} />,   color: 'bg-purple-500/10 text-purple-300',  label: 'Nano' },
+  acp: { icon: <Robot size={14} />, color: 'bg-amber-500/10 text-amber-300', label: 'ACP' },
+  aionrs: { icon: <ChatCircle size={14} />, color: 'bg-emerald-500/10 text-emerald-300', label: 'CLI' },
+  remote: { icon: <Code size={14} />, color: 'bg-blue-500/10 text-blue-300', label: 'Remote' },
+  nanobot: { icon: <Robot size={14} />, color: 'bg-purple-500/10 text-purple-300', label: 'Nano' },
   'openclaw-gateway': { icon: <Code size={14} />, color: 'bg-rose-500/10 text-rose-300', label: 'Gateway' },
 };
 
@@ -33,7 +33,10 @@ const AgentsPage: React.FC = () => {
   const [showBuiltin, setShowBuiltin] = useState(true);
 
   const filtered = agents.filter((a: AgentMetadata) => {
-    const matchesSearch = !search || a.name.toLowerCase().includes(search.toLowerCase()) || (a.id ?? '').toLowerCase().includes(search.toLowerCase());
+    const matchesSearch =
+      !search ||
+      a.name.toLowerCase().includes(search.toLowerCase()) ||
+      (a.id ?? '').toLowerCase().includes(search.toLowerCase());
     const matchesBuiltin = showBuiltin || a.agent_source !== 'builtin';
     return matchesSearch && matchesBuiltin;
   });
@@ -46,7 +49,9 @@ const AgentsPage: React.FC = () => {
           <h1 className='text-18px font-semibold text-t-primary'>
             {t('agents.title', { defaultValue: 'Agents & Profiles' })}
           </h1>
-          <Tag size='small' color='arcoblue'>{filtered.length}</Tag>
+          <Tag size='small' color='arcoblue'>
+            {filtered.length}
+          </Tag>
         </div>
         <Button
           type='secondary'
@@ -76,7 +81,9 @@ const AgentsPage: React.FC = () => {
 
       <div className='flex-1 min-h-0 overflow-y-auto'>
         {isLoading && agents.length === 0 && (
-          <div className='flex justify-center py-40px'><Spin size={24} /></div>
+          <div className='flex justify-center py-40px'>
+            <Spin size={24} />
+          </div>
         )}
         {error && (
           <div className='text-center py-24px text-t-secondary'>
@@ -115,11 +122,18 @@ const AgentsPage: React.FC = () => {
                 </div>
 
                 <div className='flex items-center gap-8px'>
-                  <span className={classNames('px-8px py-3px rd-6px text-11px font-medium flex items-center gap-4px', meta.color)}>
+                  <span
+                    className={classNames(
+                      'px-8px py-3px rd-6px text-11px font-medium flex items-center gap-4px',
+                      meta.color
+                    )}
+                  >
                     {meta.icon} {meta.label}
                   </span>
                   {agent.agent_source === 'builtin' && (
-                    <Tag size='small' color='gray'>{t('agents.builtin', { defaultValue: 'Built-in' })}</Tag>
+                    <Tag size='small' color='gray'>
+                      {t('agents.builtin', { defaultValue: 'Built-in' })}
+                    </Tag>
                   )}
                 </div>
               </div>

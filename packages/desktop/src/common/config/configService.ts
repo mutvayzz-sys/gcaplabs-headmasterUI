@@ -77,7 +77,9 @@ class ConfigServiceImpl {
     if (this.initPromise) return this.initPromise;
     this.initPromise = (async () => {
       this.cache.clear();
-      const values = await Promise.all(CONFIG_KEYS.map(async (key) => [key, await LocalConfigStorage.get(key)] as const));
+      const values = await Promise.all(
+        CONFIG_KEYS.map(async (key) => [key, await LocalConfigStorage.get(key)] as const)
+      );
       for (const [key, value] of values) {
         if (value !== undefined) {
           this.cache.set(key, value);

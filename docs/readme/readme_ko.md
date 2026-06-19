@@ -56,7 +56,7 @@
 
 **Headmaster는 단순한 채팅 클라이언트가 아닙니다.** 컴퓨터에서 AI Agent가 함께 작업하는 Work Along 플랫폼입니다——파일 읽기, 코드 작성, 웹 브라우징, 작업 자동화. Agent의 모든 동작을 볼 수 있으며, 항상 제어권은 여러분에게 있습니다.
 
-|                                   | 기존 AI 채팅 클라이언트 | **Headmaster (Work Along)**                                                                                            |
+|                                   | 기존 AI 채팅 클라이언트 | **Headmaster (Work Along)**                                                                                    |
 | :-------------------------------- | :---------------------- | :------------------------------------------------------------------------------------------------------------- |
 | AI가 파일을 조작할 수 있음        | 제한적 또는 불가        | **예 — 내장 Agent, 완전한 파일 접근**                                                                          |
 | AI가 다단계 작업을 실행할 수 있음 | 제한적                  | **예 — 자율 실행, 승인 필요**                                                                                  |
@@ -133,13 +133,13 @@ Headmaster는 완전한 AI Agent 엔진을 내장하고 있습니다. CLI Agent�
 
 다른 AI 앱은 API 키가 있는 채팅박스를 제공합니다. **Headmaster는 완전한 Work Along Agent를 제공합니다.**
 
-| 여러분의 API 키          | 얻을 수 있는 기능         |
-| :----------------------- | :------------------------ |
-| Gemini API 키            | Gemini 구동 Work Along Agent  |
-| OpenAI API 키            | GPT 구동 Work Along Agent     |
-| Anthropic API 키         | Claude 구동 Work Along Agent  |
-| Ollama / LM Studio(로컬) | 로컬 모델 Work Along Agent    |
-| NewAPI 게이트웨이        | 20+ 모델에 대한 통합 접근 |
+| 여러분의 API 키          | 얻을 수 있는 기능            |
+| :----------------------- | :--------------------------- |
+| Gemini API 키            | Gemini 구동 Work Along Agent |
+| OpenAI API 키            | GPT 구동 Work Along Agent    |
+| Anthropic API 키         | Claude 구동 Work Along Agent |
+| Ollama / LM Studio(로컬) | 로컬 모델 Work Along Agent   |
+| NewAPI 게이트웨이        | 20+ 모델에 대한 통합 접근    |
 
 어떤 모델로 구동하든 Agent의 기능은 동일합니다——파일 읽기/쓰기, 웹 검색, 이미지 생성, 도구 사용. Headmaster는 클라우드 서비스와 로컬 배포를 포함한 **30+ AI 플랫폼**을 지원합니다.
 
@@ -459,13 +459,13 @@ _여러 대화를 열고, 작업이 섞이지 않으며, 독립적인 메모리,
 
 Headmaster는 **무료 오픈소스 Multi-AI Agent 데스크톱**입니다. macOS에서만 실행되고 Claude에 고정된 Claude Work Along과 비교하여, Headmaster는 전체 모델, 크로스 플랫폼 강화 버전입니다.
 
-| 차원      | Claude Work Along | Headmaster                                            |
-| :-------- | :------------ | :------------------------------------------------ |
-| OS        | macOS 전용    | macOS / Windows / Linux                           |
-| 모델 지원 | Claude 전용   | Gemini, Claude, DeepSeek, OpenAI, Ollama, ...     |
-| 상호작용  | 데스크톱 GUI  | 데스크톱 GUI + WebUI + Telegram / Lark / DingTalk |
-| 자동화    | 수동만        | Cron 스케줄 작업 — 24/7 무인 운영                 |
-| 비용      | $100/월       | 무료 및 오픈소스                                  |
+| 차원      | Claude Work Along | Headmaster                                        |
+| :-------- | :---------------- | :------------------------------------------------ |
+| OS        | macOS 전용        | macOS / Windows / Linux                           |
+| 모델 지원 | Claude 전용       | Gemini, Claude, DeepSeek, OpenAI, Ollama, ...     |
+| 상호작용  | 데스크톱 GUI      | 데스크톱 GUI + WebUI + Telegram / Lark / DingTalk |
+| 자동화    | 수동만            | Cron 스케줄 작업 — 24/7 무인 운영                 |
+| 비용      | $100/월           | 무료 및 오픈소스                                  |
 
 심층 AI 오피스 시나리오 지원:
 

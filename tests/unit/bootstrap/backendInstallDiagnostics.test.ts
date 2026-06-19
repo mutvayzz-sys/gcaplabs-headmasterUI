@@ -6,9 +6,9 @@ describe('collectBackendInstallDiagnostics', () => {
   it('records packaged runtime manifest and missing backend binary metadata', () => {
     const files = new Map<string, { mtimeMs: number; size: number; content?: string }>([
       ['C:\\Headmaster\\resources', { mtimeMs: 1000, size: 0 }],
-      ['C:\\Headmaster\\resources\\bundled-aioncore\\win32-x64', { mtimeMs: 2000, size: 0 }],
+      ['C:\\Headmaster\\resources\\bundled-hermes\\win32-x64', { mtimeMs: 2000, size: 0 }],
       [
-        'C:\\Headmaster\\resources\\bundled-aioncore\\win32-x64\\manifest.json',
+        'C:\\Headmaster\\resources\\bundled-hermes\\win32-x64\\manifest.json',
         {
           mtimeMs: 3000,
           size: 88,
@@ -27,7 +27,7 @@ describe('collectBackendInstallDiagnostics', () => {
         runtimeKey: 'win32-x64',
         binaryName: 'aioncore.exe',
         resourcesPath: 'C:\\Headmaster\\resources',
-        checkedBundledPath: 'C:\\Headmaster\\resources\\bundled-aioncore\\win32-x64\\aioncore.exe',
+        checkedBundledPath: 'C:\\Headmaster\\resources\\bundled-hermes\\win32-x64\\aioncore.exe',
       },
       {
         appVersion: '2.1.7',
@@ -45,14 +45,14 @@ describe('collectBackendInstallDiagnostics', () => {
       arch: 'x64',
       binaryExists: false,
       binaryName: 'aioncore.exe',
-      binaryPath: 'C:\\Headmaster\\resources\\bundled-aioncore\\win32-x64\\aioncore.exe',
-      bundledDirPath: 'C:\\Headmaster\\resources\\bundled-aioncore',
+      binaryPath: 'C:\\Headmaster\\resources\\bundled-hermes\\win32-x64\\aioncore.exe',
+      bundledDirPath: 'C:\\Headmaster\\resources\\bundled-hermes',
       execPath: 'C:\\Headmaster\\Headmaster.exe',
       isPackaged: true,
       manifestExists: true,
       manifestFiles: ['aioncore.exe', 'managed-resources/'],
       manifestGeneratedAt: '2026-05-29T12:00:00.000Z',
-      manifestPath: 'C:\\Headmaster\\resources\\bundled-aioncore\\win32-x64\\manifest.json',
+      manifestPath: 'C:\\Headmaster\\resources\\bundled-hermes\\win32-x64\\manifest.json',
       manifestSize: 88,
       manifestMtimeMs: 3000,
       manifestSourceType: 'download',
@@ -61,7 +61,7 @@ describe('collectBackendInstallDiagnostics', () => {
       resourcesDirMtimeMs: 1000,
       resourcesPath: 'C:\\Headmaster\\resources',
       runtimeDirMtimeMs: 2000,
-      runtimeDirPath: 'C:\\Headmaster\\resources\\bundled-aioncore\\win32-x64',
+      runtimeDirPath: 'C:\\Headmaster\\resources\\bundled-hermes\\win32-x64',
       runtimeKey: 'win32-x64',
     });
   });

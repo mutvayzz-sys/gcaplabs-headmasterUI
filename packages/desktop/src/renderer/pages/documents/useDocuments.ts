@@ -150,19 +150,23 @@ export function useDocuments(): UseDocumentsReturn {
     }
   }, []);
 
-  const uploadFile = useCallback(async (file: File, targetPath: string) => {
-    const normalizedTarget = targetPath.endsWith('/') || targetPath.endsWith('\\')
-      ? `${targetPath}${file.name}`
-      : targetPath || `${rootPath}${separatorFor(rootPath)}${file.name}`;
-    await httpPost<ManagedFileResponse, { path: string; data_url: string; overwrite: boolean }>(
-      '/api/files/upload'
-    ).invoke({
-      path: normalizedTarget,
-      data_url: await fileToDataUrl(file),
-      overwrite: true,
-    });
-    await fetchFiles();
-  }, [fetchFiles, rootPath]);
+  const uploadFile = useCallback(
+    async (file: File, targetPath: string) => {
+      const normalizedTarget =
+        targetPath.endsWith('/') || targetPath.endsWith('\\')
+          ? `${targetPath}${file.name}`
+          : targetPath || `${rootPath}${separatorFor(rootPath)}${file.name}`;
+      await httpPost<ManagedFileResponse, { path: string; data_url: string; overwrite: boolean }>(
+        '/api/files/upload'
+      ).invoke({
+        path: normalizedTarget,
+        data_url: await fileToDataUrl(file),
+        overwrite: true,
+      });
+      await fetchFiles();
+    },
+    [fetchFiles, rootPath]
+  );
 
   useEffect(() => {
     fetchFiles();

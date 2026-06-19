@@ -282,12 +282,9 @@ export function useWorkspaceFileOps(options: UseWorkspaceFileOpsOptions) {
    * 预览文件
    * Preview file (removed - functionality has been deprecated)
    */
-  const handlePreviewFile = useCallback(
-    async (_nodeData: IDirOrFile | null) => {
-      // Preview functionality has been removed
-    },
-    []
-  );
+  const handlePreviewFile = useCallback(async (_nodeData: IDirOrFile | null) => {
+    // Preview functionality has been removed
+  }, []);
 
   /**
    * 打开重命名弹窗

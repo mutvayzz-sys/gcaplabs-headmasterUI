@@ -119,7 +119,6 @@ const arcoLocales: Record<string, typeof enUS> = {
   'en-US': enUS,
 };
 
-
 const AppProviders: React.FC<PropsWithChildren> = ({ children }) =>
   React.createElement(
     AuthProvider,
@@ -127,15 +126,7 @@ const AppProviders: React.FC<PropsWithChildren> = ({ children }) =>
     React.createElement(
       ThemeProvider,
       null,
-      React.createElement(
-        BrowserPanelProvider,
-        null,
-        React.createElement(
-          FeedbackProvider,
-          null,
-          children
-        )
-      )
+      React.createElement(BrowserPanelProvider, null, React.createElement(FeedbackProvider, null, children))
     )
   );
 
