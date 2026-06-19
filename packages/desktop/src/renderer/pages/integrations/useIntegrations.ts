@@ -57,7 +57,14 @@ function normalizePlatform(raw: Record<string, unknown>): PlatformConfig {
     connected: state === 'connected' || raw.connected === true,
     enabled,
     settings: raw as Record<string, unknown>,
-    lastError: typeof raw.error_message === 'string' ? raw.error_message : typeof raw.lastError === 'string' ? raw.lastError : configured ? undefined : 'Not configured',
+    lastError:
+      typeof raw.error_message === 'string'
+        ? raw.error_message
+        : typeof raw.lastError === 'string'
+          ? raw.lastError
+          : configured
+            ? undefined
+            : 'Not configured',
   };
 }
 
@@ -121,7 +128,9 @@ export function useIntegrations(): UseIntegrationsReturn {
   }, []);
 
   const updatePlatform = useCallback(async (id: string, updates: Partial<PlatformConfig>) => {
-    console.warn(`[integrations] updatePlatform(${id}) is a no-op: Adonis Core channel plugin toggle route is not exposed`);
+    console.warn(
+      `[integrations] updatePlatform(${id}) is a no-op: Adonis Core channel plugin toggle route is not exposed`
+    );
     setPlatforms((prev) => prev.map((p) => (p.id === id ? { ...p, enabled: updates.enabled ?? p.enabled } : p)));
   }, []);
 

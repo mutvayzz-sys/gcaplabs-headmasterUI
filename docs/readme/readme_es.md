@@ -56,7 +56,7 @@
 
 **Headmaster es más que un cliente de chat.** Es una plataforma Work Along donde los AI Agents trabajan contigo en tu computadora — leyendo archivos, escribiendo código, navegando por la web y automatizando tareas. Puedes ver todo lo que hace el Agent y siempre tienes el control.
 
-|                                             | Clientes de chat AI tradicionales | **Headmaster (Work Along)**                                                                                                                |
+|                                             | Clientes de chat AI tradicionales | **Headmaster (Work Along)**                                                                                                        |
 | :------------------------------------------ | :-------------------------------- | :--------------------------------------------------------------------------------------------------------------------------------- |
 | AI puede operar en tus archivos             | Limitado o No                     | **Sí — Agent integrado con acceso completo a archivos**                                                                            |
 | AI puede ejecutar tareas de múltiples pasos | Limitado                          | **Sí — autónomo con tu aprobación**                                                                                                |
@@ -133,13 +133,13 @@ Ejecuta múltiples AI Agents como un equipo organizado: un agente **Leader** rec
 
 Otras apps de AI te dan una caja de chat con tu clave API. **Headmaster te da un Work Along Agent completo.**
 
-| Tu clave API               | Lo que obtienes                   |
-| :------------------------- | :-------------------------------- |
+| Tu clave API               | Lo que obtienes                       |
+| :------------------------- | :------------------------------------ |
 | Clave API Gemini           | Work Along Agent impulsado por Gemini |
 | Clave API OpenAI           | Work Along Agent impulsado por GPT    |
 | Clave API Anthropic        | Work Along Agent impulsado por Claude |
 | Ollama / LM Studio (local) | Work Along Agent de modelo local      |
-| NewAPI Gateway             | Acceso unificado a 20+ modelos    |
+| NewAPI Gateway             | Acceso unificado a 20+ modelos        |
 
 Las mismas capacidades del Agent — lectura/escritura de archivos, búsqueda web, generación de imágenes, uso de herramientas — independientemente del modelo que lo impulse. Headmaster admite **30+ plataformas AI** incluyendo servicios en la nube y despliegues locales.
 
@@ -459,7 +459,7 @@ _Abre múltiples conversaciones, las tareas no se mezclan, memoria independiente
 
 Headmaster es un **Escritorio Multi-AI Agent gratuito y de código abierto**. En comparación con Claude Work Along que solo se ejecuta en macOS y está bloqueado a Claude, Headmaster es su versión mejorada de modelo completo y multiplataforma.
 
-| Dimensión          | Claude Work Along     | Headmaster                                                 |
+| Dimensión          | Claude Work Along | Headmaster                                             |
 | :----------------- | :---------------- | :----------------------------------------------------- |
 | SO                 | Solo macOS        | macOS / Windows / Linux                                |
 | Soporte de modelos | Solo Claude       | Gemini, Claude, DeepSeek, OpenAI, Ollama, ...          |

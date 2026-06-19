@@ -248,7 +248,10 @@ export async function captureBackendStartupFailure(error: unknown): Promise<void
       scope.setTag('headmaster.backend_startup.expected_download_arch', failureInfo.expectedDownloadArch);
     }
     if (typeof failureInfo.isRosettaTranslated === 'boolean') {
-      scope.setTag('headmaster.backend_startup.rosetta_translated', getBooleanTagValue(failureInfo.isRosettaTranslated));
+      scope.setTag(
+        'headmaster.backend_startup.rosetta_translated',
+        getBooleanTagValue(failureInfo.isRosettaTranslated)
+      );
     }
     if (typeof details?.stage === 'string') {
       scope.setTag('headmaster.backend_startup.stage', details.stage);
@@ -275,8 +278,14 @@ export async function captureBackendStartupFailure(error: unknown): Promise<void
         'headmaster.backend_startup.health_attempt_deficit_bucket',
         getHealthAttemptBucket(details?.healthCheckAttemptDeficit),
       ],
-      ['headmaster.backend_startup.health_timeout_overrun_bucket', getDurationBucket(details?.healthCheckTimeoutOverrunMs)],
-      ['headmaster.backend_startup.health_max_attempt_gap_bucket', getDurationBucket(details?.healthCheckMaxAttemptGapMs)],
+      [
+        'headmaster.backend_startup.health_timeout_overrun_bucket',
+        getDurationBucket(details?.healthCheckTimeoutOverrunMs),
+      ],
+      [
+        'headmaster.backend_startup.health_max_attempt_gap_bucket',
+        getDurationBucket(details?.healthCheckMaxAttemptGapMs),
+      ],
       [
         'headmaster.backend_startup.seconds_since_quit_and_install',
         getSecondsSince(autoUpdateDiagnostics?.lastQuitAndInstallAt),

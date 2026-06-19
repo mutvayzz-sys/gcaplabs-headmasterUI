@@ -56,7 +56,7 @@
 
 **Headmaster 不只是個聊天工具。** 它是一個真正的 Work Along 平台，AI Agent 就像您的得力助手，在電腦上幫您處理各種任務——讀檔案、寫程式碼、查資料、自動化工作流。Agent 的一舉一動都在您的掌控之中，透明可見。
 
-|                       | 傳統 AI 聊天客戶端 | **Headmaster (Work Along)**                                                                                    |
+|                       | 傳統 AI 聊天客戶端 | **Headmaster (Work Along)**                                                                            |
 | :-------------------- | :----------------- | :----------------------------------------------------------------------------------------------------- |
 | AI 可以操作您的檔案   | 有限或不可用       | **是 — 內建 Agent，完全檔案存取**                                                                      |
 | AI 可以執行多步驟任務 | 有限               | **是 — 自主執行，需您批准**                                                                            |
@@ -188,11 +188,11 @@ Headmaster 自帶完整的 AI Agent 引擎。不像其他工具需要您手動�
 
 | 您的 API 金鑰              | 您獲得的功能                                 |
 | :------------------------- | :------------------------------------------- |
-| Gemini API 金鑰            | Gemini 驅動的 Work Along Agent                   |
-| OpenAI API 金鑰            | GPT 驅動的 Work Along Agent                      |
-| Anthropic API 金鑰         | Claude 驅動的 Work Along Agent                   |
+| Gemini API 金鑰            | Gemini 驅動的 Work Along Agent               |
+| OpenAI API 金鑰            | GPT 驅動的 Work Along Agent                  |
+| Anthropic API 金鑰         | Claude 驅動的 Work Along Agent               |
 | AWS Bedrock 憑證           | 透過 Aion CLI（aionrs）的 Bedrock 驅動 Agent |
-| Ollama / LM Studio（本地） | 本地模型 Work Along Agent                        |
+| Ollama / LM Studio（本地） | 本地模型 Work Along Agent                    |
 | NewAPI 閘道                | 統一存取 20+ 模型                            |
 
 不管用哪個模型，Agent 的能力都一樣強大——檔案讀寫、網路搜尋、圖像生成、工具調用，一個不少。Headmaster 支援 **30+ 個 AI 平台**，雲端本地都能用。
@@ -513,13 +513,13 @@ _同時開啟多個對話，任務不會亂，每個都有獨立記憶，效率�
 
 Headmaster 是一個**免費開源的 Multi-AI Agent 桌面應用**。相比只能在 macOS 上用、還只能綁定 Claude 的 Claude Work Along，Headmaster 支援全模型、跨平台，是它的全面升級版。
 
-| 維度     | Claude Work Along | Headmaster                                                 |
-| :------- | :------------ | :----------------------------------------------------- |
-| OS       | 僅 macOS      | macOS / Windows / Linux                                |
-| 模型支援 | 僅 Claude     | Gemini、Claude、DeepSeek、OpenAI、Ollama 等            |
-| 互動     | 桌面 GUI      | 桌面 GUI + WebUI + Telegram / Lark / DingTalk / WeChat |
-| 自動化   | 僅手動        | Cron 定時任務 — 24/7 無人值守                          |
-| 成本     | $100/月       | 免費且開源                                             |
+| 維度     | Claude Work Along | Headmaster                                             |
+| :------- | :---------------- | :----------------------------------------------------- |
+| OS       | 僅 macOS          | macOS / Windows / Linux                                |
+| 模型支援 | 僅 Claude         | Gemini、Claude、DeepSeek、OpenAI、Ollama 等            |
+| 互動     | 桌面 GUI          | 桌面 GUI + WebUI + Telegram / Lark / DingTalk / WeChat |
+| 自動化   | 僅手動            | Cron 定時任務 — 24/7 無人值守                          |
+| 成本     | $100/月           | 免費且開源                                             |
 
 深度 AI 辦公場景支援：
 

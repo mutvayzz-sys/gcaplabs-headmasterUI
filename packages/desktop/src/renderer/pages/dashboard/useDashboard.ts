@@ -59,7 +59,10 @@ function normalizeSession(raw: Record<string, unknown>): SessionItem {
 
 function inferWorkspaceRoot(conversations: Array<Record<string, unknown>>): string {
   for (const conversation of conversations) {
-    const extra = conversation.extra && typeof conversation.extra === 'object' ? conversation.extra as Record<string, unknown> : undefined;
+    const extra =
+      conversation.extra && typeof conversation.extra === 'object'
+        ? (conversation.extra as Record<string, unknown>)
+        : undefined;
     const workspace = typeof extra?.workspace === 'string' ? extra.workspace : '';
     if (workspace) return workspace;
   }
@@ -111,26 +114,30 @@ export function useDashboard() {
       const conversationItems = conversationsRaw.items as unknown as Array<Record<string, unknown>>;
       const sessions = conversationItems.map(normalizeSession);
       const [cronRaw, adaptersRaw] = await Promise.all([
-        httpGet<Array<Record<string, unknown>>>('/api/cron/jobs').invoke().catch((_error: unknown): Array<Record<string, unknown>> => []),
-        httpGet<AcpAdapterLike[]>('/api/extensions/acp-adapters').invoke().catch((_error: unknown): AcpAdapterLike[] => []),
+        httpGet<Array<Record<string, unknown>>>('/api/cron/jobs')
+          .invoke()
+          .catch((_error: unknown): Array<Record<string, unknown>> => []),
+        httpGet<AcpAdapterLike[]>('/api/extensions/acp-adapters')
+          .invoke()
+          .catch((_error: unknown): AcpAdapterLike[] => []),
       ]);
       const root = inferWorkspaceRoot(conversationItems);
       const filesRaw = root
-        ? await httpGet<{ entries?: Array<Record<string, unknown>> }>(
-            `/api/files?path=${encodeURIComponent(root)}`
-          )
+        ? await httpGet<{ entries?: Array<Record<string, unknown>> }>(`/api/files?path=${encodeURIComponent(root)}`)
             .invoke()
             .then((result) => result.entries ?? [])
             .catch((_error: unknown): Array<Record<string, unknown>> => [])
         : [];
 
       const tasks = (cronRaw ?? []).map(fromCronJob);
-      const platforms = (adaptersRaw ?? []).map((adapter) => normalizePlatform({
-        id: adapter.id ?? adapter.backend ?? adapter.name,
-        name: adapter.name ?? adapter.backend ?? adapter.id,
-        connected: adapter.available !== false,
-        enabled: adapter.enabled !== false,
-      }));
+      const platforms = (adaptersRaw ?? []).map((adapter) =>
+        normalizePlatform({
+          id: adapter.id ?? adapter.backend ?? adapter.name,
+          name: adapter.name ?? adapter.backend ?? adapter.id,
+          connected: adapter.available !== false,
+          enabled: adapter.enabled !== false,
+        })
+      );
       const activeSessions = sessions.filter((s) => s.status === 'running' || s.status === 'thinking').length;
       const connectedPlatforms = platforms.filter((p) => p.connected && p.enabled).length;
       const pendingTasks = tasks.filter((t) => t.status !== 'done').length;
@@ -160,7 +167,9 @@ export function useDashboard() {
           timestamp: t.updated_at ?? t.created_at ?? new Date().toISOString(),
           meta: t.status,
         })),
-      ].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()).slice(0, 8);
+      ]
+        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+        .slice(0, 8);
 
       setRecent(recentItems);
     } catch (err) {

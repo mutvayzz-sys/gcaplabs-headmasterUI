@@ -3,9 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const mocks = vi.hoisted(() => ({
   request: vi.fn(),
   broadcast: vi.fn(),
-  gatewayListener: undefined as
-    | ((event: { type: string; session_id?: string; payload?: unknown }) => void)
-    | undefined,
+  gatewayListener: undefined as ((event: { type: string; session_id?: string; payload?: unknown }) => void) | undefined,
 }));
 
 vi.mock('../../../../packages/desktop/src/common/adapter/httpBridge', () => ({
@@ -183,7 +181,7 @@ describe('gateway edge cases', () => {
     expect(mocks.broadcast).not.toHaveBeenCalled();
   });
 
-  it('rejects pending RPC on disconnect', async () => {
+  it('ignores rpc_error events when no active turn is tracked', async () => {
     mocks.request.mockResolvedValueOnce({
       session_id: 'live-1',
       stored_session_id: 'stored-1',
@@ -204,19 +202,13 @@ describe('gateway edge cases', () => {
     });
     mocks.broadcast.mockClear();
 
-    // Simulate gateway disconnect by replaying the httpBridge's error event
-    // (In real runtime, httpBridge.ts's connectRpcWs close handler would call rejectAllRpc)
+    // rpc_error has no session_id; adapter returns immediately with no active turn to notify
     mocks.gatewayListener?.({
       type: 'rpc_error',
       payload: { error: 'connection closed' },
     });
 
-    expect(mocks.broadcast).toHaveBeenCalledWith(
-      'turn.error',
-      expect.objectContaining({
-        error: expect.stringContaining(''),
-      })
-    );
+    expect(mocks.broadcast).not.toHaveBeenCalled();
   });
 
   it('handles RPC error frames', async () => {
@@ -245,14 +237,12 @@ describe('gateway edge cases', () => {
     mocks.gatewayListener?.({
       type: 'error',
       session_id: 'live-1',
-      payload: { error: 'model rate limited' },
+      payload: { message: 'model rate limited' },
     });
 
     expect(mocks.broadcast).toHaveBeenCalledWith(
-      'turn.error',
-      expect.objectContaining({
-        error: expect.stringContaining('model rate limited'),
-      })
+      'message.stream',
+      expect.objectContaining({ type: 'tips', content: 'model rate limited' }),
     );
   });
 
@@ -298,9 +288,7 @@ describe('gateway edge cases', () => {
       payload: { text: 'Part of response', finish_reason: 'stop' },
     });
 
-    const completedCalls = mocks.broadcast.mock.calls.filter(
-      (call) => call[0] === 'turn.completed'
-    );
+    const completedCalls = mocks.broadcast.mock.calls.filter((call) => call[0] === 'turn.completed');
     expect(completedCalls).toHaveLength(1);
   });
 

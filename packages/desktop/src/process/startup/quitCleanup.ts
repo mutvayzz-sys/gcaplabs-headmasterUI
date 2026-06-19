@@ -52,7 +52,6 @@ async function runQuitCleanup(deps: QuitCleanupDeps): Promise<void> {
 
   const cleanup = async () => {
     await deps.stopBackend().catch((err) => deps.logError('[App] Failed to stop backend:', err));
-
   };
 
   await runWithTimeout(cleanup(), deps.timeoutMs ?? DEFAULT_QUIT_CLEANUP_TIMEOUT_MS, deps.logWarn);

@@ -133,7 +133,11 @@ const AgentChatSlot: React.FC<{
             className='shrink-0 cursor-pointer hover:bg-[var(--fill-3)] p-4px rd-4px text-[color:var(--color-text-3)] hover:text-[color:var(--color-text-1)] transition-colors'
             onClick={() => onToggleFullscreen?.()}
           >
-            {isFullscreen ? <ArrowsInSimple size={16} weight='bold' className='text-t-primary' /> : <ArrowsOutSimple size={16} weight='bold' className='text-t-primary' />}
+            {isFullscreen ? (
+              <ArrowsInSimple size={16} weight='bold' className='text-t-primary' />
+            ) : (
+              <ArrowsOutSimple size={16} weight='bold' className='text-t-primary' />
+            )}
           </div>
         </div>
       </div>

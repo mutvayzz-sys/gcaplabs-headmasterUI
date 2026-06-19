@@ -24,9 +24,7 @@ const BrowserPage: React.FC = () => {
       <div className='flex items-center justify-between mb-16px shrink-0'>
         <div className='flex items-center gap-8px'>
           <Globe size={20} weight='duotone' className='text-t-primary' />
-          <h1 className='text-18px font-semibold text-t-primary'>
-            {t('browser.title', { defaultValue: 'Browser' })}
-          </h1>
+          <h1 className='text-18px font-semibold text-t-primary'>{t('browser.title', { defaultValue: 'Browser' })}</h1>
         </div>
       </div>
 
@@ -83,7 +81,9 @@ const BrowserPage: React.FC = () => {
                   <X size={14} className='text-t-tertiary' />
                 </span>
               </div>
-              <Tag size='small' color='arcoblue'>CDP</Tag>
+              <Tag size='small' color='arcoblue'>
+                CDP
+              </Tag>
             </div>
           ))}
         </div>
@@ -107,7 +107,8 @@ const BrowserPage: React.FC = () => {
               draggable={false}
             />
           ) : (
-            !loading && !error && (
+            !loading &&
+            !error && (
               <div className='text-center'>
                 <ImageIcon size={48} className='text-t-tertiary mb-12px mx-auto' />
                 <p className='text-14px text-t-secondary'>

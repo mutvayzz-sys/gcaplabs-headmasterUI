@@ -113,5 +113,4 @@ export function initSystemSettingsBridge(): void {
     .catch((err) => {
       console.warn('[SystemSettings] Failed to restore keep-awake:', err);
     });
-
 }

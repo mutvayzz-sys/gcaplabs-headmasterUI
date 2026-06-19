@@ -86,7 +86,8 @@ const makeGitHubReleaseResponse = () => [
       },
       {
         name: 'Headmaster-1.9.22-win-x64.exe',
-        browser_download_url: 'https://github.com/iOfficeAI/Headmaster/releases/download/v1.9.22/Headmaster-1.9.22-win-x64.exe',
+        browser_download_url:
+          'https://github.com/iOfficeAI/Headmaster/releases/download/v1.9.22/Headmaster-1.9.22-win-x64.exe',
         size: 456,
         content_type: 'application/vnd.microsoft.portable-executable',
       },

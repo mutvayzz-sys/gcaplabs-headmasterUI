@@ -273,7 +273,9 @@ async function applyBuiltinOverrides(overrides: BuiltinOverride[]): Promise<numb
   });
   const applied = overrides.length - failed - skipped;
   if (failed === 0) {
-    console.log(`[Headmaster] Applied ${applied} builtin disabled-state override(s) (skipped ${skipped} retired id(s))`);
+    console.log(
+      `[Headmaster] Applied ${applied} builtin disabled-state override(s) (skipped ${skipped} retired id(s))`
+    );
   } else {
     console.error(
       `[Headmaster] Builtin override partial: ${failed}/${overrides.length} failed, ${skipped} skipped, ${applied} applied`
@@ -361,7 +363,9 @@ async function applyBuiltinPresetAgentTypeOverrides(overrides: BuiltinAgentTypeO
   });
   const applied = overrides.length - failed - skipped;
   if (failed === 0) {
-    console.log(`[Headmaster] Applied ${applied} builtin preset_agent_type override(s) (skipped ${skipped} retired id(s))`);
+    console.log(
+      `[Headmaster] Applied ${applied} builtin preset_agent_type override(s) (skipped ${skipped} retired id(s))`
+    );
   } else {
     console.error(
       `[Headmaster] Builtin preset_agent_type override partial: ${failed}/${overrides.length} failed, ${skipped} skipped, ${applied} applied`

@@ -52,7 +52,8 @@ const MessagePermission: React.FC<MessagePermissionProps> = React.memo(({ messag
   const displayTitle = title || description || t('messages.permissionRequest');
   const textPlaceholder = useMemo(() => {
     if (requestAction === 'sudo') return 'Enter the sudo password';
-    if (requestAction === 'secret') return command_type ? `Enter the value for ${command_type}` : 'Enter the secret value';
+    if (requestAction === 'secret')
+      return command_type ? `Enter the value for ${command_type}` : 'Enter the secret value';
     if (requestAction === 'clarify') return 'Type a custom answer';
     return 'Enter a response';
   }, [command_type, requestAction]);
@@ -109,7 +110,9 @@ const MessagePermission: React.FC<MessagePermissionProps> = React.memo(({ messag
                     key={String(option.value) || `option_${index}`}
                     data-testid={`message-permission-option-${String(option.value) || `option_${index}`}`}
                   >
-                    <Radio value={String(option.value)}>{t(option.label, { ...option.params, defaultValue: option.label })}</Radio>
+                    <Radio value={String(option.value)}>
+                      {t(option.label, { ...option.params, defaultValue: option.label })}
+                    </Radio>
                   </div>
                 ))
               ) : !needsTextResponse ? (

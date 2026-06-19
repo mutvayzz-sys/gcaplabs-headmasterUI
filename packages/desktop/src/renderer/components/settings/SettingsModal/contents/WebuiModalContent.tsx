@@ -654,11 +654,7 @@ const WebuiModalContent: React.FC = () => {
                 {'  '}
                 <button
                   className='text-primary hover:underline cursor-pointer bg-transparent border-none p-0 text-12px'
-                  onClick={() =>
-                    shell.openExternal
-                      .invoke('https://gcaplabs.com')
-                      .catch(console.error)
-                  }
+                  onClick={() => shell.openExternal.invoke('https://gcaplabs.com').catch(console.error)}
                 >
                   {t('settings.webui.viewGuide')}
                 </button>

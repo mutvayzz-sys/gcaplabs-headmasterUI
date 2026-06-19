@@ -23,18 +23,29 @@ import { useLayoutContext } from '@renderer/hooks/context/LayoutContext';
 import { useAssets } from './useAssets';
 
 const STATUS_META: Record<string, { icon: React.ReactNode; color: string; label: string }> = {
-  idle:    { icon: <Hourglass size={12} />,   color: 'bg-slate-500/10 text-slate-300', label: 'Idle' },
-  queued:  { icon: <Queue size={12} />,     color: 'bg-amber-500/10 text-amber-300', label: 'Queued' },
-  running: { icon: <Lightning size={12} />, color: 'bg-blue-500/10 text-blue-300',   label: 'Running' },
-  done:    { icon: <CheckCircle size={12} />, color: 'bg-emerald-500/10 text-emerald-300', label: 'Done' },
-  error:   { icon: <WarningCircle size={12} />, color: 'bg-red-500/10 text-red-300',      label: 'Error' },
+  idle: { icon: <Hourglass size={12} />, color: 'bg-slate-500/10 text-slate-300', label: 'Idle' },
+  queued: { icon: <Queue size={12} />, color: 'bg-amber-500/10 text-amber-300', label: 'Queued' },
+  running: { icon: <Lightning size={12} />, color: 'bg-blue-500/10 text-blue-300', label: 'Running' },
+  done: { icon: <CheckCircle size={12} />, color: 'bg-emerald-500/10 text-emerald-300', label: 'Done' },
+  error: { icon: <WarningCircle size={12} />, color: 'bg-red-500/10 text-red-300', label: 'Error' },
 };
 
 const AssetsPage: React.FC = () => {
   const layout = useLayoutContext();
   const isMobile = layout?.isMobile ?? false;
   const { t } = useTranslation();
-  const { categories, loading, running, totalIdle, totalQueued, totalRunning, totalDone, queueCategory, runNext, resetAll } = useAssets();
+  const {
+    categories,
+    loading,
+    running,
+    totalIdle,
+    totalQueued,
+    totalRunning,
+    totalDone,
+    queueCategory,
+    runNext,
+    resetAll,
+  } = useAssets();
   const [search, setSearch] = useState('');
   const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
 
@@ -72,7 +83,10 @@ const AssetsPage: React.FC = () => {
           { key: 'running', label: 'Running', value: totalRunning },
           { key: 'done', label: 'Done', value: totalDone },
         ].map((s) => (
-          <div key={s.key} className='flex-1 bg-fill-1 rd-8px border border-border-2 px-12px py-8px flex items-center justify-between'>
+          <div
+            key={s.key}
+            className='flex-1 bg-fill-1 rd-8px border border-border-2 px-12px py-8px flex items-center justify-between'
+          >
             <span className='text-12px text-t-secondary'>{s.label}</span>
             <span className='text-18px font-bold text-t-primary'>{s.value}</span>
           </div>
@@ -89,7 +103,9 @@ const AssetsPage: React.FC = () => {
 
       <div className='flex-1 min-h-0 overflow-y-auto flex flex-col gap-12px'>
         {loading && categories.length === 0 && (
-          <div className='flex justify-center py-40px'><Spin size={24} /></div>
+          <div className='flex justify-center py-40px'>
+            <Spin size={24} />
+          </div>
         )}
         {!loading && categories.length === 0 && (
           <Empty description={t('assets.empty', { defaultValue: 'No asset categories found' })} />
@@ -97,8 +113,11 @@ const AssetsPage: React.FC = () => {
 
         {categories.map((cat) => {
           const isExpanded = expandedCategory === cat.key;
-          const filteredJobs = cat.jobs.filter((j) =>
-            !search || j.prompt.toLowerCase().includes(search.toLowerCase()) || j.folder.toLowerCase().includes(search.toLowerCase())
+          const filteredJobs = cat.jobs.filter(
+            (j) =>
+              !search ||
+              j.prompt.toLowerCase().includes(search.toLowerCase()) ||
+              j.folder.toLowerCase().includes(search.toLowerCase())
           );
           if (search && filteredJobs.length === 0) return null;
 
@@ -111,7 +130,9 @@ const AssetsPage: React.FC = () => {
                 <div className='flex items-center gap-10px'>
                   <Image size={18} className='text-t-primary' />
                   <span className='text-14px font-semibold text-t-primary'>{cat.label}</span>
-                  <Tag size='small' color='arcoblue'>{cat.count}</Tag>
+                  <Tag size='small' color='arcoblue'>
+                    {cat.count}
+                  </Tag>
                 </div>
                 <div className='flex items-center gap-8px'>
                   <Button
@@ -138,12 +159,15 @@ const AssetsPage: React.FC = () => {
                           <span className='text-11px text-t-tertiary truncate max-w-400px'>{job.prompt}</span>
                         </div>
                         <div className='flex items-center gap-8px'>
-                          <span className={classNames('px-8px py-3px rd-6px text-11px font-medium flex items-center gap-4px', meta.color)}>
+                          <span
+                            className={classNames(
+                              'px-8px py-3px rd-6px text-11px font-medium flex items-center gap-4px',
+                              meta.color
+                            )}
+                          >
                             {meta.icon} {meta.label}
                           </span>
-                          {job.progress > 0 && (
-                            <span className='text-11px text-t-secondary'>{job.progress}%</span>
-                          )}
+                          {job.progress > 0 && <span className='text-11px text-t-secondary'>{job.progress}%</span>}
                         </div>
                       </div>
                     );

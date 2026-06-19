@@ -30,7 +30,7 @@ const IntegrationsPage: React.FC = () => {
   const { t } = useTranslation();
   const { platforms, webhooks, loading, error, refresh, updatePlatform } = useIntegrations();
   const { allMcpServers, isMcpServersLoading } = useMcpServers();
-  const [activeTab, setActiveTab] = useState<typeof TAB_KEYS[number]>('channels');
+  const [activeTab, setActiveTab] = useState<(typeof TAB_KEYS)[number]>('channels');
 
   return (
     <div className={classNames('size-full flex flex-col', isMobile ? 'p-12px' : 'p-24px')}>
@@ -54,7 +54,7 @@ const IntegrationsPage: React.FC = () => {
 
       <Tabs
         activeTab={activeTab}
-        onChange={(key: string) => setActiveTab(key as typeof TAB_KEYS[number])}
+        onChange={(key: string) => setActiveTab(key as (typeof TAB_KEYS)[number])}
         type='rounded'
         className='shrink-0'
       >
@@ -76,7 +76,9 @@ const IntegrationsPage: React.FC = () => {
         {activeTab === 'channels' && (
           <div className='flex flex-col gap-10px'>
             {loading && platforms.length === 0 ? (
-              <div className='flex justify-center py-40px'><Spin size={24} /></div>
+              <div className='flex justify-center py-40px'>
+                <Spin size={24} />
+              </div>
             ) : platforms.length === 0 ? (
               <Empty description={t('integrations.noChannels', { defaultValue: 'No channels configured' })} />
             ) : (
@@ -89,9 +91,7 @@ const IntegrationsPage: React.FC = () => {
                     <span className='text-t-primary'>{PLATFORM_ICONS[p.id] || <ChatCircle size={18} />}</span>
                     <div className='flex flex-col'>
                       <span className='text-14px font-medium text-t-primary'>{p.name}</span>
-                      {p.lastError && (
-                        <span className='text-11px text-red-400'>{p.lastError}</span>
-                      )}
+                      {p.lastError && <span className='text-11px text-red-400'>{p.lastError}</span>}
                     </div>
                   </div>
                   <div className='flex items-center gap-10px'>
@@ -121,7 +121,9 @@ const IntegrationsPage: React.FC = () => {
         {activeTab === 'mcp' && (
           <div className='flex flex-col gap-10px'>
             {isMcpServersLoading ? (
-              <div className='flex justify-center py-40px'><Spin size={24} /></div>
+              <div className='flex justify-center py-40px'>
+                <Spin size={24} />
+              </div>
             ) : allMcpServers.length === 0 ? (
               <Empty description={t('integrations.noMcp', { defaultValue: 'No MCP servers' })} />
             ) : (
@@ -132,10 +134,10 @@ const IntegrationsPage: React.FC = () => {
                 >
                   <div className='flex flex-col gap-4px'>
                     <span className='text-14px font-medium text-t-primary'>{s.name}</span>
-                    {s.description && (
-                      <span className='text-12px text-t-secondary'>{s.description}</span>
-                    )}
-                    <span className='text-11px text-t-tertiary'>{String(s.transport)} · {s.id}</span>
+                    {s.description && <span className='text-12px text-t-secondary'>{s.description}</span>}
+                    <span className='text-11px text-t-tertiary'>
+                      {String(s.transport)} · {s.id}
+                    </span>
                   </div>
                   <Switch size='small' checked={s.enabled} disabled />
                 </div>
@@ -147,7 +149,9 @@ const IntegrationsPage: React.FC = () => {
         {activeTab === 'webhooks' && (
           <div className='flex flex-col gap-10px'>
             {loading ? (
-              <div className='flex justify-center py-40px'><Spin size={24} /></div>
+              <div className='flex justify-center py-40px'>
+                <Spin size={24} />
+              </div>
             ) : webhooks.length === 0 ? (
               <Empty description={t('integrations.noWebhooks', { defaultValue: 'No webhooks configured' })} />
             ) : (
@@ -162,7 +166,9 @@ const IntegrationsPage: React.FC = () => {
                   </div>
                   <div className='flex items-center gap-8px'>
                     {wh.events.map((e) => (
-                      <Tag key={e} size='small' color='arcoblue'>{e}</Tag>
+                      <Tag key={e} size='small' color='arcoblue'>
+                        {e}
+                      </Tag>
                     ))}
                   </div>
                 </div>

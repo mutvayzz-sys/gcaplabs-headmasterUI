@@ -5,10 +5,7 @@
  */
 
 import { useCallback, useEffect, useState } from 'react';
-import {
-  getHermesConversationMessages,
-  listHermesConversations,
-} from '@/common/adapter/hermesSessionAdapter';
+import { getHermesConversationMessages, listHermesConversations } from '@/common/adapter/hermesSessionAdapter';
 
 export interface SessionItem {
   id: string;
@@ -55,7 +52,8 @@ function isoFromUnknown(value: unknown): string | undefined {
 function normalizeMessage(raw: Record<string, unknown>, index: number): SessionMessage {
   const role = raw.role === 'assistant' || raw.role === 'system' ? raw.role : 'user';
   const content = raw.content ?? raw.text ?? raw.message ?? '';
-  const c = typeof content === 'string' ? content : (content && typeof content === 'object' ? JSON.stringify(content) : '');
+  const c =
+    typeof content === 'string' ? content : content && typeof content === 'object' ? JSON.stringify(content) : '';
   return {
     id: String(raw.id ?? raw.message_id ?? raw.msg_id ?? index),
     role,
@@ -66,7 +64,8 @@ function normalizeMessage(raw: Record<string, unknown>, index: number): SessionM
 
 function normalizeStatus(raw: Record<string, unknown>): SessionItem['status'] {
   const explicit = String(raw.status ?? '').toLowerCase();
-  if (['running', 'thinking', 'complete', 'failed', 'idle'].includes(explicit)) return explicit as SessionItem['status'];
+  if (['running', 'thinking', 'complete', 'failed', 'idle'].includes(explicit))
+    return explicit as SessionItem['status'];
   if (raw.is_active === true || raw.is_processing === true || raw.can_send_message === false) return 'running';
   if (raw.ended_at === null || raw.ended_at === undefined) return 'idle';
   return 'complete';
@@ -76,13 +75,25 @@ function normalizeSession(raw: Record<string, unknown>): SessionItem {
   const id = String(raw.id ?? raw.session_id ?? raw.sid ?? '');
   const title = raw.title ?? raw.name ?? raw.preview ?? raw.summary;
   const messageCount = typeof raw.message_count === 'number' ? raw.message_count : undefined;
-  const extra = raw.extra && typeof raw.extra === 'object' ? raw.extra as Record<string, unknown> : undefined;
+  const extra = raw.extra && typeof raw.extra === 'object' ? (raw.extra as Record<string, unknown>) : undefined;
   return {
     id,
     name: typeof title === 'string' && title ? title : id,
     status: normalizeStatus(raw),
-    agent_name: typeof extra?.agent_name === 'string' ? extra.agent_name : typeof extra?.backend === 'string' ? extra.backend : typeof raw.source === 'string' ? raw.source : undefined,
-    task: typeof raw.latest_message === 'string' ? raw.latest_message : typeof raw.preview === 'string' ? raw.preview : undefined,
+    agent_name:
+      typeof extra?.agent_name === 'string'
+        ? extra.agent_name
+        : typeof extra?.backend === 'string'
+          ? extra.backend
+          : typeof raw.source === 'string'
+            ? raw.source
+            : undefined,
+    task:
+      typeof raw.latest_message === 'string'
+        ? raw.latest_message
+        : typeof raw.preview === 'string'
+          ? raw.preview
+          : undefined,
     created_at: isoFromUnknown(raw.started_at ?? raw.created_at),
     updated_at: isoFromUnknown(raw.last_active ?? raw.updated_at ?? raw.modified_at ?? raw.ended_at ?? raw.started_at),
     token_count: messageCount,
@@ -105,7 +116,9 @@ export function useActivity(): UseActivityReturn {
     setError(null);
     try {
       const data = await listHermesConversations({ limit: 500 });
-      let next = data.items.map((item) => normalizeSession(item as unknown as Record<string, unknown>)).filter((s) => s.id);
+      let next = data.items
+        .map((item) => normalizeSession(item as unknown as Record<string, unknown>))
+        .filter((s) => s.id);
       if (filterStatus) next = next.filter((s) => s.status === filterStatus);
       if (filterAgent) {
         const needle = filterAgent.toLowerCase();

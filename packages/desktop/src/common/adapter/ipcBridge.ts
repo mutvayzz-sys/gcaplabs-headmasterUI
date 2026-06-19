@@ -87,10 +87,7 @@ import {
   toBackendAgent,
 } from './teamMapper';
 import { fromBackendCompareResult, type RawCompareResult } from './fileSnapshotMapper';
-import {
-  fromBackendWorkspaceFlatFiles,
-  type RawWorkspaceFlatFile,
-} from './workspaceMapper';
+import { fromBackendWorkspaceFlatFiles, type RawWorkspaceFlatFile } from './workspaceMapper';
 import {
   createHermesChatConversation,
   confirmHermesPendingRequest,
@@ -992,7 +989,10 @@ export const acpConversation = {
   ),
   setMode: {
     provider: () => {},
-    invoke: async (params: { conversation_id: string; mode: string }): Promise<{ mode: string; initialized: boolean }> => {
+    invoke: async (params: {
+      conversation_id: string;
+      mode: string;
+    }): Promise<{ mode: string; initialized: boolean }> => {
       acpModeStateByConversation.set(params.conversation_id, { mode: params.mode, initialized: true });
       return { mode: params.mode, initialized: true };
     },
@@ -1037,7 +1037,10 @@ export const acpConversation = {
   },
   setModel: {
     provider: () => {},
-    invoke: async (params: { conversation_id: string; model_id: string }): Promise<{ model_info: AcpModelInfo | null }> => {
+    invoke: async (params: {
+      conversation_id: string;
+      model_id: string;
+    }): Promise<{ model_info: AcpModelInfo | null }> => {
       const previous = acpModelStateByConversation.get(params.conversation_id)?.model_info ?? null;
       const label = previous?.available_models.find((model) => model.id === params.model_id)?.label || params.model_id;
       const model_info: AcpModelInfo = {

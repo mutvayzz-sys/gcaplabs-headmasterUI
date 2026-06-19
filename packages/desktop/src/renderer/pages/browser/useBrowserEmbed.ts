@@ -39,14 +39,17 @@ export function useBrowserEmbed() {
     }
   }, []);
 
-  const stop = useCallback(async (targetId: string) => {
-    await ipcBridge.browser.stopCdp.invoke({ targetId });
-    setTargets((prev) => prev.filter((t) => t.targetId !== targetId));
-    if (activeTargetId === targetId) {
-      setActiveTargetId(null);
-      setScreenshot(null);
-    }
-  }, [activeTargetId]);
+  const stop = useCallback(
+    async (targetId: string) => {
+      await ipcBridge.browser.stopCdp.invoke({ targetId });
+      setTargets((prev) => prev.filter((t) => t.targetId !== targetId));
+      if (activeTargetId === targetId) {
+        setActiveTargetId(null);
+        setScreenshot(null);
+      }
+    },
+    [activeTargetId]
+  );
 
   const capture = useCallback(async (targetId: string) => {
     try {

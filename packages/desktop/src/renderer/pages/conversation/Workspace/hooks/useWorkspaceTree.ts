@@ -14,8 +14,8 @@ import { getFirstLevelKeys, mergeLoadedChildren } from '../utils/treeHelpers';
 import type { WorkspaceEventPrefix } from '@/renderer/utils/emitter';
 
 interface UseWorkspaceTreeOptions {
- workspace: string;
- conversation_id: string;
+  workspace: string;
+  conversation_id: string;
   eventPrefix: 'aionrs' | 'acp' | 'codex';
 }
 

@@ -37,7 +37,9 @@ async function request(port, method, route, body) {
     });
     const raw = await response.text();
     let parsed = null;
-    try { parsed = raw ? JSON.parse(raw) : null; } catch {}
+    try {
+      parsed = raw ? JSON.parse(raw) : null;
+    } catch {}
     return { ok: response.ok, status: response.status, body: parsed, raw: raw.slice(0, 1000) };
   } catch (error) {
     return { ok: false, status: 0, error: error instanceof Error ? error.message : String(error) };
@@ -49,7 +51,8 @@ async function request(port, method, route, body) {
 function summarizeBody(body) {
   if (!body || typeof body !== 'object') return { type: typeof body };
   const data = Object.prototype.hasOwnProperty.call(body, 'data') ? body.data : body;
-  if (Array.isArray(data)) return { type: 'array', length: data.length, firstKeys: data[0] ? Object.keys(data[0]).slice(0, 10) : [] };
+  if (Array.isArray(data))
+    return { type: 'array', length: data.length, firstKeys: data[0] ? Object.keys(data[0]).slice(0, 10) : [] };
   if (data && typeof data === 'object') {
     const summary = { type: 'object', keys: Object.keys(data).slice(0, 20) };
     if (Array.isArray(data.items)) summary.items = data.items.length;
@@ -63,7 +66,9 @@ function summarizeBody(body) {
 function extractBackends(conversationsResult) {
   const data = conversationsResult.body?.data ?? conversationsResult.body;
   const items = Array.isArray(data?.items) ? data.items : [];
-  return [...new Set(items.map((item) => item?.extra?.backend || item?.extra?.provider_id || item?.type).filter(Boolean))].sort();
+  return [
+    ...new Set(items.map((item) => item?.extra?.backend || item?.extra?.provider_id || item?.type).filter(Boolean)),
+  ].sort();
 }
 
 async function main() {
@@ -90,15 +95,39 @@ async function main() {
     { name: 'asset-claude-logo', method: 'GET', route: '/api/assets/logos/ai-major/claude.svg', required: true },
     { name: 'fs-list', method: 'POST', route: '/api/fs/list', body: { root: aionRoot }, required: true },
     { name: 'fs-dir', method: 'POST', route: '/api/fs/dir', body: { dir: aionRoot, root: aionRoot }, required: true },
-    { name: 'fs-write', method: 'POST', route: '/api/fs/write', body: { path: probeFile, data: `Headmaster runtime probe ${new Date().toISOString()}\n` }, required: true },
+    {
+      name: 'fs-write',
+      method: 'POST',
+      route: '/api/fs/write',
+      body: { path: probeFile, data: `Headmaster runtime probe ${new Date().toISOString()}\n` },
+      required: true,
+    },
     { name: 'fs-read', method: 'POST', route: '/api/fs/read', body: { path: probeFile }, required: true },
     { name: 'known-missing-profiles', method: 'GET', route: '/api/profiles', expectStatus: 404, required: false },
     { name: 'known-missing-files', method: 'GET', route: '/api/files', expectStatus: 404, required: false },
     { name: 'known-missing-memory', method: 'GET', route: '/api/memory', expectStatus: 404, required: false },
     { name: 'known-missing-ws-http', method: 'GET', route: '/api/ws', expectStatus: 404, required: false },
-    { name: 'known-missing-kanban-plugin', method: 'GET', route: '/api/plugins/kanban/board', expectStatus: 404, required: false },
-    { name: 'known-missing-messaging-platforms', method: 'GET', route: '/api/messaging/platforms', expectStatus: 404, required: false },
-    { name: 'known-missing-model-options', method: 'GET', route: '/api/model/options', expectStatus: 404, required: false },
+    {
+      name: 'known-missing-kanban-plugin',
+      method: 'GET',
+      route: '/api/plugins/kanban/board',
+      expectStatus: 404,
+      required: false,
+    },
+    {
+      name: 'known-missing-messaging-platforms',
+      method: 'GET',
+      route: '/api/messaging/platforms',
+      expectStatus: 404,
+      required: false,
+    },
+    {
+      name: 'known-missing-model-options',
+      method: 'GET',
+      route: '/api/model/options',
+      expectStatus: 404,
+      required: false,
+    },
   ];
 
   const results = [];
@@ -135,8 +164,12 @@ async function main() {
   fs.writeFileSync(reportPath, JSON.stringify(report, null, 2));
 
   console.log(`Runtime probe report: ${reportPath}`);
-  console.log(`Required: ${results.filter((r) => r.required && r.pass).length}/${results.filter((r) => r.required).length} passing`);
-  console.log(`Known missing: ${results.filter((r) => !r.required && r.pass).length}/${results.filter((r) => !r.required).length} matched expected status`);
+  console.log(
+    `Required: ${results.filter((r) => r.required && r.pass).length}/${results.filter((r) => r.required).length} passing`
+  );
+  console.log(
+    `Known missing: ${results.filter((r) => !r.required && r.pass).length}/${results.filter((r) => !r.required).length} matched expected status`
+  );
   console.log(`CLI backends from conversations: ${report.knownCliBackendsFromConversations.join(', ') || '(none)'}`);
 
   if (report.failedRequired.length > 0) {

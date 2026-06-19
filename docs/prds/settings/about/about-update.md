@@ -381,14 +381,14 @@
 
 **链接列表**：
 
-| 序号 | 标题     | 行为               | 目标                                           |
-| ---- | -------- | ------------------ | ---------------------------------------------- |
+| 序号 | 标题     | 行为               | 目标                                               |
+| ---- | -------- | ------------------ | -------------------------------------------------- |
 | 1    | 帮助文档 | 打开外部链接       | `https://github.com/iOfficeAI/Headmaster/wiki`     |
 | 2    | 更新日志 | 打开外部链接       | `https://github.com/iOfficeAI/Headmaster/releases` |
 | 3    | 意见反馈 | 打开外部链接       | `https://github.com/iOfficeAI/Headmaster/issues`   |
-| 4    | 问题报告 | **打开应用内弹窗** | FeedbackReportModal（见 F-ABOUT-11）           |
-| 5    | 联系我   | 打开外部链接       | `https://x.com/WailiVery`                      |
-| 6    | 官网     | 打开外部链接       | `https://www.gcaplabs.com`                       |
+| 4    | 问题报告 | **打开应用内弹窗** | FeedbackReportModal（见 F-ABOUT-11）               |
+| 5    | 联系我   | 打开外部链接       | `https://x.com/WailiVery`                          |
+| 6    | 官网     | 打开外部链接       | `https://www.gcaplabs.com`                         |
 
 **打开机制**：
 

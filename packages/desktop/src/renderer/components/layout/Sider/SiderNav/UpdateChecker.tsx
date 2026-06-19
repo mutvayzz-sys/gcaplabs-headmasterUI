@@ -73,7 +73,9 @@ const UpdateChecker: React.FC<{ collapsed?: boolean }> = ({ collapsed = false })
         setPhase('idle');
         Notification.warning({
           title: t('common.updateFailed', { defaultValue: 'Update status unknown' }),
-          content: t('common.updateFailedMsg', { defaultValue: 'The update is still running or could not be verified.' }),
+          content: t('common.updateFailedMsg', {
+            defaultValue: 'The update is still running or could not be verified.',
+          }),
         });
         return;
       }
@@ -85,7 +87,9 @@ const UpdateChecker: React.FC<{ collapsed?: boolean }> = ({ collapsed = false })
         setPhase('installed');
         Notification.success({
           title: t('common.runtimeUpdateInstalled', { defaultValue: 'Update installed' }),
-          content: t('common.runtimeUpdateRestartReady', { defaultValue: 'Restart when ready to use the new runtime.' }),
+          content: t('common.runtimeUpdateRestartReady', {
+            defaultValue: 'Restart when ready to use the new runtime.',
+          }),
         });
         return;
       }
@@ -136,11 +140,16 @@ const UpdateChecker: React.FC<{ collapsed?: boolean }> = ({ collapsed = false })
 
   const label = (() => {
     switch (phase) {
-      case 'triggering': return t('common.runtimeUpdating', { defaultValue: 'Runtime updating…' });
-      case 'polling':    return t('common.runtimeUpdating', { defaultValue: 'Runtime updating…' });
-      case 'installed':  return t('common.runtimeUpdateRestartReady', { defaultValue: 'Update installed—restart when ready' });
-      case 'restarting': return t('common.runtimeUpdateRestarting', { defaultValue: 'Applying update…' });
-      default:           return t('common.runtimeUpdateAvailable', { defaultValue: 'Runtime update available' });
+      case 'triggering':
+        return t('common.runtimeUpdating', { defaultValue: 'Runtime updating…' });
+      case 'polling':
+        return t('common.runtimeUpdating', { defaultValue: 'Runtime updating…' });
+      case 'installed':
+        return t('common.runtimeUpdateRestartReady', { defaultValue: 'Update installed—restart when ready' });
+      case 'restarting':
+        return t('common.runtimeUpdateRestarting', { defaultValue: 'Applying update…' });
+      default:
+        return t('common.runtimeUpdateAvailable', { defaultValue: 'Runtime update available' });
     }
   })();
 
@@ -148,27 +157,16 @@ const UpdateChecker: React.FC<{ collapsed?: boolean }> = ({ collapsed = false })
 
   return (
     <div className={classNames('flex items-center gap-6px px-10px h-28px', collapsed && 'justify-center px-0')}>
-      <Tooltip
-        content={label}
-        position='right'
-      >
+      <Tooltip content={label} position='right'>
         <div
-          onClick={
-            busy ? undefined : phase === 'installed' ? () => void handleRestart() : handleUpdate
-          }
+          onClick={busy ? undefined : phase === 'installed' ? () => void handleRestart() : handleUpdate}
           className={classNames('flex items-center gap-4px w-full', busy ? 'cursor-default' : 'cursor-pointer')}
           style={{ opacity: busy ? 0.6 : 1 }}
         >
           <span className='flex items-center justify-center w-16px h-16px rd-4px bg-warning-light-3'>
-            <ArrowUp
-              size={12}
-              weight='bold'
-              className={classNames('text-warning-6', busy && 'animate-pulse')}
-            />
+            <ArrowUp size={12} weight='bold' className={classNames('text-warning-6', busy && 'animate-pulse')} />
           </span>
-          {!collapsed && (
-            <span className='text-11px text-t-secondary truncate'>{label}</span>
-          )}
+          {!collapsed && <span className='text-11px text-t-secondary truncate'>{label}</span>}
         </div>
       </Tooltip>
     </div>

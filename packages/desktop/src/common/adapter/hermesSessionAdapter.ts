@@ -176,10 +176,7 @@ export function fromHermesMessage(message: HermesSessionMessage, conversationId:
   if (message.role === 'assistant' && Array.isArray(message.tool_calls)) {
     const tools = message.tool_calls.map((raw, toolIndex) => {
       const call = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
-      const fn =
-        call.function && typeof call.function === 'object'
-          ? (call.function as Record<string, unknown>)
-          : call;
+      const fn = call.function && typeof call.function === 'object' ? (call.function as Record<string, unknown>) : call;
       const callId = String(call.id ?? call.call_id ?? `${idBase}:tool:${toolIndex}`);
       let args: Record<string, unknown> = {};
       const rawArgs = fn.arguments ?? call.arguments ?? call.input;

@@ -24,9 +24,7 @@ vi.mock('@/common/adapter/httpBridge', () => ({
 }));
 
 vi.mock('@/renderer/pages/settings/components/SettingsPageWrapper', () => ({
-  default: ({ children }: { children: React.ReactNode }) => (
-    <div data-testid='settings-page-wrapper'>{children}</div>
-  ),
+  default: ({ children }: { children: React.ReactNode }) => <div data-testid='settings-page-wrapper'>{children}</div>,
 }));
 
 vi.mock('react-i18next', () => ({
@@ -58,15 +56,12 @@ describe('RuntimeSettings', () => {
     render(<RuntimeSettings />);
 
     await waitFor(() => {
-      const errorCard = screen.queryByText(/error|retry/i);
-      expect(errorCard || document.body.textContent).toContain('Retry');
+      expect(document.body.textContent).toMatch(/settings\.runtime\.(error|retry)/i);
     });
   });
 
   it('re-fetches config when Retry button is clicked', async () => {
-    mocks.httpGet
-      .mockRejectedValueOnce(new Error('Network error'))
-      .mockResolvedValueOnce({});
+    mocks.httpGet.mockRejectedValueOnce(new Error('Network error')).mockResolvedValueOnce({});
 
     const { rerender } = render(<RuntimeSettings />);
 

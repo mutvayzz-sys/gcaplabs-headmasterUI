@@ -56,7 +56,7 @@
 
 **Headmaster é mais que um cliente de chat.** É uma plataforma Work Along onde os AI Agents trabalham com você no seu computador — lendo arquivos, escrevendo código, navegando na web e automatizando tarefas. Você pode ver tudo que o Agent faz e sempre está no controle.
 
-|                                              | Clientes de chat AI tradicionais | **Headmaster (Work Along)**                                                                                                                  |
+|                                              | Clientes de chat AI tradicionais | **Headmaster (Work Along)**                                                                                                          |
 | :------------------------------------------- | :------------------------------- | :----------------------------------------------------------------------------------------------------------------------------------- |
 | AI pode operar em seus arquivos              | Limitado ou Não                  | **Sim — Agent integrado com acesso completo a arquivos**                                                                             |
 | AI pode executar tarefas de múltiplas etapas | Limitado                         | **Sim — autônomo com sua aprovação**                                                                                                 |
@@ -133,13 +133,13 @@ Execute múltiplos AI Agents como uma equipe organizada: um agente **Leader** re
 
 Outros apps de AI te dão uma caixa de chat com sua chave API. **Headmaster te dá um Work Along Agent completo.**
 
-| Sua chave API              | O que você obtém                   |
-| :------------------------- | :--------------------------------- |
+| Sua chave API              | O que você obtém                       |
+| :------------------------- | :------------------------------------- |
 | Chave API Gemini           | Work Along Agent alimentado por Gemini |
 | Chave API OpenAI           | Work Along Agent alimentado por GPT    |
 | Chave API Anthropic        | Work Along Agent alimentado por Claude |
 | Ollama / LM Studio (local) | Work Along Agent de modelo local       |
-| NewAPI Gateway             | Acesso unificado a 20+ modelos     |
+| NewAPI Gateway             | Acesso unificado a 20+ modelos         |
 
 As mesmas capacidades do Agent — leitura/escrita de arquivos, busca na web, geração de imagens, uso de ferramentas — independentemente do modelo que o alimenta. Headmaster suporta **30+ plataformas AI** incluindo serviços em nuvem e implantações locais.
 
@@ -459,13 +459,13 @@ _Abra múltiplas conversas, as tarefas não se misturam, memória independente, 
 
 Headmaster é um **Desktop Multi-AI Agent gratuito e de código aberto**. Comparado ao Claude Work Along que só roda no macOS e está bloqueado ao Claude, Headmaster é sua versão aprimorada de modelo completo e multiplataforma.
 
-| Dimensão           | Claude Work Along  | Headmaster                                              |
-| :----------------- | :------------- | :-------------------------------------------------- |
-| SO                 | Apenas macOS   | macOS / Windows / Linux                             |
-| Suporte de modelos | Apenas Claude  | Gemini, Claude, DeepSeek, OpenAI, Ollama, ...       |
-| Interação          | GUI de desktop | GUI de desktop + WebUI + Telegram / Lark / DingTalk |
-| Automação          | Apenas manual  | Tarefas agendadas Cron — 24/7 sem supervisão        |
-| Custo              | $100/mês       | Gratuito e de código aberto                         |
+| Dimensão           | Claude Work Along | Headmaster                                          |
+| :----------------- | :---------------- | :-------------------------------------------------- |
+| SO                 | Apenas macOS      | macOS / Windows / Linux                             |
+| Suporte de modelos | Apenas Claude     | Gemini, Claude, DeepSeek, OpenAI, Ollama, ...       |
+| Interação          | GUI de desktop    | GUI de desktop + WebUI + Telegram / Lark / DingTalk |
+| Automação          | Apenas manual     | Tarefas agendadas Cron — 24/7 sem supervisão        |
+| Custo              | $100/mês          | Gratuito e de código aberto                         |
 
 Suporte a cenários de escritório AI profundos:
 

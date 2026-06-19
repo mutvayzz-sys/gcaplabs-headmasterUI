@@ -109,9 +109,7 @@ const AboutModalContent: React.FC = () => {
               <div
                 className='text-t-primary cursor-pointer hover:text-t-secondary transition-colors p-4px'
                 onClick={() =>
-                  openLink('https://gcaplabs.com').catch((error) =>
-                    console.error('Failed to open link:', error)
-                  )
+                  openLink('https://gcaplabs.com').catch((error) => console.error('Failed to open link:', error))
                 }
               >
                 <Github theme='outline' size='20' />

@@ -32,7 +32,11 @@ function getConfigPath(): string {
 }
 
 function normalizeHost(host: string): string {
-  return host.trim().replace(/^https?:\/\//, '').replace(/\/$/, '').split('/')[0];
+  return host
+    .trim()
+    .replace(/^https?:\/\//, '')
+    .replace(/\/$/, '')
+    .split('/')[0];
 }
 
 function normalizeRemoteConfig(config: Partial<RemoteConnectionConfig> | undefined): RemoteConnectionConfig {

@@ -454,12 +454,7 @@ const ConversationSearchPopover: React.FC<ConversationSearchPopoverProps> = ({
         >
           {fullWidth ? (
             <span className='size-22px flex items-center justify-center shrink-0 text-t-primary'>
-              <MagnifyingGlass
-                size={16}
-                weight='regular'
-                className='block leading-none'
-                style={{ lineHeight: 0 }}
-              />
+              <MagnifyingGlass size={16} weight='regular' className='block leading-none' style={{ lineHeight: 0 }} />
             </span>
           ) : (
             <MagnifyingGlass

@@ -144,9 +144,7 @@ const ActivityPage: React.FC = () => {
                       {session.agent_name || session.name || session.id.slice(0, 8)}
                     </span>
                     {session.task && (
-                      <span className='text-12px text-t-secondary truncate max-w-200px'>
-                        {session.task}
-                      </span>
+                      <span className='text-12px text-t-secondary truncate max-w-200px'>{session.task}</span>
                     )}
                   </div>
                   <div className='flex items-center gap-8px shrink-0'>

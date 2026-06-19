@@ -168,6 +168,16 @@ still reference aioncore:
 
 Run this phase only after sections 9–12 are complete. **Sections 9–12 are now fully complete as of 2026-06-19 (PR #4).**
 
+### CI/CD cleanup (completed 2026-06-19)
+
+- [x] Fixed 3 Codex P1 test bugs in `hermesChatAdapter.test.ts` and `RuntimeSettings.dom.test.tsx`:
+  - Bug A: `rpc_error` disconnect test — changed assertion to `not.toHaveBeenCalled()` (adapter silently drops events with no matching session)
+  - Bug B: `error` event test — fixed payload key (`error` → `message`) and expected broadcast (`turn.error` → `message.stream` with `type: 'tips'`)
+  - Bug C: i18n assertion — changed `toContain('Retry')` to `toMatch(/settings\.runtime\.(error|retry)/i)` to match the key-passthrough mock
+- [x] Rewrote `pr-checks.yml` — stripped from 5-platform matrix to Windows x64 only; replaced `prek` with `bunx tsc --noEmit` + `bunx vitest run`
+- [x] Rewrote `build-and-release.yml` — fixed broken `actions/checkout@v6` (→ v4) and `actions/download-artifact@v7` (→ v4); inlined Windows x64 build steps; removed `pack-web-cli`, `auto-retry-workflow`
+- [x] Delete dead AionUI workflow files: `_build-reusable.yml`, `bump-homebrew.yml`, `pack-web-cli.yml`, `pr-e2e-artifacts.yml`, `release-distribute.yml`
+
 ### 14. Automated validation
 
 ```bash

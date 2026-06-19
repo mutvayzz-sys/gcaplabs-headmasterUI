@@ -45,12 +45,7 @@ const SiderNavEntry: React.FC<SiderNavEntryProps> = ({
           )}
           onClick={onClick}
         >
-          <IconComp
-            size={20}
-            weight='regular'
-            className='block leading-none shrink-0'
-            style={{ lineHeight: 0 }}
-          />
+          <IconComp size={20} weight='regular' className='block leading-none shrink-0' style={{ lineHeight: 0 }} />
         </div>
       </Tooltip>
     );
@@ -67,16 +62,9 @@ const SiderNavEntry: React.FC<SiderNavEntryProps> = ({
         onClick={onClick}
       >
         <span className='size-22px flex items-center justify-center shrink-0 text-t-primary'>
-          <IconComp
-            size={16}
-            weight='regular'
-            className='block leading-none'
-            style={{ lineHeight: 0 }}
-          />
+          <IconComp size={16} weight='regular' className='block leading-none' style={{ lineHeight: 0 }} />
         </span>
-        <span className='text-t-primary text-14px font-[500] leading-24px'>
-          {label}
-        </span>
+        <span className='text-t-primary text-14px font-[500] leading-24px'>{label}</span>
       </div>
     </Tooltip>
   );

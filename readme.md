@@ -29,7 +29,7 @@
 
 ## What is Headmaster?
 
-**Headmaster** is a desktop app that lets you work *alongside* AI agents on your computer. You see everything the agent does, approve the moves that matter, and let the rest run on autopilot. It's built for people who want the power of an autonomous agent without giving up control.
+**Headmaster** is a desktop app that lets you work _alongside_ AI agents on your computer. You see everything the agent does, approve the moves that matter, and let the rest run on autopilot. It's built for people who want the power of an autonomous agent without giving up control.
 
 It is a white-label product by **GCAP Labs**, derived from the open-source [AionUi](https://github.com/iOfficeAI/AionUi) project (Apache-2.0). We add the Hermes Python runtime, the Headmaster palette and vocabulary, and the GCAP Labs identity.
 
@@ -48,11 +48,11 @@ It is a white-label product by **GCAP Labs**, derived from the open-source [Aion
 
 Download the latest release for your platform:
 
-| Platform | File |
-|---|---|
-| Windows | `Headmaster-2.1.18-win-x64.exe` (NSIS installer) or `Headmaster-2.1.18-win-x64.zip` (portable) |
-| macOS | `Headmaster-2.1.18-macOS-*.dmg` |
-| Linux | `Headmaster-2.1.18-linux-*.AppImage` |
+| Platform | File                                                                                           |
+| -------- | ---------------------------------------------------------------------------------------------- |
+| Windows  | `Headmaster-2.1.18-win-x64.exe` (NSIS installer) or `Headmaster-2.1.18-win-x64.zip` (portable) |
+| macOS    | `Headmaster-2.1.18-macOS-*.dmg`                                                                |
+| Linux    | `Headmaster-2.1.18-linux-*.AppImage`                                                           |
 
 Headless / web mode: `Headmaster-2.1.18-web-host-*.zip`.
 

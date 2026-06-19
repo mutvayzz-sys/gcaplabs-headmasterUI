@@ -75,17 +75,19 @@ const TreeItem: React.FC<TreeItemProps> = ({ entry, depth, selectedPath, onSelec
           <span className='text-11px text-t-tertiary ml-auto shrink-0'>{formatBytes(entry.size)}</span>
         )}
       </div>
-      {isFolder && isExpanded && entry.children?.map((child) => (
-        <TreeItem
-          key={child.path}
-          entry={child}
-          depth={depth + 1}
-          selectedPath={selectedPath}
-          onSelect={onSelect}
-          expandedPaths={expandedPaths}
-          onToggleExpand={onToggleExpand}
-        />
-      ))}
+      {isFolder &&
+        isExpanded &&
+        entry.children?.map((child) => (
+          <TreeItem
+            key={child.path}
+            entry={child}
+            depth={depth + 1}
+            selectedPath={selectedPath}
+            onSelect={onSelect}
+            expandedPaths={expandedPaths}
+            onToggleExpand={onToggleExpand}
+          />
+        ))}
     </div>
   );
 };
@@ -119,19 +121,12 @@ const DocumentsPage: React.FC = () => {
     });
   }, []);
 
-  const filteredEntries = search
-    ? entries.filter((e) => e.name.toLowerCase().includes(search.toLowerCase()))
-    : entries;
+  const filteredEntries = search ? entries.filter((e) => e.name.toLowerCase().includes(search.toLowerCase())) : entries;
 
   return (
     <div className={classNames('size-full flex', isMobile ? 'flex-col' : 'flex-row')}>
       {/* Sidebar tree */}
-      <div
-        className={classNames(
-          'flex flex-col border-r border-border-2 bg-fill-1',
-          isMobile ? 'h-40%' : 'w-280px'
-        )}
-      >
+      <div className={classNames('flex flex-col border-r border-border-2 bg-fill-1', isMobile ? 'h-40%' : 'w-280px')}>
         <div className='flex items-center justify-between px-12px py-10px shrink-0'>
           <div className='flex items-center gap-8px'>
             <Books size={18} weight='duotone' className='text-t-primary' />
@@ -196,9 +191,7 @@ const DocumentsPage: React.FC = () => {
         {selectedPath == null ? (
           <div className='flex flex-col items-center justify-center h-full text-t-secondary'>
             <Books size={48} weight='thin' className='mb-12px opacity-40' />
-            <p className='text-14px'>
-              {t('documents.selectFile', { defaultValue: 'Select a file to preview' })}
-            </p>
+            <p className='text-14px'>{t('documents.selectFile', { defaultValue: 'Select a file to preview' })}</p>
           </div>
         ) : previewLoading ? (
           <div className='flex justify-center py-40px'>

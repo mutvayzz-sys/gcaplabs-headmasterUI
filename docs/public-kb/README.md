@@ -9,14 +9,14 @@ This directory is the canonical place for the user-facing, customer-visible, or 
 
 ## What's in here
 
-| File | Audience | Purpose |
-|---|---|---|
-| `getting-started.md` | End user | Install Headmaster, first-run, log in, send first message |
-| `the-council.md` | End user | What "The Council" (multi-agent) is and when to use it |
-| `hiring-the-team.md` | End user | Browse the Agency, hire a Specialist, set up Open Casting |
-| `scheduled-tasks.md` | End user | Set up cron-style recurring work (The Schedule) |
-| `integrations.md` | End user | Channels, MCP servers, models |
-| `tributes.md` | Curious buyer | Lina tribute, Sorting Hat tribute, Adonis heritage, 5462 |
+| File                 | Audience      | Purpose                                                   |
+| -------------------- | ------------- | --------------------------------------------------------- |
+| `getting-started.md` | End user      | Install Headmaster, first-run, log in, send first message |
+| `the-council.md`     | End user      | What "The Council" (multi-agent) is and when to use it    |
+| `hiring-the-team.md` | End user      | Browse the Agency, hire a Specialist, set up Open Casting |
+| `scheduled-tasks.md` | End user      | Set up cron-style recurring work (The Schedule)           |
+| `integrations.md`    | End user      | Channels, MCP servers, models                             |
+| `tributes.md`        | Curious buyer | Lina tribute, Sorting Hat tribute, Adonis heritage, 5462  |
 
 ---
 

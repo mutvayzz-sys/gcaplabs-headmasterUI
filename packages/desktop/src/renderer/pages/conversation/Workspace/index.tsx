@@ -173,12 +173,9 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
     [treeHook.ensureNodeSelected, modalsHook.setContextMenu]
   );
 
-  const handleOpenChangeDiff = useCallback(
-    (_diffContent: string, _file_name: string, _file_path: string) => {
-      // Preview functionality has been removed
-    },
-    []
-  );
+  const handleOpenChangeDiff = useCallback((_diffContent: string, _file_name: string, _file_path: string) => {
+    // Preview functionality has been removed
+  }, []);
 
   // Auto-refresh changes when switching to changes tab
   useEffect(() => {

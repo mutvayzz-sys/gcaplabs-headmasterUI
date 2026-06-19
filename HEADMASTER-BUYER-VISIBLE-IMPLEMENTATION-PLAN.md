@@ -59,24 +59,24 @@ These are not buyer-visible enough or require migrations:
 
 Use these exact mappings for visible English copy:
 
-| Current visible term | Replacement |
-|---|---|
-| Agent / AI agent / agents | Specialist / Headmaster Specialist / Specialists |
-| Main Agent | Lead Specialist or Main Specialist; use `Lead Specialist` for UI labels |
-| assistant / assistants | Specialist / Specialists, unless the sentence refers to a technical CLI assistant |
-| built-in specialist / builtin | part of Your Team |
-| System / Official preset group | Your Team |
-| Custom preset group | Your Hires |
-| Skills Market / Marketplace / Market | The Agency |
-| Skill / Skills as capability inventory | Agency item(s), or `skill` only when the singular plain-language ability is natural |
-| Add Skills | Hire a Specialist / Add from The Agency depending context |
-| AionHub contribution | Open Casting |
-| Team Mode / team feature | The Council |
-| sub agents | Council Members |
-| team leader | Council Leader |
-| cowork / coworking | working together / Work Along |
-| Settings, when user-facing account/app config | My Headmaster |
-| Advanced/developer/system settings | Library later; don't restructure in this pass |
+| Current visible term                          | Replacement                                                                         |
+| --------------------------------------------- | ----------------------------------------------------------------------------------- |
+| Agent / AI agent / agents                     | Specialist / Headmaster Specialist / Specialists                                    |
+| Main Agent                                    | Lead Specialist or Main Specialist; use `Lead Specialist` for UI labels             |
+| assistant / assistants                        | Specialist / Specialists, unless the sentence refers to a technical CLI assistant   |
+| built-in specialist / builtin                 | part of Your Team                                                                   |
+| System / Official preset group                | Your Team                                                                           |
+| Custom preset group                           | Your Hires                                                                          |
+| Skills Market / Marketplace / Market          | The Agency                                                                          |
+| Skill / Skills as capability inventory        | Agency item(s), or `skill` only when the singular plain-language ability is natural |
+| Add Skills                                    | Hire a Specialist / Add from The Agency depending context                           |
+| AionHub contribution                          | Open Casting                                                                        |
+| Team Mode / team feature                      | The Council                                                                         |
+| sub agents                                    | Council Members                                                                     |
+| team leader                                   | Council Leader                                                                      |
+| cowork / coworking                            | working together / Work Along                                                       |
+| Settings, when user-facing account/app config | My Headmaster                                                                       |
+| Advanced/developer/system settings            | Library later; don't restructure in this pass                                       |
 
 Keep technical terms:
 
@@ -93,6 +93,7 @@ Keep technical terms:
 **Objective:** Remove the biggest chunk of visible upstream/generic vocabulary from `settings.json`.
 
 **Files:**
+
 - Modify: `packages/desktop/src/renderer/services/i18n/locales/en-US/settings.json`
 
 **Steps:**
@@ -146,6 +147,7 @@ Expected:
 **Objective:** Clean the visible chat/start/error surfaces.
 
 **Files:**
+
 - Modify: `packages/desktop/src/renderer/services/i18n/locales/en-US/conversation.json`
 - Modify: `packages/desktop/src/renderer/services/i18n/locales/en-US/guid.json`
 - Modify: `packages/desktop/src/renderer/services/i18n/locales/en-US/agent.json`
@@ -202,6 +204,7 @@ Expected exit code: `0`.
 **Objective:** Make scheduled tasks and Council screens match the Headmaster vocabulary.
 
 **Files:**
+
 - Modify: `packages/desktop/src/renderer/services/i18n/locales/en-US/cron.json`
 - Modify: `packages/desktop/src/renderer/services/i18n/locales/en-US/team.json`
 
@@ -263,6 +266,7 @@ Expected exit code: `0`.
 **Objective:** Remove AionHub/Aionui branding from visible hub/agency metadata used by the app.
 
 **Files:**
+
 - Modify: `resources/hub/index.json`
 - Modify: `resources/hub/manifest.json`
 
@@ -305,6 +309,7 @@ Expected: `hub metadata visible branding ok`.
 **Objective:** Remove stale upstream marketing fingerprints from public README surfaces.
 
 **Files:**
+
 - Modify: `readme.md`
 - Modify: `README.md` if present and tracked separately
 - Optional later: `docs/readme/*.md` localized docs
@@ -364,6 +369,7 @@ Expected: `public README fingerprint check ok`.
 **Objective:** Keep this pass desktop-only. Mobile is not part of the current demo/shipping scope.
 
 **Files:**
+
 - No edits to `mobile/**` in this pass.
 
 **Decision:**
@@ -391,6 +397,7 @@ No mobile verification required in this pass. Exclude `mobile/**` from the final
 **Objective:** Prove the app builds and inspect the buyer-visible output, not source internals.
 
 **Files:**
+
 - Generated: `out/main/*`
 - Generated: `out/renderer/*`
 - Optional generated installer: `out/Headmaster-*-win-x64.exe`, `out/win-unpacked/Headmaster.exe`
@@ -463,6 +470,7 @@ Expected: installer/zip/unpacked exe exist and are non-empty.
 **Objective:** Report actual remaining visible misses and percent coverage after implementation.
 
 **Files:**
+
 - No edits unless scan reveals obvious safe copy misses.
 
 **Steps:**

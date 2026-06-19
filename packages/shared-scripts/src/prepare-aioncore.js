@@ -359,7 +359,9 @@ function downloadAndExtractActionsArtifact(platform, arch, runId) {
 
   const archivePath = findAioncoreArchiveInDir(artifactExtractDir);
   if (!archivePath) {
-    throw new Error(`Adonis Core artifact ${expectedArtifactName} from run ${runId} does not contain an aioncore archive`);
+    throw new Error(
+      `Adonis Core artifact ${expectedArtifactName} from run ${runId} does not contain an aioncore archive`
+    );
   }
 
   extractArchive(archivePath, binaryExtractDir, platform);

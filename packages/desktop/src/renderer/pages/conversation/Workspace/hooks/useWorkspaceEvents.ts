@@ -12,7 +12,7 @@ import type { ContextMenuState } from '../types';
 import type { WorkspaceEventPrefix } from '@/renderer/utils/emitter';
 
 interface UseWorkspaceEventsOptions {
- conversation_id: string;
+  conversation_id: string;
   eventPrefix: 'aionrs' | 'acp' | 'codex';
 
   // Dependencies from useWorkspaceTree

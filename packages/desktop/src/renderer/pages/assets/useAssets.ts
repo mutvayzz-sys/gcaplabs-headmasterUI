@@ -29,57 +29,65 @@ const MOCK_CATEGORIES: AssetCategory[] = [
     key: 'icons',
     label: 'Icons',
     count: 9,
-    jobs: Array.from({ length: 9 }).map((_, i): AssetJob => ({
-      id: `icon-${i}`,
-      folder: `icons/set-${i + 1}`,
-      category: 'icons',
-      prompt: `Icon set ${i + 1} — minimal line art, dark theme compatible, Phosphor style`,
-      status: 'idle',
-      progress: 0,
-      outputs: [],
-    })),
+    jobs: Array.from({ length: 9 }).map(
+      (_, i): AssetJob => ({
+        id: `icon-${i}`,
+        folder: `icons/set-${i + 1}`,
+        category: 'icons',
+        prompt: `Icon set ${i + 1} — minimal line art, dark theme compatible, Phosphor style`,
+        status: 'idle',
+        progress: 0,
+        outputs: [],
+      })
+    ),
   },
   {
     key: 'mascots',
     label: 'Mascots',
     count: 21,
-    jobs: Array.from({ length: 21 }).map((_, i): AssetJob => ({
-      id: `mascot-${i}`,
-      folder: `mascots/variant-${i + 1}`,
-      category: 'mascots',
-      prompt: `Sorting Hat mascot variant ${i + 1} — wizarding theme, expressive pose, transparent background`,
-      status: 'idle',
-      progress: 0,
-      outputs: [],
-    })),
+    jobs: Array.from({ length: 21 }).map(
+      (_, i): AssetJob => ({
+        id: `mascot-${i}`,
+        folder: `mascots/variant-${i + 1}`,
+        category: 'mascots',
+        prompt: `Sorting Hat mascot variant ${i + 1} — wizarding theme, expressive pose, transparent background`,
+        status: 'idle',
+        progress: 0,
+        outputs: [],
+      })
+    ),
   },
   {
     key: 'ui',
     label: 'UI Screens',
     count: 3,
-    jobs: Array.from({ length: 3 }).map((_, i): AssetJob => ({
-      id: `ui-${i}`,
-      folder: `ui/screen-${i + 1}`,
-      category: 'ui',
-      prompt: `UI screen reference ${i + 1} — dark mode dashboard, Arco Design tokens, 1440px wide`,
-      status: 'idle',
-      progress: 0,
-      outputs: [],
-    })),
+    jobs: Array.from({ length: 3 }).map(
+      (_, i): AssetJob => ({
+        id: `ui-${i}`,
+        folder: `ui/screen-${i + 1}`,
+        category: 'ui',
+        prompt: `UI screen reference ${i + 1} — dark mode dashboard, Arco Design tokens, 1440px wide`,
+        status: 'idle',
+        progress: 0,
+        outputs: [],
+      })
+    ),
   },
   {
     key: 'marketing',
     label: 'Marketing',
     count: 1,
-    jobs: [{
-      id: 'mkt-0',
-      folder: 'marketing/hero',
-      category: 'marketing',
-      prompt: 'Hero banner — Headmaster Command Center, multi-agent orchestration, cinematic dark theme',
-      status: 'idle',
-      progress: 0,
-      outputs: [],
-    } as AssetJob],
+    jobs: [
+      {
+        id: 'mkt-0',
+        folder: 'marketing/hero',
+        category: 'marketing',
+        prompt: 'Hero banner — Headmaster Command Center, multi-agent orchestration, cinematic dark theme',
+        status: 'idle',
+        progress: 0,
+        outputs: [],
+      } as AssetJob,
+    ],
   },
 ];
 

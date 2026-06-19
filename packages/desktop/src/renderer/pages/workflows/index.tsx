@@ -19,9 +19,10 @@ const WorkflowsPage: React.FC = () => {
   const { skills, loading, error, refresh, filter, setFilter } = useSkills();
 
   const filtered = filter
-    ? skills.filter((s) =>
-        s.name.toLowerCase().includes(filter.toLowerCase()) ||
-        s.description?.toLowerCase().includes(filter.toLowerCase())
+    ? skills.filter(
+        (s) =>
+          s.name.toLowerCase().includes(filter.toLowerCase()) ||
+          s.description?.toLowerCase().includes(filter.toLowerCase())
       )
     : skills;
 
@@ -33,7 +34,9 @@ const WorkflowsPage: React.FC = () => {
           <h1 className='text-18px font-semibold text-t-primary'>
             {t('workflows.title', { defaultValue: 'Skills Library' })}
           </h1>
-          <Tag size='small' color='arcoblue'>{skills.length}</Tag>
+          <Tag size='small' color='arcoblue'>
+            {skills.length}
+          </Tag>
         </div>
         <Button
           type='secondary'
@@ -90,9 +93,7 @@ const WorkflowsPage: React.FC = () => {
                 </div>
                 <Switch size='small' checked={skill.enabled} disabled />
               </div>
-              {skill.description && (
-                <p className='text-12px text-t-secondary line-clamp-2'>{skill.description}</p>
-              )}
+              {skill.description && <p className='text-12px text-t-secondary line-clamp-2'>{skill.description}</p>}
               {skill.category && (
                 <Tag size='small' color='gray' className='self-start'>
                   {skill.category}

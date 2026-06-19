@@ -6,26 +6,26 @@
        but retoned for the Sorting Hat / Lina / Adonis brand.
        The whole theme flows from these 4-5 variables. */
 
-    --theme-foreground: #17171a;            /* unchanged — deep ink, not pure black */
-    --theme-primary: #1A4D2E;               /* CHANGED from #0053fd: Slytherin green, the Sorting Hat accent */
-    --theme-secondary: color-mix(in srgb, #1A4D2E 7%, #ffffff);
-    --theme-accent-soft: color-mix(in srgb, #1A4D2E 10%, #ffffff);
-    --theme-midground: #1A4D2E;             /* midground now matches the primary */
-    --theme-warm: #cf806d;                  /* unchanged — Lina-coded warmth */
+    --theme-foreground: #17171a; /* unchanged — deep ink, not pure black */
+    --theme-primary: #1a4d2e; /* CHANGED from #0053fd: Slytherin green, the Sorting Hat accent */
+    --theme-secondary: color-mix(in srgb, #1a4d2e 7%, #ffffff);
+    --theme-accent-soft: color-mix(in srgb, #1a4d2e 10%, #ffffff);
+    --theme-midground: #1a4d2e; /* midground now matches the primary */
+    --theme-warm: #cf806d; /* unchanged — Lina-coded warmth */
 
-    --theme-background-seed: #FAF7F2;       /* CHANGED from #f8faff: parchment cream, the 86.jpg feel */
-    --theme-sidebar-seed: #F5F2EC;          /* CHANGED from #f3f7ff: warmer cream */
-    --theme-card-seed: #FDFCF8;             /* CHANGED from #ffffff: warm white, not stark */
-    --theme-elevated-seed: #FDFCF8;
-    --theme-bubble-seed: color-mix(in srgb, #1A4D2E 4%, #FAF7F2);
+    --theme-background-seed: #faf7f2; /* CHANGED from #f8faff: parchment cream, the 86.jpg feel */
+    --theme-sidebar-seed: #f5f2ec; /* CHANGED from #f3f7ff: warmer cream */
+    --theme-card-seed: #fdfcf8; /* CHANGED from #ffffff: warm white, not stark */
+    --theme-elevated-seed: #fdfcf8;
+    --theme-bubble-seed: color-mix(in srgb, #1a4d2e 4%, #faf7f2);
 
     /* Semantic palette — kept mostly the same, but green aligns with the new primary */
     --ui-red: #cf2d56;
     --ui-orange: #db704b;
     --ui-yellow: #c08532;
-    --ui-green: #2D6A4F;                    /* CHANGED from #1f8a65: matches the new primary family */
+    --ui-green: #2d6a4f; /* CHANGED from #1f8a65: matches the new primary family */
     --ui-cyan: #4c7f8c;
-    --ui-blue: #1A4D2E;                     /* CHANGED from #0053fd: alias to the new primary */
+    --ui-blue: #1a4d2e; /* CHANGED from #0053fd: alias to the new primary */
     --ui-purple: #9e94d5;
 
     /* Mix knobs, neutral seeds — unchanged (they govern the relative weights, not the hue) */
@@ -67,7 +67,7 @@
     --theme-neutral-card: #161618;
 
     --ui-red: #e75e78;
-    --ui-green: #6FAA8E;                    /* CHANGED to match new green primary in dark mode */
+    --ui-green: #6faa8e; /* CHANGED to match new green primary in dark mode */
     --ui-cyan: #6f9ba6;
   }
 }

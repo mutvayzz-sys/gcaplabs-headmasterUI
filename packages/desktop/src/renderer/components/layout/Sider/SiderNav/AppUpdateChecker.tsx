@@ -60,9 +60,7 @@ const AppUpdateChecker: React.FC<{ collapsed?: boolean }> = ({ collapsed = false
               <ArrowUp size={12} weight='bold' className='text-success-6' />
             </span>
           </Badge>
-          {!collapsed && (
-            <span className='text-11px text-t-secondary truncate'>{label}</span>
-          )}
+          {!collapsed && <span className='text-11px text-t-secondary truncate'>{label}</span>}
         </div>
       </Tooltip>
     </div>

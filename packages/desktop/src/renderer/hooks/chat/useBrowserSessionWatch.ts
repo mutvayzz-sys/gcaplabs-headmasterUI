@@ -27,9 +27,7 @@ function hasBrowserToolInMessages(messages: RawMessage[]): boolean {
     if (msg.type === 'tool_group') {
       const items = msg.content;
       if (!Array.isArray(items)) return false;
-      return (items as RawToolItem[]).some(
-        (tool) => typeof tool.name === 'string' && isBrowserToolName(tool.name)
-      );
+      return (items as RawToolItem[]).some((tool) => typeof tool.name === 'string' && isBrowserToolName(tool.name));
     }
     if (msg.type === 'tool_call') {
       const content = msg.content as { name?: unknown } | null | undefined;
