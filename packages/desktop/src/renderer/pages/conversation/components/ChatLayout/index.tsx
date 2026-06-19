@@ -11,6 +11,7 @@ import { useLayoutConstraints } from '@/renderer/pages/conversation/hooks/useLay
 import { useTitleRename } from '@/renderer/pages/conversation/hooks/useTitleRename';
 import { useWorkspaceCollapse } from '@/renderer/pages/conversation/hooks/useWorkspaceCollapse';
 import { BrowserPanel, useBrowserPanelContext } from '@/renderer/pages/conversation/BrowserPanel';
+import { PreviewPanel, usePreviewContext } from '@/renderer/pages/conversation/Preview';
 import { dispatchWorkspaceToggleEvent } from '@/renderer/utils/workspace/workspaceEvents';
 import { useConversationAgents } from '@/renderer/pages/conversation/hooks/useConversationAgents';
 import classNames from 'classnames';
@@ -24,7 +25,7 @@ import {
 } from '@/renderer/pages/conversation/utils/layoutCalc';
 import { Layout as ArcoLayout } from '@arco-design/web-react';
 import { ExpandLeft, ExpandRight } from '@icon-park/react';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import './chat-layout.css';
 
@@ -68,8 +69,29 @@ const ChatLayout: React.FC<{
   const isDesktop = !layout?.isMobile;
   const isMobile = Boolean(layout?.isMobile);
 
-  // Browser panel state
-  const { isOpen: isPreviewOpen } = useBrowserPanelContext();
+  const { isOpen: isPreviewOpen } = usePreviewContext();
+  const { isOpen: isBrowserOpen } = useBrowserPanelContext();
+  const panelOpen = isPreviewOpen || isBrowserOpen;
+  const [activePanel, setActivePanel] = useState<'preview' | 'browser'>('preview');
+  const previousPanelStateRef = useRef({ isPreviewOpen: false, isBrowserOpen: false });
+
+  useEffect(() => {
+    const previous = previousPanelStateRef.current;
+    const previewJustOpened = isPreviewOpen && !previous.isPreviewOpen;
+    const browserJustOpened = isBrowserOpen && !previous.isBrowserOpen;
+
+    if (browserJustOpened) {
+      setActivePanel('browser');
+    } else if (previewJustOpened) {
+      setActivePanel('preview');
+    } else if (!isBrowserOpen && isPreviewOpen) {
+      setActivePanel('preview');
+    } else if (!isPreviewOpen && isBrowserOpen) {
+      setActivePanel('browser');
+    }
+
+    previousPanelStateRef.current = { isPreviewOpen, isBrowserOpen };
+  }, [isBrowserOpen, isPreviewOpen]);
 
   // --- Hook A: workspace collapse ---
   const { rightSiderCollapsed, setRightSiderCollapsed } = useWorkspaceCollapse({
@@ -122,7 +144,7 @@ const ChatLayout: React.FC<{
     chatSplitRatio: 60, // placeholder; only dynamicChatMinRatio/dynamicChatMaxRatio are used here
     workspaceEnabled,
     isDesktop,
-    isPreviewOpen,
+    isPreviewOpen: panelOpen,
     rightSiderCollapsed,
     isMobile,
   });
@@ -145,7 +167,7 @@ const ChatLayout: React.FC<{
     chatSplitRatio,
     workspaceEnabled,
     isDesktop,
-    isPreviewOpen,
+    isPreviewOpen: panelOpen,
     rightSiderCollapsed,
     isMobile,
   });
@@ -155,7 +177,7 @@ const ChatLayout: React.FC<{
     containerWidth,
     workspaceEnabled,
     isDesktop,
-    isPreviewOpen,
+    isPreviewOpen: panelOpen,
     rightSiderCollapsed,
     setRightSiderCollapsed,
     workspaceWidthPx: workspaceWidthPxPref,
@@ -261,10 +283,10 @@ const ChatLayout: React.FC<{
             <div
               className='flex flex-col relative'
               style={{
-                flexGrow: isPreviewOpen && isDesktop ? 0 : 1,
+                flexGrow: panelOpen && isDesktop ? 0 : 1,
                 flexShrink: 0,
-                flexBasis: isPreviewOpen && isDesktop ? `${chatFlex}%` : 0,
-                display: isPreviewOpen && isMobile ? 'none' : 'flex',
+                flexBasis: panelOpen && isDesktop ? `${chatFlex}%` : 0,
+                display: panelOpen && isMobile ? 'none' : 'flex',
                 minWidth: '240px',
               }}
               onClick={() => {
@@ -275,8 +297,8 @@ const ChatLayout: React.FC<{
                 {props.children}
               </ArcoLayout.Content>
             </div>
-            {/* Preview panel - conditionally rendered */}
-            {isPreviewOpen && (
+            {/* Shared file preview / browser panel slot */}
+            {panelOpen && (
               <div
                 className={classNames(
                   'preview-panel flex flex-col relative overflow-visible rounded-[15px]',
@@ -301,8 +323,41 @@ const ChatLayout: React.FC<{
                     lineClassName: 'opacity-30 group-hover:opacity-100 group-active:opacity-100',
                     lineStyle: { width: '2px' },
                   })}
-                <div className='h-full w-full overflow-hidden rounded-[15px]'>
-                  <BrowserPanel />
+                <div className='h-full w-full overflow-hidden rounded-[15px] flex flex-col'>
+                  {isPreviewOpen && isBrowserOpen && (
+                    <div className='flex items-center gap-4px px-8px h-36px border-b border-border-1 flex-shrink-0 bg-bg-2'>
+                      <button
+                        type='button'
+                        aria-pressed={activePanel === 'preview'}
+                        onClick={() => setActivePanel('preview')}
+                        className={classNames(
+                          'h-26px px-10px rounded-6px border-none text-12px cursor-pointer transition-colors',
+                          activePanel === 'preview'
+                            ? 'bg-bg-3 text-t-primary font-medium'
+                            : 'bg-transparent text-t-secondary hover:bg-bg-3'
+                        )}
+                      >
+                        Files
+                      </button>
+                      <button
+                        type='button'
+                        aria-pressed={activePanel === 'browser'}
+                        onClick={() => setActivePanel('browser')}
+                        className={classNames(
+                          'h-26px px-10px rounded-6px border-none text-12px cursor-pointer transition-colors',
+                          activePanel === 'browser'
+                            ? 'bg-bg-3 text-t-primary font-medium'
+                            : 'bg-transparent text-t-secondary hover:bg-bg-3'
+                        )}
+                      >
+                        Browser
+                      </button>
+                    </div>
+                  )}
+                  <div className='flex-1 min-h-0 overflow-hidden'>
+                    {isPreviewOpen && (!isBrowserOpen || activePanel === 'preview') && <PreviewPanel />}
+                    {isBrowserOpen && (!isPreviewOpen || activePanel === 'browser') && <BrowserPanel />}
+                  </div>
                 </div>
               </div>
             )}
