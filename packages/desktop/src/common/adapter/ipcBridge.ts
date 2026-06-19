@@ -1186,6 +1186,9 @@ export const database = {
     ),
     fromApiSearchResult
   ),
+  deleteMessage: async (_msgId: string) => {
+    console.warn('[headmaster] deleteMessage: not supported by Hermes runtime');
+  },
 };
 
 // ---------------------------------------------------------------------------
