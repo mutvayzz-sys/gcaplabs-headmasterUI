@@ -156,8 +156,11 @@ still reference aioncore:
 - [x] Update `DEEP-WIKI.md`.
 - [x] Update the source version to v0.1.7.
 - [x] Update stale current-version references to v0.1.7 where appropriate.
-- [ ] Push the completed implementation to GitHub with a new draft PR.
-- [ ] Report back before starting sections 15 and 16.
+- [x] Push the completed implementation to GitHub on
+      `codex/headmaster-v0.1.7` with commit `7a636cc`.
+- [x] Open draft PR
+      [#3](https://github.com/mutvayzz-sys/gcaplabs-headmasterUI/pull/3).
+- [x] Report back before starting sections 15 and 16.
 
 ## Final testing and debugging phase
 
