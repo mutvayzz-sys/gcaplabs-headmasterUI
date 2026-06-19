@@ -242,7 +242,10 @@ describe('gateway edge cases', () => {
 
     expect(mocks.broadcast).toHaveBeenCalledWith(
       'message.stream',
-      expect.objectContaining({ type: 'tips', content: 'model rate limited' }),
+      expect.objectContaining({
+        type: 'tips',
+        data: expect.objectContaining({ content: 'model rate limited' }),
+      }),
     );
   });
 

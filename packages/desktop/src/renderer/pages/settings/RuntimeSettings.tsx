@@ -411,7 +411,7 @@ const RuntimeSettings: React.FC = () => {
       }
     }
 
-    for (const field of Object.values(schema.fields)) {
+    for (const field of Object.values(schema.fields ?? {})) {
       if (!field || typeof field !== 'object') continue;
       const category = typeof field.category === 'string' ? field.category : 'other';
       if (!seen.has(category)) {
@@ -426,7 +426,7 @@ const RuntimeSettings: React.FC = () => {
   const fieldsByCategory = useMemo(() => {
     if (!schema) return new Map<string, [string, ConfigSchemaField][]>();
     const map = new Map<string, [string, ConfigSchemaField][]>();
-    for (const [path, field] of Object.entries(schema.fields)) {
+    for (const [path, field] of Object.entries(schema.fields ?? {})) {
       if (!field || typeof field !== 'object') continue;
       if (!isSchemaFieldType(field.type)) continue;
       const category = field.category || 'other';
