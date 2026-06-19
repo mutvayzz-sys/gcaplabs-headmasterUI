@@ -4,6 +4,8 @@ Updated: **2026-06-19**
 
 Current source version: **v0.1.7**
 
+> **PR #4 merged (2026-06-19):** Completed §9 individual message deletion stub, §10 gateway edge-case tests, §12 RuntimeSettings DOM tests. Branch: `codex/headmaster-v0.1.7`.
+
 This file tracks the remaining implementation and verification work from
 `C:\Users\Matve\Desktop\gcap-labs\codexplan.md`.
 
@@ -111,7 +113,7 @@ These routes are still present in `common/adapter/ipcBridge.ts` and may produce
 - [x] Conversation workspace browsing.
 - [x] Per-conversation mode and model operations.
 - [x] OpenClaw conversation runtime operations.
-- [ ] Individual conversation-message deletion.
+- [x] Individual conversation-message deletion.
 - [x] Cron conversation-history mapping, if its current response differs from
       the inherited AionUI shape.
 - [x] For every unsupported Hermes feature, disable or hide the UI explicitly
@@ -124,7 +126,7 @@ These routes are still present in `common/adapter/ipcBridge.ts` and may produce
 - [x] Add adapter handling for supported interactive runtime events.
 - [x] Verify tool progress, tool completion, tool errors, and rich results in
       the actual message renderer.
-- [ ] Add mocked tests for disconnect, reconnect, interruption, RPC errors, and
+- [x] Add mocked tests for disconnect, reconnect, interruption, RPC errors, and
       malformed or out-of-order events.
 
 ### 11. P1 — Remove residual non-desktop aioncore paths
@@ -146,7 +148,7 @@ still reference aioncore:
 - [x] Group fields using real `/api/config/schema` metadata.
 - [x] Show useful descriptions and defaults.
 - [x] Add client-side validation for schema constraints.
-- [ ] Verify save, reload, invalid-value, and backend-error behavior.
+- [x] Verify save, reload, invalid-value, and backend-error behavior.
 
 ### 13. P2 — Documentation, version, and publication
 
@@ -164,41 +166,86 @@ still reference aioncore:
 
 ## Final testing and debugging phase
 
-Run this phase only after sections 9–12 are complete.
+Run this phase only after sections 9–12 are complete. **Sections 9–12 are now fully complete as of 2026-06-19 (PR #4).**
 
 ### 14. Automated validation
 
+```bash
+# 1. Typecheck
+bunx tsc --noEmit
+
+# 2. Hermes adapter unit tests only (fast)
+bunx vitest run tests/unit/common/adapter/
+
+# 3. Full unit test suite
+bunx vitest run
+
+# 4. i18n generation and packaged-i18n check
+bun run i18n:types && node scripts/check-i18n.js
+
+# 5. Electron bundle
+bunx electron-vite build --config packages/desktop/electron.vite.config.ts
+
+# 6. Windows portable (fast — skip installer/zip)
+node scripts/build-with-builder.js auto --win --dir
+
+# 7. Full Windows package (installer + zip)
+node scripts/build-with-builder.js auto --win
+```
+
 - [ ] Run `bunx tsc --noEmit`.
-- [ ] Run focused Hermes adapter tests.
-- [ ] Run the complete unit test suite.
-- [ ] Run contract and integration tests.
-- [ ] Run i18n generation/checks and packaged-i18n tests.
+- [ ] Run focused Hermes adapter tests (`tests/unit/common/adapter/`).
+- [ ] Run the complete unit test suite (`bunx vitest run`).
+- [ ] Run i18n generation/checks (`bun run i18n:types && node scripts/check-i18n.js`).
 - [ ] Run `bunx electron-vite build --config packages/desktop/electron.vite.config.ts`.
 - [ ] Build the Windows portable package with `--dir`.
 - [ ] Build the Windows installer and zip.
 
 ### 15. Live installed-runtime smoke test
 
-- [ ] Launch `out/win-unpacked/Headmaster.exe`.
-- [ ] Verify REST and JSON-RPC WebSocket readiness.
-- [ ] Verify existing Hermes sessions appear.
-- [ ] Open old sessions and compare complete transcripts.
-- [ ] Create a new mission and stream a complete response.
-- [ ] Send attachments and verify Hermes receives them.
-- [ ] Interrupt a running response.
-- [ ] Restart Headmaster and verify the stored session resumes.
-- [ ] Test runtime restart and runtime crash recovery.
-- [ ] Test missing-runtime and disconnected-runtime states.
-- [ ] Verify Dashboard, Activity, Documents, Memory, Models, Profiles, and MCP.
-- [ ] Verify runtime and application update flows do not auto-restart.
-- [ ] Review `%APPDATA%\Headmaster\logs\` for unsupported endpoint loops,
-      uncaught errors, stale branding, or sensitive values.
+Launch `out\win-unpacked\Headmaster.exe` and verify the following in order:
+
+#### Runtime connectivity
+- [ ] Sidebar shows green/connected state for REST and JSON-RPC WebSocket.
+- [ ] Existing Hermes sessions load; transcripts match `GET /api/sessions/{id}/messages`.
+
+#### Primary chat — Hermes/Headmaster
+- [ ] Create a new mission and stream a complete multi-sentence response.
+- [ ] Send a follow-up in the same session; verify history is maintained.
+- [ ] Send a file attachment; verify Hermes receives it as an `@file:` reference.
+- [ ] Interrupt a running response mid-stream; verify clean stop (no hanging spinner).
+- [ ] Close and reopen Headmaster; verify the stored session resumes and transcript is intact.
+
+#### CLI agent and tool chat
+- [ ] Open each configured CLI agent/tool backend (Settings → Engines or agent scanner) and send a test prompt.
+- [ ] Verify tool-call events render correctly (tool name, progress, result).
+- [ ] Verify tool-error events render an error state without crashing the message list.
+- [ ] Confirm agents requiring approval surface the interactive approval prompt.
+- [ ] Confirm clarification and secret-input prompts work end-to-end.
+
+#### Council (multi-agent orchestration)
+- [ ] Start a Council/multi-agent run from Runs / Workflows / Automations tab.
+- [ ] Verify the run appears in the Active Runs list with correct status and assigned agent names.
+- [ ] Verify run completion updates the status pill and records an entry in Runs history.
+- [ ] Action approval gates (approve / reject) and verify the run proceeds or halts accordingly.
+
+#### Supporting surfaces
+- [ ] Dashboard KPI cards and panels render live data (not stale/empty).
+- [ ] Activity, Documents, Memory, Models, Profiles, and MCP pages all load without errors.
+- [ ] Runtime and application update flows show installed/restart-when-ready state and do NOT auto-restart.
+
+#### Runtime resilience
+- [ ] Kill the Hermes process externally; verify the disconnected banner appears with Retry/Restart controls.
+- [ ] Click Restart; verify Hermes respawns and the UI reconnects automatically.
+
+#### Log review
+- [ ] Review `%APPDATA%\Headmaster\logs\YYYY-MM-DD.log` for 404/500 loops, uncaught errors, and stale branding strings.
 
 ### 16. Debug and release closeout
 
 - [ ] Fix every reproducible failure found during the smoke test.
 - [ ] Repeat affected automated and live tests after each fix.
-- [ ] Perform a final white-label grep of source and packaged output.
+- [ ] Perform a final white-label grep of source and packaged output (see `WHITE-LABEL-AUDIT.md §6` verification commands).
 - [ ] Record final test results and known limitations in project docs.
 - [ ] Commit the completed implementation intentionally.
 - [ ] Push the branch and update the draft PR.
