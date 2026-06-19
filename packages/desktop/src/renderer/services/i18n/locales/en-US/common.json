@@ -61,7 +61,7 @@
   "refresh": "Refresh",
   "readOnly": "Read only",
   "tray.showWindow": "Show Headmaster",
-  "tray.newChat": "New Chat",
+  "tray.newChat": "New Mission",
   "tray.closeToTray": "Hide to Tray",
   "tray.about": "About Headmaster",
   "tray.restart": "Restart App",
@@ -74,12 +74,12 @@
   "backendStartup": {
     "incompatibleRuntime": {
       "title": "This system is not supported by the bundled backend",
-      "description": "Headmaster opened, but the local Adonis Core backend cannot run on this Linux version. Please upgrade to a supported Linux distribution and restart Headmaster.",
+      "description": "Headmaster opened, but the local runtime cannot run on this Linux version. Please upgrade to a supported Linux distribution and restart Headmaster.",
       "requiredVersions": "Required runtime symbols: {{versions}}"
     },
     "incompleteInstallation": {
       "title": "Headmaster installation is incomplete",
-      "description": "This installation is missing required local resources, so Adonis Core cannot start. Please download and reinstall the latest Headmaster. If the issue returns after reinstalling, check whether security or antivirus software quarantined Adonis Core.",
+      "description": "This installation is missing required local resources, so the runtime cannot start. Please download and reinstall the latest Headmaster. If the issue returns after reinstalling, check whether security or antivirus software quarantined any Headmaster components.",
       "downloadLatest": "Download latest",
       "sendDiagnostics": "Send diagnostics",
       "runtimeComponentDescription": "This installation is missing required bundled runtime components, so {{resource}} cannot start. Reinstall the latest Headmaster package. If it still happens after reinstalling, check whether security or antivirus software quarantined Headmaster components."
@@ -105,6 +105,14 @@
   "processing": "Processing...",
   "optional": "(optional)",
   "clear": "Clear",
+  "runtimeActive": "Headmaster: Active",
+  "runtimeInactive": "Headmaster: Inactive",
+  "restartRuntime": "Restart Headmaster",
+  "runtimeUpdating": "Headmaster updating…",
+  "runtimeUpdateAvailable": "Headmaster Update Available",
+  "runtimeUpdateRestarting": "Applying update…",
+  "runtimeUpdateDone": "Update applied — restarting",
+  "appUpdateAvailable": "New version available: v{{version}}",
   "sidebar": {
     "dashboard": "Dashboard",
     "chat": "Chat",

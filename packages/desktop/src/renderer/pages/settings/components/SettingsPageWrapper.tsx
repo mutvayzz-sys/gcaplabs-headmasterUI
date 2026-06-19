@@ -7,10 +7,7 @@ import { type IExtensionSettingsTab } from '@/common/adapter/ipcBridge';
 import { useExtensionSettingsTabs } from '@/renderer/hooks/system/useExtensionSettingsTabs';
 import {
   Api,
-  Cat,
-  Communication,
   Computer,
-  Earth,
   Info,
   Lightning,
   LinkCloud,
@@ -36,57 +33,49 @@ type NavItem = { label: string; icon: React.ReactElement; path: string; id: stri
 
 type TranslateFn = (key: string, options?: { defaultValue?: string }) => string;
 
-export function getBuiltinSettingsNavItems(isDesktop: boolean, t: TranslateFn): NavItem[] {
+export function getBuiltinSettingsNavItems(_isDesktop: boolean, t: TranslateFn): NavItem[] {
   const builtinMap: Record<string, NavItem> = {
+    model: {
+      id: 'model',
+      label: t('settings.models', { defaultValue: 'Models & Providers' }),
+      icon: <Lightning theme='outline' size='16' />,
+      path: 'model',
+    },
+    memory: {
+      id: 'memory',
+      label: t('settings.memorySettings', { defaultValue: 'Memory & Context' }),
+      icon: <MemoryOne theme='outline' size='16' />,
+      path: 'memory',
+    },
     hermes: {
       id: 'hermes',
-      label: t('settings.hermes', { defaultValue: 'Hermes' }),
+      label: t('settings.connection.menuLabel', { defaultValue: 'Connection' }),
       icon: <LinkCloud theme='outline' size='16' />,
       path: 'hermes',
     },
-    model: { id: 'model', label: t('settings.model'), icon: <LinkCloud theme='outline' size='16' />, path: 'model' },
     assistants: {
       id: 'assistants',
-      label: t('settings.assistants', { defaultValue: 'Assistants' }),
+      label: t('settings.specialists', { defaultValue: 'Specialists' }),
       icon: <Robot theme='outline' size='16' />,
       path: 'assistants',
     },
     agent: {
       id: 'agent',
-      label: t('settings.agents', { defaultValue: 'Agents' }),
+      label: t('settings.agents', { defaultValue: 'Engines' }),
       icon: <Speed theme='outline' size='16' />,
       path: 'agent',
     },
-    capabilities: {
-      id: 'capabilities',
-      label: t('settings.capabilities', { defaultValue: 'Capabilities' }),
-      icon: <Lightning theme='outline' size='16' />,
-      path: 'capabilities',
-    },
-    integrations: {
-      id: 'integrations',
-      label: t('settings.integrations', { defaultValue: 'Integrations' }),
+    advanced: {
+      id: 'advanced',
+      label: t('settings.advancedSettings', { defaultValue: 'Tools & Integrations' }),
       icon: <Api theme='outline' size='16' />,
-      path: 'integrations',
+      path: 'advanced',
     },
     appearance: {
       id: 'appearance',
       label: t('settings.appearancePanel'),
       icon: <Computer theme='outline' size='16' />,
       path: 'appearance',
-    },
-    webui: {
-      id: 'webui',
-      label: t('settings.webui'),
-      icon: isDesktop ? <Earth theme='outline' size='16' /> : <Communication theme='outline' size='16' />,
-      path: 'webui',
-    },
-    pet: { id: 'pet', label: t('pet.desktopPet'), icon: <Cat theme='outline' size='16' />, path: 'pet' },
-    memory: {
-      id: 'memory',
-      label: t('settings.memory.menuLabel', { defaultValue: 'Memory' }),
-      icon: <MemoryOne theme='outline' size='16' />,
-      path: 'memory',
     },
     system: { id: 'system', label: t('settings.system'), icon: <System theme='outline' size='16' />, path: 'system' },
     about: { id: 'about', label: t('settings.about'), icon: <Info theme='outline' size='16' />, path: 'about' },

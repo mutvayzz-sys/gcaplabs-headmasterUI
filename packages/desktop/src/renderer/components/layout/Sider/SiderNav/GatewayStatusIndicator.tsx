@@ -39,7 +39,11 @@ const GatewayStatusIndicator: React.FC<{ collapsed?: boolean }> = ({ collapsed =
   const handleRestart = useCallback(async () => {
     setRestarting(true);
     try {
-      await httpRequest('POST', '/api/gateway/restart');
+      if (window.electronAPI?.restartRuntime) {
+        await window.electronAPI.restartRuntime();
+        // Window will reload once the runtime is ready — nothing more to do here.
+        return;
+      }
     } catch {
       // silent
     }
@@ -51,7 +55,7 @@ const GatewayStatusIndicator: React.FC<{ collapsed?: boolean }> = ({ collapsed =
 
   return (
     <div className={classNames('flex items-center gap-6px px-10px h-28px', collapsed && 'justify-center px-0')}>
-      <Tooltip content={running ? t('common.gatewayRunning', { defaultValue: 'Gateway: Running' }) : t('common.gatewayStopped', { defaultValue: 'Gateway: Stopped' })} position='right'>
+      <Tooltip content={running ? t('common.runtimeActive', { defaultValue: 'Headmaster: Active' }) : t('common.runtimeInactive', { defaultValue: 'Headmaster: Inactive' })} position='right'>
         <span className='flex items-center gap-4px cursor-pointer' onClick={handleRestart}>
           <span
             className={classNames('inline-block w-8px h-8px rd-full', running ? 'bg-success-6' : 'bg-danger-6')}
@@ -60,18 +64,19 @@ const GatewayStatusIndicator: React.FC<{ collapsed?: boolean }> = ({ collapsed =
           {!collapsed && (
             <span className='text-11px text-t-secondary leading-none'>
               {running
-                ? t('common.gatewayRunning', { defaultValue: 'Gateway: Running' })
-                : t('common.gatewayStopped', { defaultValue: 'Gateway: Stopped' })}
+                ? t('common.runtimeActive', { defaultValue: 'Headmaster: Active' })
+                : t('common.runtimeInactive', { defaultValue: 'Headmaster: Inactive' })}
             </span>
           )}
         </span>
       </Tooltip>
       {!collapsed && (
-        <Tooltip content={t('common.restartGateway', { defaultValue: 'Restart Gateway' })} position='right'>
+        <Tooltip content={t('common.restartRuntime', { defaultValue: 'Restart Headmaster' })} position='right'>
           <button
             type='button'
             onClick={handleRestart}
             disabled={restarting}
+            title={t('common.restartRuntime', { defaultValue: 'Restart Headmaster' })}
             className='ml-auto p-2px hover:bg-fill-2 rd-4px transition-colors text-t-tertiary hover:text-t-primary disabled:opacity-40'
           >
             <ArrowsClockwise size={12} weight='regular' className={restarting ? 'animate-spin' : ''} />

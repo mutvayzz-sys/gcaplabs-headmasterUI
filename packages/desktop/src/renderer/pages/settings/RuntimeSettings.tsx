@@ -289,13 +289,13 @@ const RuntimeSettings: React.FC = () => {
                 value={connectionMode}
                 onChange={(value) => setConnectionModeState(value as ConnectionMode)}
                 options={[
-                  { label: t('settings.runtime.connectionLocal', { defaultValue: 'Local Hermes' }), value: 'local' },
-                  { label: t('settings.runtime.connectionRemote', { defaultValue: 'Remote Hermes' }), value: 'remote' },
+                  { label: t('settings.runtime.connectionLocal', { defaultValue: 'Local Runtime' }), value: 'local' },
+                  { label: t('settings.runtime.connectionRemote', { defaultValue: 'Remote Runtime' }), value: 'remote' },
                 ]}
               />
               <Text type='secondary'>
                 {t('settings.runtime.connectionHelp', {
-                  defaultValue: 'Local starts Hermes on this machine. Remote connects to a Hermes dashboard on another machine.',
+                  defaultValue: 'Local starts the runtime on this machine. Remote connects to a runtime on another machine.',
                 })}
               </Text>
             </div>

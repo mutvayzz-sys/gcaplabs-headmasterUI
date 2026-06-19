@@ -51,9 +51,8 @@ declare global {
 function getBackendPort(): number {
   if (typeof window !== 'undefined') {
     const w = (window as Window).__backendPort;
-    // 0 means "Hermes not ready"; don't fall through to globalThis.__backendPort
-    // which would be the stale backend port.
-    if (w !== undefined) return w;
+    // 0 means "backend not ready"; never use it as a real port.
+    if (typeof w === 'number' && w > 0) return w;
   }
   const g = globalThis as typeof globalThis & { __backendPort?: number };
   return g.__backendPort ?? 9119;
@@ -400,6 +399,114 @@ let wsReconnectAttempt = 0;
 
 let wsUnsupported = false;
 let wsSupportChecked = false;
+
+type RpcId = number;
+type PendingRpc = {
+  resolve: (value: unknown) => void;
+  reject: (error: Error) => void;
+  timer: ReturnType<typeof setTimeout>;
+};
+
+let rpcWs: WebSocket | null = null;
+let rpcConnectPromise: Promise<void> | null = null;
+let rpcNextId = 0;
+const rpcPending = new Map<RpcId, PendingRpc>();
+
+function rejectAllRpc(error: Error): void {
+  for (const [id, pending] of rpcPending) {
+    clearTimeout(pending.timer);
+    pending.reject(error);
+    rpcPending.delete(id);
+  }
+}
+
+function connectRpcWs(): Promise<void> {
+  if (rpcWs?.readyState === WebSocket.OPEN) return Promise.resolve();
+  if (rpcConnectPromise) return rpcConnectPromise;
+
+  rpcConnectPromise = new Promise<void>((resolve, reject) => {
+    const socket = new WebSocket(getWsUrl());
+    rpcWs = socket;
+
+    const cleanup = () => {
+      socket.removeEventListener('open', onOpen);
+      socket.removeEventListener('error', onError);
+    };
+
+    const onOpen = () => {
+      cleanup();
+      rpcConnectPromise = null;
+      resolve();
+    };
+
+    const onError = () => {
+      cleanup();
+      rpcConnectPromise = null;
+      if (rpcWs === socket) rpcWs = null;
+      reject(new Error('Could not connect to the Headmaster runtime'));
+    };
+
+    socket.addEventListener('open', onOpen, { once: true });
+    socket.addEventListener('error', onError, { once: true });
+    socket.addEventListener('close', () => {
+      if (rpcWs === socket) rpcWs = null;
+      rejectAllRpc(new Error('Headmaster runtime connection closed'));
+    });
+    socket.addEventListener('message', (event) => {
+      let frame: { id?: RpcId; result?: unknown; error?: { message?: string } };
+      try {
+        frame = JSON.parse(String(event.data));
+      } catch {
+        return;
+      }
+      if (frame.id === undefined || frame.id === null) return;
+      const pending = rpcPending.get(frame.id);
+      if (!pending) return;
+      clearTimeout(pending.timer);
+      rpcPending.delete(frame.id);
+      if (frame.error) {
+        pending.reject(new Error(frame.error.message || 'Runtime request failed'));
+      } else {
+        pending.resolve(frame.result);
+      }
+    });
+  });
+
+  return rpcConnectPromise;
+}
+
+export async function gatewayRpcRequest<T>(
+  method: string,
+  params: Record<string, unknown> = {},
+  timeoutMs = 120_000
+): Promise<T> {
+  if (typeof window === 'undefined') {
+    throw new Error('Runtime calls are only available in the renderer');
+  }
+  await connectRpcWs();
+  const socket = rpcWs;
+  if (!socket || socket.readyState !== WebSocket.OPEN) {
+    throw new Error('Headmaster runtime is not connected');
+  }
+  const id = ++rpcNextId;
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => {
+      if (rpcPending.delete(id)) reject(new Error(`request timed out: ${method}`));
+    }, timeoutMs);
+    rpcPending.set(id, {
+      resolve: (value) => resolve(value as T),
+      reject,
+      timer,
+    });
+    try {
+      socket.send(JSON.stringify({ jsonrpc: '2.0', id, method, params }));
+    } catch (error) {
+      clearTimeout(timer);
+      rpcPending.delete(id);
+      reject(error instanceof Error ? error : new Error(String(error)));
+    }
+  });
+}
 
 async function checkWsSupport(): Promise<boolean> {
   if (wsSupportChecked) return !wsUnsupported;

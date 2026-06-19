@@ -17,13 +17,13 @@ import React from 'react';
 import { useDashboardStatus } from '@renderer/hooks/system/useDashboardStatus';
 
 const STATUS_LABELS: Record<string, string> = {
-  stopped: 'Dashboard stopped',
-  installing: 'Installing Hermes…',
-  'not-installed': 'Hermes not installed',
-  starting: 'Starting Headmaster dashboard…',
+  stopped: 'Runtime stopped',
+  installing: 'Installing runtime…',
+  'not-installed': 'Runtime not installed',
+  starting: 'Starting runtime…',
   ready: 'Ready',
-  restarting: 'Restarting dashboard…',
-  failed: 'Dashboard failed',
+  restarting: 'Restarting runtime…',
+  failed: 'Runtime failed',
 };
 
 const STATUS_COLORS: Record<string, string> = {

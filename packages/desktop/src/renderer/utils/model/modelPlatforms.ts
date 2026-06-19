@@ -13,8 +13,35 @@
  */
 
 import { resolveBackendAssetUrl } from '@/renderer/utils/platform';
+import cerebrasLogo from '@/renderer/assets/logos/ai-major/cerebras.svg';
+import claudeLogo from '@/renderer/assets/logos/ai-major/claude.svg';
+import codexLogo from '@/renderer/assets/logos/tools/coding/codex.svg';
+import deepseekLogo from '@/renderer/assets/logos/ai-major/deepseek.svg';
+import geminiLogo from '@/renderer/assets/logos/ai-major/gemini.svg';
+import grokLogo from '@/renderer/assets/logos/ai-major/grok.svg';
+import groqLogo from '@/renderer/assets/logos/ai-major/groq.svg';
+import mistralLogo from '@/renderer/assets/logos/ai-major/mistral.svg';
+import openrouterLogo from '@/renderer/assets/logos/ai-major/openrouter.svg';
+import perplexityLogo from '@/renderer/assets/logos/ai-major/perplexity.svg';
+
+const LOCAL_LOGO_ASSETS: Record<string, string> = {
+  'ai-major/anthropic.svg': claudeLogo,
+  'ai-major/claude.svg': claudeLogo,
+  'ai-major/gemini.svg': geminiLogo,
+  'ai-major/openai.svg': codexLogo,
+  'ai-major/deepseek.svg': deepseekLogo,
+  'ai-major/mistral.svg': mistralLogo,
+  'ai-cloud/openrouter.svg': openrouterLogo,
+  'ai-major/openrouter.svg': openrouterLogo,
+  'ai-major/perplexity.svg': perplexityLogo,
+  'ai-major/cerebras.svg': cerebrasLogo,
+  'ai-major/groq.svg': groqLogo,
+  'ai-major/grok.svg': grokLogo,
+};
 
 const buildLogoAssetUrl = (path: string): string => {
+  const localAsset = LOCAL_LOGO_ASSETS[path];
+  if (localAsset) return localAsset;
   return resolveBackendAssetUrl(`/api/assets/logos/${path}`) ?? `/api/assets/logos/${path}`;
 };
 

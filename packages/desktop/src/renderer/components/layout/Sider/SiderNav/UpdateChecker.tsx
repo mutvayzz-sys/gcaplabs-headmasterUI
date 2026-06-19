@@ -4,9 +4,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Tooltip, Badge, Button, Notification } from '@arco-design/web-react';
+import { Tooltip, Notification } from '@arco-design/web-react';
 import { ArrowUp } from '@phosphor-icons/react';
 import { httpRequest } from '@/common/adapter/httpBridge';
 import classNames from 'classnames';
@@ -21,24 +21,37 @@ type UpdateCheckResponse = {
   message?: string | null;
 };
 
+type Phase = 'idle' | 'triggering' | 'polling' | 'restarting';
+
 const UPDATE_CHECK_INTERVAL = 6 * 60 * 60 * 1000; // 6 hours
+const POLL_INTERVAL = 5_000; // 5 s between polls while update is running
+const POLL_TIMEOUT = 3 * 60 * 1000; // give up and force-restart after 3 min
 
 const UpdateChecker: React.FC<{ collapsed?: boolean }> = ({ collapsed = false }) => {
   const { t } = useTranslation();
   const [updateInfo, setUpdateInfo] = useState<UpdateCheckResponse | null>(null);
-  const [updating, setUpdating] = useState(false);
+  const [phase, setPhase] = useState<Phase>('idle');
+  const pollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pollStartRef = useRef<number>(0);
+
+  const clearPollTimer = () => {
+    if (pollTimerRef.current !== null) {
+      clearTimeout(pollTimerRef.current);
+      pollTimerRef.current = null;
+    }
+  };
 
   const checkUpdate = useCallback(async () => {
     try {
       const data = await httpRequest<UpdateCheckResponse>('GET', '/api/hermes/update/check');
       setUpdateInfo(data);
+      return data;
     } catch {
-      // silent
+      return null;
     }
   }, []);
 
   useEffect(() => {
-    // Delay initial check to let the dashboard come up
     const timer = setTimeout(checkUpdate, 5000);
     const interval = setInterval(checkUpdate, UPDATE_CHECK_INTERVAL);
     return () => {
@@ -47,53 +60,108 @@ const UpdateChecker: React.FC<{ collapsed?: boolean }> = ({ collapsed = false })
     };
   }, [checkUpdate]);
 
+  // Poll until the runtime reports no update available (meaning the new version
+  // is installed), then call restartRuntime so the window reloads with the
+  // fresh runtime on its real port.
+  const startPollingForCompletion = useCallback(() => {
+    clearPollTimer();
+    pollStartRef.current = Date.now();
+
+    const doRestart = async () => {
+      setPhase('restarting');
+      clearPollTimer();
+      try {
+        if (window.electronAPI?.restartRuntime) {
+          await window.electronAPI.restartRuntime();
+          // Window will reload — nothing more to do.
+          return;
+        }
+      } catch {
+        // fallback: just reset state
+      }
+      setPhase('idle');
+    };
+
+    const poll = async () => {
+      const elapsed = Date.now() - pollStartRef.current;
+      if (elapsed > POLL_TIMEOUT) {
+        // Timed out — force a restart anyway to pick up whatever was installed.
+        await doRestart();
+        return;
+      }
+
+      const data = await checkUpdate();
+      if (!data?.update_available) {
+        // New version is installed — restart cleanly.
+        await doRestart();
+        return;
+      }
+
+      // Still updating — check again in 5 s.
+      pollTimerRef.current = setTimeout(() => void poll(), POLL_INTERVAL);
+    };
+
+    void poll();
+  }, [checkUpdate]);
+
+  // Cleanup on unmount
+  useEffect(() => () => clearPollTimer(), []);
+
   const handleUpdate = useCallback(async () => {
-    setUpdating(true);
+    if (phase !== 'idle') return;
+    setPhase('triggering');
     try {
       await httpRequest('POST', '/api/hermes/update');
-      Notification.success({
-        title: t('common.updateStarted', { defaultValue: 'Update Started' }),
-        content: t('common.updateStartedMsg', { defaultValue: 'Headmaster update is downloading. Restart Headmaster to apply the update.' }),
-        duration: 8000,
-      });
     } catch {
       Notification.error({
         title: t('common.updateFailed', { defaultValue: 'Update Failed' }),
         content: t('common.updateFailedMsg', { defaultValue: 'Could not start the update. Try again later.' }),
         duration: 5000,
       });
+      setPhase('idle');
+      return;
     }
-    setUpdating(false);
-  }, [t]);
+    setPhase('polling');
+    startPollingForCompletion();
+  }, [phase, t, startPollingForCompletion]);
 
   const updateAvailable = updateInfo?.update_available ?? false;
 
-  if (!updateAvailable) {
+  if (!updateAvailable && phase === 'idle') {
     return null;
   }
+
+  const label = (() => {
+    switch (phase) {
+      case 'triggering': return t('common.runtimeUpdating', { defaultValue: 'Runtime updating…' });
+      case 'polling':    return t('common.runtimeUpdating', { defaultValue: 'Runtime updating…' });
+      case 'restarting': return t('common.runtimeUpdateRestarting', { defaultValue: 'Applying update…' });
+      default:           return t('common.runtimeUpdateAvailable', { defaultValue: 'Runtime update available' });
+    }
+  })();
+
+  const busy = phase !== 'idle';
 
   return (
     <div className={classNames('flex items-center gap-6px px-10px h-28px', collapsed && 'justify-center px-0')}>
       <Tooltip
-        content={t('common.updateAvailable', { defaultValue: 'Headmaster update available' })}
+        content={label}
         position='right'
       >
         <div
-          onClick={handleUpdate}
-          className='flex items-center gap-4px cursor-pointer w-full'
-          style={{ opacity: updating ? 0.5 : 1 }}
+          onClick={busy ? undefined : handleUpdate}
+          className={classNames('flex items-center gap-4px w-full', busy ? 'cursor-default' : 'cursor-pointer')}
+          style={{ opacity: busy ? 0.6 : 1 }}
         >
-          <Badge dot={true} color='var(--color-warning-6)'>
-            <span className='flex items-center justify-center w-16px h-16px rd-4px bg-warning-light-3'>
-              <ArrowUp size={12} weight='bold' className='text-warning-6' />
-            </span>
-          </Badge>
+          <span className='flex items-center justify-center w-16px h-16px rd-4px bg-warning-light-3'>
+            <ArrowUp
+              size={12}
+              weight='bold'
+              className={classNames('text-warning-6', busy && 'animate-pulse')}
+            />
+          </span>
           {!collapsed && (
-            <span className='text-11px text-t-secondary truncate'>
-              {updating
-                ? t('common.updating', { defaultValue: 'Updating…' })
-                : t('common.updateAvailable', { defaultValue: 'Update Available' })}
-            </span>
+            <span className='text-11px text-t-secondary truncate'>{label}</span>
           )}
         </div>
       </Tooltip>

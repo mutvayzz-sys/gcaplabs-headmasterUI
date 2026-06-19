@@ -13,8 +13,14 @@ import { execSync } from 'child_process';
 const KNOWN_AGENTS = [
   { id: 'claude', name: 'Claude Code', command: 'claude', backend: 'claude' },
   { id: 'codex', name: 'OpenAI Codex', command: 'codex', backend: 'codex' },
+  { id: 'qwen', name: 'Qwen Code', command: 'qwen', backend: 'qwen' },
+  { id: 'gemini', name: 'Gemini CLI', command: 'gemini', backend: 'gemini' },
+  { id: 'opencode', name: 'OpenCode', command: 'opencode', backend: 'opencode' },
+  { id: 'cursor', name: 'Cursor', command: 'cursor', backend: 'cursor' },
+  { id: 'snow', name: 'Snow', command: 'snow', backend: 'snow' },
+  { id: 'aionrs', name: 'CLI Agent', command: 'aionrs', backend: 'aionrs' },
   { id: 'grok', name: 'Grok CLI', command: 'grok', backend: 'grok' },
-  { id: 'hermes', name: 'Hermes Agent', command: 'hermes', backend: 'hermes' },
+  { id: 'headmaster', name: 'Headmaster Runtime', command: 'hermes', backend: 'hermes' },
 ] as const;
 
 export type ScannedAgent = {

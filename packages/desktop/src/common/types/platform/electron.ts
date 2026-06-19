@@ -13,12 +13,14 @@ export interface WebUIStatus {
 export interface ElectronBridgeAPI {
   emit: (name: string, data: unknown) => Promise<unknown> | void;
   on: (callback: (event: { value: string }) => void) => void;
-  // 获取拖拽文件/目录的绝对路径 / Get absolute path for dragged file/directory
   getPathForFile?: (file: File) => string;
-  // Feedback log collection / 收集反馈日志
   collectFeedbackLogs?: () => Promise<{ filename: string; data: number[] } | null>;
-  // Feedback screenshot capture / 反馈截图
   captureFeedbackScreenshot?: () => Promise<{ filename: string; data: number[] } | null>;
+  getConnectionMode?: () => Promise<'local' | 'remote'>;
+  setConnectionMode?: (mode: 'local' | 'remote') => Promise<unknown>;
+  getRemoteConnectionConfig?: () => Promise<{ host: string; port: number; token: string }>;
+  setRemoteConnectionConfig?: (config: { host: string; port: number; token: string }) => Promise<unknown>;
+  restartRuntime?: () => Promise<{ ok: boolean; port?: number; error?: string }>;
 }
 
 export type BackendStartupFailureReason =
@@ -32,7 +34,7 @@ export type BackendIncompleteInstallationKind = 'missing_backend_binary' | 'miss
 export interface BackendStartupFailureInfo {
   incompleteInstallationKind?: BackendIncompleteInstallationKind;
   missingBackendBinary?: boolean;
-  missingBundledAioncoreDir?: boolean;
+  missingBundledHermesDir?: boolean;
   missingHubDir?: boolean;
   missingPetStatesDir?: boolean;
   missingPwaDir?: boolean;

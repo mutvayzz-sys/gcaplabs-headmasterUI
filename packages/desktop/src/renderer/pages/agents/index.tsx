@@ -17,7 +17,7 @@ import type { AgentMetadata } from '@renderer/utils/model/agentTypes';
 
 const TYPE_META: Record<string, { icon: React.ReactNode; color: string; label: string }> = {
   acp:       { icon: <Robot size={14} />,   color: 'bg-amber-500/10 text-amber-300',  label: 'ACP' },
-  aionrs:    { icon: <ChatCircle size={14} />, color: 'bg-emerald-500/10 text-emerald-300', label: 'AionRS' },
+  aionrs:    { icon: <ChatCircle size={14} />, color: 'bg-emerald-500/10 text-emerald-300', label: 'CLI' },
   remote:    { icon: <Code size={14} />,    color: 'bg-blue-500/10 text-blue-300',    label: 'Remote' },
   nanobot:   { icon: <Robot size={14} />,   color: 'bg-purple-500/10 text-purple-300',  label: 'Nano' },
   'openclaw-gateway': { icon: <Code size={14} />, color: 'bg-rose-500/10 text-rose-300', label: 'Gateway' },

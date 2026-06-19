@@ -44,7 +44,7 @@ bunx electron-vite build --config packages/desktop/electron.vite.config.ts
 node scripts/build-with-builder.js auto --win
 ```
 
-**Version:** `0.1.3` (Headmaster's own version line, in root `package.json`; reset 2026-06-18 from the inherited white-label `2.1.18`). Output filenames track this version.
+**Version:** `0.1.5` (bumped 2026-06-19; reset from inherited white-label `2.1.18` on 2026-06-18). Output filenames track this version.
 
 Output lands in `gcaplabs-headmaster/repo/gcaplabs-headmasterUI/out/`:
 - `out/win-unpacked/Headmaster.exe` — portable (run this for testing)
@@ -91,14 +91,15 @@ For a quick iteration that only produces the runnable portable exe (skips the sl
 - **Vocab mapping:** `gcaplabs-headmaster/repo/gcaplabs-headmasterUI/docs/white-label/HEADMASTER-VOCABULARY.csv` (read before any naming work).
 - **Hermes runtime recon:** `runtime-recon/RECON.md` (read before any runtime/backend work).
 - **The plan:** `gcaplabs-headmaster/repo/gcaplabs-headmasterUI/docs/white-label/WHAT-WE-TAKE.md` (high-level; likely out of date, the recon wins).
-- **Active backlog:** `gcaplabs-headmaster/repo/gcaplabs-headmasterUI/todo.md` — read this first when resuming desktop work. **All 16 TODO items completed 2026-06-18** (settings restructure, agent scanner, gateway checker, update checker, memory embed, feature removals, white-label audit). Remaining: build + smoke test, DeepWiki update, Honcho upgrade.
-- **Full history:** `DEVLOG.md` (newest first).
+- **Active backlog:** `todo.md` — read this first when resuming desktop work. P0: Hermes not starting (Headmaster: Inactive), chat history not loading, chats broken. P1: cron.json key rename, pet full removal from i18n. P2: Sentry DSN, runtime-not-connected banner. See `DEVLOG.md` (workspace root) for full history.
+- **Update check architecture:** `updateBridge.ts` calls `https://gcaplabs.com/api/release` (Vercel proxy, 5-min cache) which proxies `mutvayzz-sys/gcaplabs-headmasterUI` GitHub releases with a server-side `GITHUB_TOKEN`. Needs `GITHUB_TOKEN` set in Vercel env vars. Downloads rewritten to CDN via `static.gcaplabs.com/releases/{version}/{filename}`.
+- **Full history:** `DEVLOG.md` (workspace root, newest first).
 - **Last few things we did** (most recent first):
-  1. **2026-06-18 — Remote runtime + storage rename:** Settings → Runtime now has Local/Remote Hermes connection mode; renderer HTTP/WS clients support remote host; startup branches remote vs local; AppData storage migrates `aionui/` → `headmaster/`; source migration renames conversation source `aionui` → `headmaster`.
-  2. **2026-06-18 — TODO backlog cleared:** Settings restructured (Hermes→Runtime, Advanced Settings tab, dead i18n removed), local CLI agent scanner implemented (`process/agent/agentScanner.ts`), BottomComposer removed, ChatSlider workspace fix, white-label grep audit across all locales, RuntimeSettings rewritten to use real `/api/config` endpoints, gateway status indicator + Headmaster update checker in sidebar footer, Memory page now embeds `memory.gcaplabs.com` via iframe.
-  3. Version reset to `0.1.3`; removed the "installation incomplete" startup check entirely; added `AppErrorBoundary`; produced fresh signed build + `GCAP-Labs/Headmaster.lnk` shortcut.
-  4. OpenConcho wired as external-link Memory settings tab.
-  5. Icon-park plugin fix for `as` aliases in icon imports.
+  1. **2026-06-19 — v0.1.6: Settings nav restructure + update proxy:** Settings sidebar reorganised into 4 groups (Intelligence / Workspace / Tools / App); tabs renamed: "Models & Providers", "Memory & Context", "Engines" (was Agents — fixed collision where both Agents and Assistants showed "Specialists"), "Tools & Integrations" (was Advanced Settings), "Connection" (was Runtime, then hidden — Headmaster always ships with local Hermes); fixed duplicate icon bug (Model and Runtime both used LinkCloud); `updateBridge.ts` now routes through `gcaplabs.com/api/release` Vercel proxy instead of hitting private GitHub API directly; `gcaplabs-site` gained `/api/release` route that proxies GitHub with server-side token + 5-min edge cache; v0.1.6 tag published to GitHub; todo items 11–15 added (Hermes inactive, chat history missing, chat broken, Hermes update restart UX, update proxy).
+  2. **2026-06-19 — v0.1.5: App update checker + Headmaster labels + agent scanner:** Bumped to v0.1.5; new `AppUpdateChecker` in sidebar; `UpdateChecker` relabeled; `DEFAULT_REPO` corrected; `publishAutoUpdate: true`; sidebar footer version chip (`v{version} · {commit}`); Hermes home path bug fixed; restart IPC chain fixed; YOLO→Hands-Off audit; `agentScanner.ts` 4→10 backends.
+  2. **2026-06-18 — Remote runtime + storage rename:** Settings → Runtime now has Local/Remote Hermes connection mode; renderer HTTP/WS clients support remote host; startup branches remote vs local; AppData storage migrates `aionui/` → `headmaster/`; source migration renames conversation source `aionui` → `headmaster`.
+  3. **2026-06-18 — TODO backlog cleared:** Settings restructured (Hermes→Runtime, Advanced Settings tab, dead i18n removed), local CLI agent scanner implemented (`process/agent/agentScanner.ts`), BottomComposer removed, ChatSlider workspace fix, white-label grep audit across all locales, RuntimeSettings rewritten to use real `/api/config` endpoints, gateway status indicator + Headmaster update checker in sidebar footer, Memory page now embeds `memory.gcaplabs.com` via iframe.
+  4. Version reset to `0.1.3`; removed the "installation incomplete" startup check entirely; added `AppErrorBoundary`; produced fresh signed build + `GCAP-Labs/Headmaster.lnk` shortcut.
+  5. OpenConcho wired as external-link Memory settings tab.
   6. Hermes runtime pivot (no more legacy backend dependency for the build).
   7. Repository split: `gcaplabs-headmaster` (old, deleted) → `gcaplabs-headmasterUI` (current, private). Marketing site renamed to `gcaplabs-site`.
-  8. Folder restructure: `Desktop/Gcaplabs.com/` → `Desktop/GCAP-Labs/`, with `gcaplabs-headmaster/repo/gcaplabs-headmasterUI/`, `headmaster-hub/`, `gcaplabs-site/`, `runtime/`, `runtime-recon/`, `_support/upstream/`, `_support/staging/`, `_support/archive/`.

@@ -44,14 +44,14 @@ export const AGENT_MODES: Record<string, AgentModeOption[]> = {
     { value: 'default', label: 'Default' },
     { value: 'acceptEdits', label: 'Accept Edits', description: 'Auto-approve file edits, prompt for commands' },
     { value: 'plan', label: 'Plan' },
-    { value: 'bypassPermissions', label: 'YOLO' },
+    { value: 'bypassPermissions', label: 'Hands-Off' },
     { value: 'dontAsk', label: "Don't Ask", description: 'Block all actions except pre-approved rules' },
   ],
   // Qwen: ACP session/set_mode returns success but does not enforce plan mode behavior.
   // Plan mode disabled until upstream fix. See https://github.com/QwenLM/qwen-code/issues/1806
   qwen: [
     { value: 'default', label: 'Default' },
-    { value: 'yolo', label: 'YOLO' },
+    { value: 'yolo', label: 'Hands-Off' },
   ],
   opencode: [
     { value: 'build', label: 'Build' },
@@ -60,12 +60,12 @@ export const AGENT_MODES: Record<string, AgentModeOption[]> = {
   gemini: [
     { value: 'default', label: 'Default' },
     { value: 'autoEdit', label: 'Auto-Accept Edits' },
-    { value: 'yolo', label: 'YOLO' },
+    { value: 'yolo', label: 'Hands-Off' },
   ],
   aionrs: [
     { value: 'default', label: 'Default' },
     { value: 'auto_edit', label: 'Auto-Accept Edits' },
-    { value: 'yolo', label: 'YOLO' },
+    { value: 'yolo', label: 'Hands-Off' },
   ],
   codex: [
     { value: CODEX_MODE_READ_ONLY, label: 'Read Only' },
@@ -79,7 +79,7 @@ export const AGENT_MODES: Record<string, AgentModeOption[]> = {
   ],
   snow: [
     { value: 'default', label: 'Agent', description: 'Full agent mode with tool access' },
-    { value: 'yolo', label: 'YOLO', description: 'Auto-approve all operations without prompting' },
+    { value: 'yolo', label: 'Hands-Off', description: 'Auto-approve all operations without prompting' },
   ],
 };
 

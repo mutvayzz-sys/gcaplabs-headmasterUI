@@ -75,7 +75,14 @@ const PLATFORM_HERMES_BIN = (platform: NodeJS.Platform): string => {
 };
 
 const HERMES_HOME_POSIX = (): string => process.env.HERMES_HOME || join(homedir(), '.hermes');
-const HERMES_HOME_WIN32 = (): string => process.env.HERMES_HOME || join(app.getPath('appData'), 'hermes');
+const HERMES_HOME_WIN32 = (): string => {
+  if (process.env.HERMES_HOME) return process.env.HERMES_HOME;
+  // Hermes Windows installer uses %LOCALAPPDATA%\hermes, not Roaming.
+  const localAppData = process.env.LOCALAPPDATA || join(homedir(), 'AppData', 'Local');
+  const localPath = join(localAppData, 'hermes');
+  if (existsSync(localPath)) return localPath;
+  return join(app.getPath('appData'), 'hermes');
+};
 
 const generateSessionToken = (): string => randomBytes(32).toString('base64url');
 

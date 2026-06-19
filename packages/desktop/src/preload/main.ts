@@ -51,6 +51,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getRemoteConnectionConfig: () => ipcRenderer.invoke('connection:get-remote-config'),
   setRemoteConnectionConfig: (config: { host: string; port: number; token: string }) =>
     ipcRenderer.invoke('connection:set-remote-config', config),
+  restartRuntime: () => ipcRenderer.invoke('runtime:restart'),
 });
 
 // Synchronously fetch the backend port/session token and expose it to the renderer

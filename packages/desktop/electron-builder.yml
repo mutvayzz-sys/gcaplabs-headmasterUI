@@ -220,6 +220,6 @@ electronDownload:
 publish:
   provider: github
   owner: mutvayzz-sys
-  repo: Headmaster
+  repo: gcaplabs-headmasterUI
   publishAutoUpdate: true
   releaseType: release

@@ -14,6 +14,18 @@ const rootPackageJson = JSON.parse(readFileSync(resolve(__dirname, '../../packag
   version: string;
 };
 
+// Capture the short git commit hash at build time so the renderer can show it.
+// Falls back to 'dev' when git is unavailable (e.g. CI without checkout depth).
+let buildCommit = 'dev';
+try {
+  buildCommit = execSync('git rev-parse --short HEAD', {
+    encoding: 'utf-8',
+    stdio: ['pipe', 'pipe', 'pipe'],
+  }).trim();
+} catch {
+  // not a git repo or git not on PATH
+}
+
 // Build builtin MCP servers after main process bundle so they survive out/main/ cleanup.
 function buildMcpServersPlugin() {
   return {
@@ -307,6 +319,7 @@ export default defineConfig(({ mode }) => {
         // can show it without importing packages/desktop/package.json, which is
         // a workspace-internal placeholder frozen at "0.0.0".
         __APP_VERSION__: JSON.stringify(rootPackageJson.version),
+        __BUILD_COMMIT__: JSON.stringify(buildCommit),
         global: 'globalThis',
       },
       optimizeDeps: {
