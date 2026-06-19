@@ -74,12 +74,12 @@
   "backendStartup": {
     "incompatibleRuntime": {
       "title": "이 시스템은 번들 백엔드를 지원하지 않습니다",
-      "description": "Headmaster는 열렸지만 로컬 Adonis Core 백엔드를 이 Linux 버전에서 실행할 수 없습니다. 지원되는 Linux 배포판으로 업그레이드한 뒤 Headmaster를 다시 시작하세요.",
+      "description": "Headmaster는 열렸지만 로컬 런타임을 이 Linux 버전에서 실행할 수 없습니다. 지원되는 Linux 배포판으로 업그레이드한 뒤 Headmaster를 다시 시작하세요.",
       "requiredVersions": "필요한 런타임 심볼: {{versions}}"
     },
     "incompleteInstallation": {
       "title": "Headmaster 설치가 불완전합니다",
-      "description": "현재 설치에 필요한 로컬 리소스가 없어 Adonis Core를 시작할 수 없습니다. 최신 Headmaster를 다운로드하여 다시 설치하세요. 다시 설치한 후에도 문제가 반복되면 보안 또는 바이러스 백신 소프트웨어가 Adonis Core를 격리했는지 확인하세요.",
+      "description": "현재 설치에 필요한 로컬 리소스가 없어 런타임을 시작할 수 없습니다. 최신 Headmaster를 다운로드하여 다시 설치하세요. 다시 설치한 후에도 문제가 반복되면 보안 또는 바이러스 백신 소프트웨어가 런타임을 격리했는지 확인하세요.",
       "downloadLatest": "최신 버전 다운로드",
       "sendDiagnostics": "진단 보고서 보내기",
       "runtimeComponentDescription": "This installation is missing required bundled runtime components, so {{resource}} cannot start. Reinstall the latest Headmaster package. If it still happens after reinstalling, check whether security or antivirus software quarantined Headmaster components."
@@ -109,6 +109,9 @@
     "minute_short": "분",
     "second_short": "초"
   },
+  "runtimeActive": "런타임: 활성",
+  "runtimeInactive": "런타임: 비활성",
+  "restartRuntime": "런타임 재시작",
   "sidebar": {
     "deliverables": "Deliverables"
   }

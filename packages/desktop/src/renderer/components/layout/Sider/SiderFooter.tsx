@@ -4,6 +4,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+// Injected by electron.vite.config.ts at build time
+declare const __APP_VERSION__: string;
+declare const __BUILD_COMMIT__: string;
+
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Tooltip } from '@arco-design/web-react';
@@ -13,6 +17,7 @@ import { iconColors } from '@renderer/styles/colors';
 import type { SiderTooltipProps } from '@renderer/utils/ui/siderTooltip';
 import GatewayStatusIndicator from './SiderNav/GatewayStatusIndicator';
 import UpdateChecker from './SiderNav/UpdateChecker';
+import AppUpdateChecker from './SiderNav/AppUpdateChecker';
 
 interface SiderFooterProps {
   isMobile: boolean;
@@ -64,6 +69,15 @@ const SiderFooter: React.FC<SiderFooterProps> = ({
         <div className='flex flex-col gap-2px mb-4px'>
           <GatewayStatusIndicator collapsed={collapsed} />
           <UpdateChecker collapsed={collapsed} />
+          <AppUpdateChecker collapsed={collapsed} />
+        </div>
+      )}
+      {/* Version + commit tag — only shown when sidebar is expanded */}
+      {!collapsed && !isMobile && (
+        <div className='px-10px pb-4px'>
+          <span className='text-10px font-mono text-t-quaternary select-none tracking-wide opacity-60'>
+            v{__APP_VERSION__} · {__BUILD_COMMIT__}
+          </span>
         </div>
       )}
       <div className={classNames('flex', collapsed ? 'flex-col gap-2px' : 'items-center gap-2px')}>

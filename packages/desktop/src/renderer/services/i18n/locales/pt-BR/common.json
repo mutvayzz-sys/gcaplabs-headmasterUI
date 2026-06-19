@@ -74,12 +74,12 @@
   "backendStartup": {
     "incompatibleRuntime": {
       "title": "Este sistema não é suportado pelo backend integrado",
-      "description": "O Headmaster abriu, mas o backend local do Adonis Core não pode ser executado nesta versão do Linux. Por favor, atualize para uma distribuição Linux suportada e reinicie o Headmaster.",
+      "description": "O Headmaster abriu, mas o ambiente de execução local não pode ser executado nesta versão do Linux. Por favor, atualize para uma distribuição Linux suportada e reinicie o Headmaster.",
       "requiredVersions": "Símbolos de runtime necessários: {{versions}}"
     },
     "incompleteInstallation": {
       "title": "A instalação do Headmaster está incompleta",
-      "description": "Esta instalação está faltando recursos locais necessários, portanto o Adonis Core não pode ser iniciado. Por favor, baixe e reinstale a versão mais recente do Headmaster.",
+      "description": "Esta instalação está faltando recursos locais necessários, portanto o ambiente de execução não pode ser iniciado. Por favor, baixe e reinstale a versão mais recente do Headmaster.",
       "downloadLatest": "Baixar mais recente",
       "sendDiagnostics": "Enviar diagnósticos",
       "runtimeComponentDescription": "This installation is missing required bundled runtime components, so {{resource}} cannot start. Reinstall the latest Headmaster package. If it still happens after reinstalling, check whether security or antivirus software quarantined Headmaster components."
@@ -109,6 +109,9 @@
     "minute_short": "m",
     "second_short": "s"
   },
+  "runtimeActive": "Tempo de execução: Ativo",
+  "runtimeInactive": "Tempo de execução: Inativo",
+  "restartRuntime": "Reiniciar Tempo de Execução",
   "sidebar": {
     "deliverables": "Deliverables"
   }

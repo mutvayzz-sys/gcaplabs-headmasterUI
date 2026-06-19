@@ -253,7 +253,7 @@ export async function captureBackendStartupFailure(error: unknown): Promise<void
       scope.setTag('headmaster.backend_startup.incomplete_installation_kind', failureInfo.incompleteInstallationKind);
     }
     for (const [tag, value] of [
-      ['headmaster.backend_startup.missing_bundled_dir', getBooleanTagValue(failureInfo.missingBundledAioncoreDir)],
+      ['headmaster.backend_startup.missing_bundled_dir', getBooleanTagValue(failureInfo.missingBundledHermesDir)],
       ['headmaster.backend_startup.missing_runtime_dir', getBooleanTagValue(failureInfo.missingRuntimeDir)],
       ['headmaster.backend_startup.missing_binary', getBooleanTagValue(failureInfo.missingBackendBinary)],
       ['headmaster.backend_startup.missing_hub_dir', getBooleanTagValue(failureInfo.missingHubDir)],

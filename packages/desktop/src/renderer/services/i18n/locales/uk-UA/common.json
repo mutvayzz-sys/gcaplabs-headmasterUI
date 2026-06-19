@@ -74,12 +74,12 @@
   "backendStartup": {
     "incompatibleRuntime": {
       "title": "Ця система не підтримується вбудованим backend",
-      "description": "Headmaster відкрився, але локальний backend Adonis Core не може працювати в цій версії Linux. Оновіться до підтримуваного дистрибутива Linux і перезапустіть Headmaster.",
+      "description": "Headmaster відкрився, але локальне середовище виконання не може працювати в цій версії Linux. Оновіться до підтримуваного дистрибутива Linux і перезапустіть Headmaster.",
       "requiredVersions": "Потрібні символи середовища виконання: {{versions}}"
     },
     "incompleteInstallation": {
       "title": "Встановлення Headmaster неповне",
-      "description": "У цьому встановленні бракує потрібних локальних ресурсів, тому Adonis Core не може запуститися. Завантажте та перевстановіть останню версію Headmaster. Якщо проблема повториться після перевстановлення, перевірте, чи захисне або антивірусне ПЗ не помістило Adonis Core у карантин.",
+      "description": "У цьому встановленні бракує потрібних локальних ресурсів, тому середовище виконання не може запуститися. Завантажте та перевстановіть останню версію Headmaster. Якщо проблема повториться після перевстановлення, перевірте, чи захисне або антивірусне ПЗ не помістило середовище виконання у карантин.",
       "downloadLatest": "Завантажити останню версію",
       "sendDiagnostics": "Надіслати діагностику",
       "runtimeComponentDescription": "This installation is missing required bundled runtime components, so {{resource}} cannot start. Reinstall the latest Headmaster package. If it still happens after reinstalling, check whether security or antivirus software quarantined Headmaster components."
@@ -110,6 +110,9 @@
     "minute_short": "хв",
     "second_short": "с"
   },
+  "runtimeActive": "Середовище виконання: Активне",
+  "runtimeInactive": "Середовище виконання: Неактивне",
+  "restartRuntime": "Перезапустити середовище виконання",
   "sidebar": {
     "deliverables": "Deliverables"
   }

@@ -329,6 +329,32 @@ ipcMain.handle('runtime:get-status', async () => {
   return { generatedAt: Date.now(), porting: probeResults };
 });
 
+// ---------------------------------------------------------------------------
+// runtime:restart — stop and re-launch the Hermes dashboard, then reload the
+// renderer window so the new port is picked up via the preload sync-send.
+// ---------------------------------------------------------------------------
+ipcMain.handle('runtime:restart', async () => {
+  try {
+    hermesBootstrap.stop();
+    // Give the process a moment to fully exit before restarting
+    await new Promise<void>((resolve) => setTimeout(resolve, 1500));
+    const result = await hermesBootstrap.start({ installIfMissing: false });
+    if (result.ok && result.port) {
+      (globalThis as typeof globalThis & { __backendPort?: number }).__backendPort = result.port;
+    }
+    // Reload the renderer to pick up the new port from the preload sync-send
+    const wins = BrowserWindow.getAllWindows();
+    for (const win of wins) {
+      if (!win.isDestroyed()) win.webContents.reload();
+    }
+    return { ok: result.ok, port: result.port };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error('[Headmaster] runtime:restart failed:', msg);
+    return { ok: false, error: msg };
+  }
+});
+
 function markBackendStartupFailed(_error: unknown): void {
   // The installation-integrity / startup-failure dialog has been removed, so we
   // no longer classify the failure for the renderer. Keep only the boolean flag

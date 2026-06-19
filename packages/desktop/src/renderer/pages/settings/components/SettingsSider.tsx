@@ -4,15 +4,16 @@ import { type IExtensionSettingsTab } from '@/common/adapter/ipcBridge';
 import { useExtI18n } from '@/renderer/hooks/system/useExtI18n';
 import { useExtensionSettingsTabs } from '@/renderer/hooks/system/useExtensionSettingsTabs';
 import {
+  Api,
   Computer,
   Info,
+  Lightning,
   LinkCloud,
   MemoryOne,
   Puzzle,
   Robot,
   Speed,
   System,
-  Setting as SettingsIcon,
 } from '@icon-park/react';
 import classNames from 'classnames';
 import React, { useMemo } from 'react';
@@ -21,16 +22,21 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { Tooltip } from '@arco-design/web-react';
 import { getSiderTooltipProps } from '@/renderer/utils/ui/siderTooltip';
 
-/** Builtin settings tab IDs in display order (must match router paths). */
+/**
+ * Builtin settings tab IDs in display order (must match router paths).
+ * NOTE: 'hermes' (Connection) is intentionally hidden — Headmaster always ships
+ * with a bundled local connection and this tab is not needed for standard users.
+ * The /settings/hermes route still exists for power-user / deep-link access.
+ */
 export const BUILTIN_TAB_IDS = [
-  'hermes',
-  'agent',
   'model',
-  'assistants',
-  'appearance',
   'memory',
-  'system',
+  // 'hermes', // Connection — hidden until remote-mode is a real user-facing feature
+  'assistants',
+  'agent',
   'advanced',
+  'appearance',
+  'system',
   'about',
 ] as const;
 
@@ -55,10 +61,10 @@ export const LEGACY_ANCHOR_REMAP: Record<string, string> = {
  * Extension tabs anchored between these builtins inherit the enclosing group visually.
  */
 const GROUP_HEADER_BEFORE: Record<string, string> = {
-  hermes: 'settings.groupAiCore',
-  appearance: 'settings.groupHeadmasterUI',
-  memory: 'settings.groupMemory',
-  about: 'settings.groupAbout',
+  model: 'settings.groupIntelligence',
+  assistants: 'settings.groupWorkspace',
+  agent: 'settings.groupTools',
+  appearance: 'settings.groupApp',
 };
 
 type SiderItem = {
@@ -84,39 +90,44 @@ const SettingsSider: React.FC<{ collapsed?: boolean; tooltipEnabled?: boolean }>
   const { menus, groupHeaderAt } = useMemo(() => {
     // Build builtin items
     const builtinMap: Record<string, SiderItem> = {
+      model: {
+        id: 'model',
+        label: t('settings.models', { defaultValue: 'Models & Providers' }),
+        icon: <Lightning />,
+        path: 'model',
+      },
+      memory: {
+        id: 'memory',
+        label: t('settings.memorySettings', { defaultValue: 'Memory & Context' }),
+        icon: <MemoryOne />,
+        path: 'memory',
+      },
       hermes: {
         id: 'hermes',
-        label: t('settings.runtime', { defaultValue: 'Runtime' }),
+        label: t('settings.connection.menuLabel', { defaultValue: 'Connection' }),
         icon: <LinkCloud />,
         path: 'hermes',
       },
-      model: { id: 'model', label: t('settings.model'), icon: <LinkCloud />, path: 'model' },
       assistants: {
         id: 'assistants',
-        label: t('settings.assistants', { defaultValue: 'Assistants' }),
+        label: t('settings.specialists', { defaultValue: 'Specialists' }),
         icon: <Robot />,
         path: 'assistants',
       },
       agent: {
         id: 'agent',
-        label: t('settings.agents', { defaultValue: 'Agents' }),
+        label: t('settings.agents', { defaultValue: 'Engines' }),
         icon: <Speed />,
         path: 'agent',
       },
-      appearance: { id: 'appearance', label: t('settings.appearancePanel'), icon: <Computer />, path: 'appearance' },
-      memory: {
-        id: 'memory',
-        label: t('settings.memorySettings', { defaultValue: 'Memory Settings' }),
-        icon: <MemoryOne />,
-        path: 'memory',
-      },
-      system: { id: 'system', label: t('settings.system'), icon: <System />, path: 'system' },
       advanced: {
         id: 'advanced',
-        label: t('settings.advancedSettings', { defaultValue: 'Advanced Settings' }),
-        icon: <SettingsIcon />,
+        label: t('settings.advancedSettings', { defaultValue: 'Tools & Integrations' }),
+        icon: <Api />,
         path: 'advanced',
       },
+      appearance: { id: 'appearance', label: t('settings.appearancePanel'), icon: <Computer />, path: 'appearance' },
+      system: { id: 'system', label: t('settings.system'), icon: <System />, path: 'system' },
       about: { id: 'about', label: t('settings.about'), icon: <Info />, path: 'about' },
     };
 

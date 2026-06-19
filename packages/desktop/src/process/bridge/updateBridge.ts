@@ -54,8 +54,11 @@ interface AutoUpdateCheckParams {
   includePrerelease?: boolean;
 }
 
-const DEFAULT_REPO = 'mutvayzz-sys/Headmaster';
+const DEFAULT_REPO = 'mutvayzz-sys/gcaplabs-headmasterUI';
 const DEFAULT_USER_AGENT = 'Headmaster';
+// Vercel proxy — holds the GitHub token server-side so the app doesn't need one.
+// Falls back to direct GitHub API only when a local token is explicitly set.
+const RELEASE_PROXY_URL = process.env.HEADMASTER_RELEASE_API_URL || 'https://gcaplabs.com/api/release';
 const ALLOWED_ASSET_EXTS = new Set(['.exe', '.msi', '.dmg', '.zip', '.deb', '.rpm']);
 const CDN_HOST = 'static.gcaplabs.com';
 const CDN_BASE_URL = `https://${CDN_HOST}/releases`;
@@ -244,18 +247,23 @@ const fetchWithAllowlistedRedirects = async (rawUrl: string, signal: AbortSignal
 };
 
 const fetchGitHubReleases = async (repo: string): Promise<GitHubReleaseApi[]> => {
-  const url = `https://api.github.com/repos/${repo}/releases`;
+  // If a local GitHub token is set, hit GitHub directly (dev / power-user override).
+  // Otherwise use the gcaplabs.com proxy which holds the token server-side.
+  const ghToken = process.env.HEADMASTER_GITHUB_TOKEN || process.env.GH_TOKEN;
+  const url = ghToken ? `https://api.github.com/repos/${repo}/releases` : RELEASE_PROXY_URL;
 
-  // 添加超时控制，防止网络问题导致无限等待 / Add timeout to prevent infinite wait on network issues
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 秒超时 / 30 second timeout
+  const timeoutId = setTimeout(() => controller.abort(), 30000);
+
+  const headers: Record<string, string> = {
+    Accept: 'application/vnd.github+json',
+    'User-Agent': DEFAULT_USER_AGENT,
+    ...(ghToken ? { Authorization: `Bearer ${ghToken}` } : {}),
+  };
 
   try {
     const res = await fetch(url, {
-      headers: {
-        Accept: 'application/vnd.github+json',
-        'User-Agent': DEFAULT_USER_AGENT,
-      },
+      headers,
       signal: controller.signal,
     });
 

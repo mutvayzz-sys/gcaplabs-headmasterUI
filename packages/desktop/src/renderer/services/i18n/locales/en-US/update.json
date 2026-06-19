@@ -22,5 +22,8 @@
   "autoUpdateMode": "Auto-update mode",
   "showInFolder": "Show in folder",
   "openFile": "Open file",
-  "errorTitle": "Update failed"
+  "errorTitle": "Update failed",
+  "errors": {
+    "githubApiFailed": "Could not reach GitHub to check for updates ({{status}}). The repository may require authentication."
+  }
 }

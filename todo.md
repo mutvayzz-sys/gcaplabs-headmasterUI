@@ -1,6 +1,6 @@
 # Headmaster — TODO
 
-Working backlog for upcoming sessions. Current version: **v0.1.2**.
+Working backlog for upcoming sessions. Current version: **v0.1.5**.
 
 ---
 
@@ -124,6 +124,113 @@ Working backlog for upcoming sessions. Current version: **v0.1.2**.
 - `package.json` — check `name` field (currently "headmaster", good)
 
 **Risk:** Database migration. The `aionui-backend.db` has CHECK constraints on the `source` column. Changing the allowed values requires a migration that recreates the table. Must handle existing user data carefully — test with a copy of the real DB first.
+
+---
+
+---
+
+## New tasks (2026-06-19 session — critical failures)
+
+### 11. Headmaster: Inactive on launch — Hermes not starting
+
+**Symptom:** Sidebar shows "Headmaster: Inactive", chats don't work, no backend connection.
+
+**Likely causes (diagnose in order):**
+1. `hermesBootstrap.ts` `HERMES_HOME_WIN32` path: was fixed to check `%LOCALAPPDATA%\hermes` first, but may still fail if `hermes` binary isn't on PATH or venv isn't activated.
+2. `hermes dashboard` exits immediately (port conflict, missing deps, Python env issue).
+3. `__backendPort` isn't being set — renderer connects to wrong port (0 or stale).
+
+**What to do:**
+- Read `%APPDATA%\Headmaster\logs\` latest log — find the hermesBootstrap startup sequence and the exact error.
+- Check `hermesBootstrap.ts`: log the resolved `HERMES_HOME` path and confirm `hermes dashboard` actually spawns.
+- Add explicit stdout/stderr capture from the hermes subprocess so errors surface in the Headmaster log (currently may be silently swallowed).
+- If Hermes spawns but crashes: surface crash reason in the "Headmaster: Inactive" tooltip or a startup banner.
+
+**Key files:** `process/backend/hermesBootstrap.ts`, `process/index.ts`, `electron/preload/index.ts` (port injection).
+
+---
+
+### 12. Chat history from existing Hermes sessions not loading
+
+**Symptom:** App shows no previous conversations even though Hermes has been running locally and has a conversation DB.
+
+**Likely causes:**
+1. Headmaster reads from its own SQLite DB (`headmaster-backend.db`) — but Hermes stores conversations server-side in its own DB (not the same file). The app may not be fetching conversation history from `GET /api/conversations` on the Hermes backend.
+2. If issue 11 (Inactive) is the root cause: no backend → no history fetch.
+3. The conversation list may be fetching from the local DB which is empty (new app install), while Hermes has the real history.
+
+**What to do:**
+- Confirm: does the conversation list call `GET /api/conversations` on Hermes, or does it read the local SQLite DB?
+- Check `renderer/hooks` or `renderer/store` for how conversations are loaded on startup.
+- If it's reading local DB: wire it to fetch from Hermes REST instead (or on first launch, seed local DB from Hermes API).
+- Hermes endpoint: `GET /api/conversations` (confirmed in recon). Returns list with `id`, `title`, `created_at`. Messages: `GET /api/conversations/{id}/messages`.
+
+**Key files:** `renderer/pages/conversation/`, `process/bridge/acpConversationBridge.ts`, `common/adapter/ipcBridge.ts`.
+
+---
+
+### 13. Chat send/receive broken — messages not going through
+
+**Symptom:** Sending a message does nothing or errors; no AI response.
+
+**Likely causes:**
+1. Depends on issue 11 — if Hermes is inactive, all chat completions fail silently.
+2. `httpBridge.ts` may be sending to the wrong port (`__backendPort` = 0 or stale).
+3. The WebSocket connection for streaming responses may not be established.
+
+**What to do:**
+- Fix issue 11 first — most chat failures will resolve when Hermes is running.
+- After Hermes is active: open DevTools → Network, send a message, check what request fires and what the response is.
+- Look for the `POST /api/conversations/{id}/chat` call (or equivalent) and its error response.
+- Check `WS /ws/chat` connection — Hermes streams responses via WebSocket, not HTTP. If the WS URL uses the wrong port it silently fails.
+
+---
+
+### 14. App update checker broken — private repo + no auth token
+
+**Symptoms:**
+- Sidebar `AppUpdateChecker` shows nothing (silently catches 404 from GitHub API)
+- About tab → "Check for updates" shows `update.errors.githubApiFailed`
+- Sidebar footer correctly shows `v0.1.5 · de902b2` (that's the running build, correct)
+
+**Root cause:** `mutvayzz-sys/gcaplabs-headmasterUI` is a **private repo**. GitHub's releases API returns 404 for unauthenticated requests against private repos. Both `ipcBridge.update.check` (GitHub REST) and `ipcBridge.autoUpdate.check` (electron-updater) hit this.
+
+**`updateBridge.ts` already supports `HEADMASTER_GITHUB_TOKEN` / `GH_TOKEN` env vars** — the token just isn't set anywhere at runtime.
+
+**Fix options (pick one):**
+1. **(Easiest) Make GitHub releases public** — GitHub lets you keep the repo private but publish releases publicly. Go to the repo settings or just re-publish releases as public. No code change needed.
+2. **(Clean) Bundle a read-only PAT** — create a fine-grained GitHub PAT with read-only access to releases on this repo, store it in `electron-builder.yml` env or a build-time `HEADMASTER_GITHUB_TOKEN` and inject it via `extraMetadata` / `extraResources`. The token only has read access so it's safe to ship.
+3. **(Quick local test)** Set `GH_TOKEN=<your PAT>` as a system env var, relaunch `hm` — update checker will work immediately to validate the flow.
+
+**Also fix:** i18n key `update.errors.githubApiFailed` — make sure this has a human-readable `defaultValue` in `en-US` so the error message is legible even if the key is missing from the locale file.
+
+**Key files:** `process/bridge/updateBridge.ts`, `packages/desktop/src/renderer/components/layout/Sider/SiderNav/AppUpdateChecker.tsx`, locale `en-US/update.json` or `common.json`.
+
+---
+
+### 15. Rethink Hermes update restart flow — don't force-restart Hermes on update
+
+**Current behaviour (`UpdateChecker.tsx`):**
+After triggering `POST /api/hermes/update`, the component polls `GET /api/hermes/update/check` every 5s until `update_available` goes false, then immediately calls `window.electronAPI.restartRuntime()` — which kills Hermes, restarts it on a new port, and reloads the entire window.
+
+**Problem:** User doesn't want the forced restart. It's disruptive — mid-conversation, the window reloads and all state is lost.
+
+**Better flow options (pick one next session):**
+- Show a "Headmaster updated — restart when ready" banner with a manual restart button. User clicks it when they're not mid-task.
+- Just show a success toast "Update installed. Restart Headmaster to apply." and do nothing automatically.
+- Remove the polling + auto-restart entirely. The update runs in the background; Hermes picks it up on next natural restart.
+
+**Key file:** `packages/desktop/src/renderer/components/layout/Sider/SiderNav/UpdateChecker.tsx` — the `phase === 'polling'` → `restartRuntime()` transition.
+
+---
+
+### 15. Settings nav restructure (2026-06-19) — completed inline, record here
+
+- [x] 4-group sidebar: Intelligence / Workspace / Tools / App
+- [x] Renamed tabs: "Engines" (was Agents/Specialists collision), "Tools & Integrations" (was Advanced Settings), "Models & Providers" (was Model), "Memory & Context" (was Memory Settings), "Connection" (was Runtime — but then hidden)
+- [x] Fixed duplicate icon bug: Model and Runtime both used LinkCloud; Model now uses Lightning
+- [x] Fixed `settings.agents` i18n value: was "Specialists" (wrong), now "Engines"
+- [x] "Connection" tab (`/settings/hermes`) hidden from sidebar — Headmaster always ships with local Hermes; route still accessible directly
 
 ---
 
