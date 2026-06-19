@@ -385,7 +385,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
         // name in `model_id` — different semantic from ACP, where backend is
         // a vendor label. The executor looks up the provider row by this id.
         if (!geminiCurrentModel || !model_id) {
-          throw new Error(t('cron.page.form.aionrsModelRequired'));
+          throw new Error(t('cron.page.form.modelRequired'));
         }
         resolvedAgentType = 'aionrs' as ICreateCronJobParams['agent_type'];
         agent_config = {

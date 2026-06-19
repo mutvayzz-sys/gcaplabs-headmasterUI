@@ -38,17 +38,19 @@ interface AdonisFsEntry {
   mtime?: number;
 }
 
-interface AdonisConversation {
-  extra?: {
-    workspace?: string;
-  };
+interface ManagedFilesResponse {
+  base: string;
+  entries: Array<{
+    name: string;
+    path: string;
+    is_dir?: boolean;
+    is_file?: boolean;
+    size?: number | null;
+    modified_at?: number;
+  }>;
 }
 
-interface AdonisConversationsResponse {
-  items?: AdonisConversation[];
-}
-
-interface FsWriteResponse {
+interface ManagedFileResponse {
   ok?: boolean;
 }
 
@@ -73,17 +75,6 @@ function normalizeEntry(entry: AdonisFsEntry): FileEntry {
     size: typeof entry.size === 'number' ? entry.size : undefined,
     modifiedAt: typeof entry.mtime === 'number' ? new Date(entry.mtime * 1000).toISOString() : undefined,
   };
-}
-
-function inferAionuiRoot(conversations: AdonisConversation[]): string {
-  for (const conversation of conversations) {
-    const workspace = conversation.extra?.workspace;
-    if (!workspace) continue;
-    const marker = `${separatorFor(workspace)}conversations${separatorFor(workspace)}`;
-    const markerIndex = workspace.toLowerCase().indexOf(marker.toLowerCase());
-    if (markerIndex > 0) return workspace.slice(0, markerIndex);
-  }
-  return '';
 }
 
 function separatorFor(path: string): string {
@@ -112,16 +103,27 @@ export function useDocuments(): UseDocumentsReturn {
     setLoading(true);
     setError(null);
     try {
-      const conversations = await httpGet<AdonisConversationsResponse>('/api/conversations').invoke();
-      const root = inferAionuiRoot(conversations?.items ?? []);
+      const cwd = await httpGet<{ cwd?: string }>('/api/fs/default-cwd').invoke();
+      const root = cwd?.cwd ?? '';
       if (!root) {
         setRootPath('');
         setEntries([]);
         return;
       }
-      const entriesRaw = await httpPost<AdonisFsEntry[], { root: string }>('/api/fs/list').invoke({ root });
-      setRootPath(root);
-      setEntries((entriesRaw ?? []).map(normalizeEntry));
+      const files = await httpGet<ManagedFilesResponse>(`/api/files?path=${encodeURIComponent(root)}`).invoke();
+      setRootPath(files.base || root);
+      setEntries(
+        (files.entries ?? []).map((entry) =>
+          normalizeEntry({
+            name: entry.name,
+            full_path: entry.path,
+            is_dir: entry.is_dir,
+            is_file: entry.is_file,
+            size: entry.size,
+            mtime: entry.modified_at,
+          })
+        )
+      );
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load files');
     } finally {
@@ -132,12 +134,14 @@ export function useDocuments(): UseDocumentsReturn {
   const fetchPreview = useCallback(async (path: string) => {
     setPreviewLoading(true);
     try {
-      const content = await httpPost<string | null, { path: string }>('/api/fs/read').invoke({ path });
-      setPreview(content !== null && content !== undefined ? {
+      const content = await httpGet<{ path: string; content?: string; text?: string }>(
+        `/api/files/read?path=${encodeURIComponent(path)}`
+      ).invoke();
+      setPreview({
         type: 'text',
-        path,
-        content,
-      } : null);
+        path: content.path || path,
+        content: content.content ?? content.text ?? '',
+      });
     } catch (err) {
       console.error('Failed to read file:', err);
       setPreview(null);
@@ -150,9 +154,12 @@ export function useDocuments(): UseDocumentsReturn {
     const normalizedTarget = targetPath.endsWith('/') || targetPath.endsWith('\\')
       ? `${targetPath}${file.name}`
       : targetPath || `${rootPath}${separatorFor(rootPath)}${file.name}`;
-    await httpPost<FsWriteResponse, { path: string; data: string }>('/api/fs/write').invoke({
+    await httpPost<ManagedFileResponse, { path: string; data_url: string; overwrite: boolean }>(
+      '/api/files/upload'
+    ).invoke({
       path: normalizedTarget,
-      data: await file.text(),
+      data_url: await fileToDataUrl(file),
+      overwrite: true,
     });
     await fetchFiles();
   }, [fetchFiles, rootPath]);

@@ -1,43 +1,68 @@
 import type { ConfigKey, ConfigKeyMap } from './configKeys';
+import { ConfigStorage } from './storage';
 
 type Subscriber = (value: unknown) => void;
 
-import { getBackendBase, getBackendAuthHeaders } from '@/common/adapter/backendUrl';
+const CONFIG_KEYS: ConfigKey[] = [
+  'google.config',
+  'codex.config',
+  'acp.config',
+  'acp.promptTimeout',
+  'acp.agentIdleTimeout',
+  'acp.cachedInitializeResult',
+  'acp.cached_config_options',
+  'acp.cachedModes',
+  'mcp.config',
+  'language',
+  'theme',
+  'colorScheme',
+  'ui.zoomFactor',
+  'ui.fontSize.chat',
+  'ui.fontSize.markdown',
+  'ui.fontSize.code',
+  'window.bounds',
+  'webui.desktop.enabled',
+  'webui.desktop.allowRemote',
+  'webui.desktop.port',
+  'customCss',
+  'css.themes',
+  'css.activeThemeId',
+  'theme.activeId',
+  'theme.userThemes',
+  'aionrs.config',
+  'aionrs.defaultModel',
+  'tools.imageGenerationModel',
+  'tools.speechToText',
+  'workspace.pasteConfirm',
+  'upload.saveToWorkspace',
+  'guid.lastSelectedAgent',
+  'system.closeToTray',
+  'system.notificationEnabled',
+  'system.cronNotificationEnabled',
+  'system.keepAwake',
+  'system.autoPreviewOfficeFiles',
+  'assistant.telegram.defaultModel',
+  'assistant.telegram.agent',
+  'assistant.lark.defaultModel',
+  'assistant.lark.agent',
+  'assistant.dingtalk.defaultModel',
+  'assistant.dingtalk.agent',
+  'assistant.weixin.defaultModel',
+  'assistant.weixin.agent',
+  'assistant.wecom.defaultModel',
+  'assistant.wecom.agent',
+  'skillsMarket.enabled',
+  'migration.providersMigrated_v1',
+  'migration.assistantsMigrated_v1',
+  'memory.openconchoUrl',
+  'memory.honchoUrl',
+];
 
-function getBaseUrl(): string {
-  // WebUI browser mode: no preload, fetch same-origin so web-host's
-  // static-server reverse-proxies /api/* to the backend.
-  if (typeof window !== 'undefined' && typeof document !== 'undefined' && !window.electronAPI) {
-    return '';
-  }
-  return getBackendBase();
-}
-
-async function fetchJson<T>(method: string, path: string, body?: unknown): Promise<T> {
-  const url = `${getBaseUrl()}${path}`;
-  const headers: Record<string, string> = {};
-  if (body !== undefined) {
-    headers['Content-Type'] = 'application/json';
-  }
-  const response = await fetch(url, {
-    method,
-    headers,
-    body: body !== undefined ? JSON.stringify(body) : undefined,
-  });
-  if (!response.ok) {
-    const errorBody = await response.text();
-    throw new Error(`ConfigService ${method} ${path} failed (${response.status}): ${errorBody}`);
-  }
-  const contentType = response.headers.get('Content-Type');
-  if (!contentType?.includes('application/json')) {
-    return undefined as T;
-  }
-  const json = await response.json();
-  if (json && typeof json === 'object' && 'data' in json) {
-    return json.data as T;
-  }
-  return json as T;
-}
+const LocalConfigStorage = ConfigStorage as unknown as {
+  get<K extends ConfigKey>(key: K): Promise<ConfigKeyMap[K] | undefined>;
+  set<K extends ConfigKey>(key: K, value: ConfigKeyMap[K]): Promise<unknown>;
+  remove(key: ConfigKey): Promise<void>;
+};
 
 class ConfigServiceImpl {
   private cache = new Map<string, unknown>();
@@ -51,10 +76,10 @@ class ConfigServiceImpl {
   initialize(): Promise<void> {
     if (this.initPromise) return this.initPromise;
     this.initPromise = (async () => {
-      const data = await fetchJson<Record<string, unknown>>('GET', '/api/settings/client');
       this.cache.clear();
-      if (data) {
-        for (const [key, value] of Object.entries(data)) {
+      const values = await Promise.all(CONFIG_KEYS.map(async (key) => [key, await LocalConfigStorage.get(key)] as const));
+      for (const [key, value] of values) {
+        if (value !== undefined) {
           this.cache.set(key, value);
         }
       }
@@ -70,7 +95,11 @@ class ConfigServiceImpl {
         this.cache.set('theme.activeId', migrated['theme.activeId']);
         this.cache.set('theme.userThemes', migrated['theme.userThemes']);
         // Persist asynchronously; ignore failure (will re-run next launch).
-        void fetchJson<void>('PUT', '/api/settings/client', migrated).catch(() => {});
+        void Promise.all(
+          Object.entries(migrated).map(([key, value]) =>
+            LocalConfigStorage.set(key as ConfigKey, value as ConfigKeyMap[ConfigKey])
+          )
+        ).catch(() => {});
       }
       this.initialized = true;
     })();
@@ -92,7 +121,7 @@ class ConfigServiceImpl {
   async set<K extends ConfigKey>(key: K, value: ConfigKeyMap[K]): Promise<void> {
     this.cache.set(key, value);
     this.notify(key, value);
-    await fetchJson<void>('PUT', '/api/settings/client', { [key]: value });
+    await LocalConfigStorage.set(key, value);
   }
 
   setLocal<K extends ConfigKey>(key: K, value: ConfigKeyMap[K]): void {
@@ -103,7 +132,7 @@ class ConfigServiceImpl {
   async remove(key: ConfigKey): Promise<void> {
     this.cache.delete(key);
     this.notify(key, undefined);
-    await fetchJson<void>('PUT', '/api/settings/client', { [key]: null });
+    await LocalConfigStorage.remove(key);
   }
 
   async setBatch(entries: Partial<{ [K in ConfigKey]: ConfigKeyMap[K] }>): Promise<void> {
@@ -111,7 +140,11 @@ class ConfigServiceImpl {
       this.cache.set(key, value);
       this.notify(key as ConfigKey, value);
     }
-    await fetchJson<void>('PUT', '/api/settings/client', entries);
+    await Promise.all(
+      Object.entries(entries).map(([key, value]) =>
+        LocalConfigStorage.set(key as ConfigKey, value as ConfigKeyMap[ConfigKey])
+      )
+    );
   }
 
   subscribe(key: ConfigKey, callback: Subscriber): () => void {

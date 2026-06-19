@@ -6,8 +6,8 @@
 
 import type { IMessagePermission } from '@/common/chat/chatLib';
 import { ipcBridge } from '@/common';
-import { Button, Card, Radio, Typography } from '@arco-design/web-react';
-import React, { useState } from 'react';
+import { Button, Card, Input, Radio, Typography } from '@arco-design/web-react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 const { Text } = Typography;
@@ -21,30 +21,56 @@ const actionIcons: Record<string, string> = {
   edit: '✏️',
   info: '📖',
   mcp: '🔌',
+  approval: '🔐',
+  clarify: '❓',
+  sudo: '🔒',
+  secret: '🗝️',
 };
 
 const MessagePermission: React.FC<MessagePermissionProps> = React.memo(({ message }) => {
   const { t } = useTranslation();
   const { options = [], description, title, action, call_id, command_type } = message.content || {};
+  const requestAction = action || '';
+  const isApproval = requestAction === 'approval';
+  const isClarify = requestAction === 'clarify';
+  const isMaskedPrompt = requestAction === 'sudo' || requestAction === 'secret';
+  const needsTextResponse = isClarify || isMaskedPrompt;
 
   const [selected, setSelected] = useState<string | null>(null);
+  const [textValue, setTextValue] = useState('');
   const [isResponding, setIsResponding] = useState(false);
   const [hasResponded, setHasResponded] = useState(false);
 
+  useEffect(() => {
+    setSelected(null);
+    setTextValue('');
+    setIsResponding(false);
+    setHasResponded(false);
+  }, [message.id]);
+
   const icon = actionIcons[action || ''] || '🔐';
   const displayTitle = title || description || t('messages.permissionRequest');
+  const textPlaceholder = useMemo(() => {
+    if (requestAction === 'sudo') return 'Enter the sudo password';
+    if (requestAction === 'secret') return command_type ? `Enter the value for ${command_type}` : 'Enter the secret value';
+    if (requestAction === 'clarify') return 'Type a custom answer';
+    return 'Enter a response';
+  }, [command_type, requestAction]);
 
   const handleConfirm = async () => {
-    if (hasResponded || !selected) return;
+    if (hasResponded) return;
+
+    const responseValue = needsTextResponse ? textValue.trim() || selected : selected;
+    if (!responseValue) return;
 
     setIsResponding(true);
     try {
-      const always_allow = selected === 'proceed_always';
+      const always_allow = isApproval && responseValue === 'always';
       await ipcBridge.conversation.confirmation.confirm.invoke({
         conversation_id: message.conversation_id,
         call_id,
         msg_id: message.msg_id || '',
-        data: { value: selected },
+        data: { value: responseValue },
         always_allow,
       });
       setHasResponded(true);
@@ -83,20 +109,38 @@ const MessagePermission: React.FC<MessagePermissionProps> = React.memo(({ messag
                     key={String(option.value) || `option_${index}`}
                     data-testid={`message-permission-option-${String(option.value) || `option_${index}`}`}
                   >
-                    <Radio value={String(option.value)}>
-                      {t(option.label, { ...option.params, defaultValue: option.label })}
-                    </Radio>
+                    <Radio value={String(option.value)}>{t(option.label, { ...option.params, defaultValue: option.label })}</Radio>
                   </div>
                 ))
-              ) : (
+              ) : !needsTextResponse ? (
                 <Text type='secondary'>{t('messages.noOptionsAvailable')}</Text>
-              )}
+              ) : null}
             </Radio.Group>
+            {needsTextResponse && (
+              <div className='mt-8px'>
+                {isMaskedPrompt ? (
+                  <Input.Password
+                    autoFocus
+                    value={textValue}
+                    onChange={setTextValue}
+                    placeholder={textPlaceholder}
+                    visibilityToggle
+                  />
+                ) : (
+                  <Input.TextArea
+                    autoSize={{ minRows: 2, maxRows: 6 }}
+                    value={textValue}
+                    onChange={setTextValue}
+                    placeholder={textPlaceholder}
+                  />
+                )}
+              </div>
+            )}
             <div className='flex justify-start pl-20px'>
               <Button
                 type='primary'
                 size='mini'
-                disabled={!selected || isResponding}
+                disabled={isResponding || !(selected || textValue.trim())}
                 onClick={handleConfirm}
                 data-testid='message-permission-confirm'
               >

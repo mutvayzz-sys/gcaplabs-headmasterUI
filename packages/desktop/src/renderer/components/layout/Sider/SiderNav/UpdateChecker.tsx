@@ -21,11 +21,11 @@ type UpdateCheckResponse = {
   message?: string | null;
 };
 
-type Phase = 'idle' | 'triggering' | 'polling' | 'restarting';
+type Phase = 'idle' | 'triggering' | 'polling' | 'installed' | 'restarting';
 
 const UPDATE_CHECK_INTERVAL = 6 * 60 * 60 * 1000; // 6 hours
 const POLL_INTERVAL = 5_000; // 5 s between polls while update is running
-const POLL_TIMEOUT = 3 * 60 * 1000; // give up and force-restart after 3 min
+const POLL_TIMEOUT = 3 * 60 * 1000;
 
 const UpdateChecker: React.FC<{ collapsed?: boolean }> = ({ collapsed = false }) => {
   const { t } = useTranslation();
@@ -60,40 +60,33 @@ const UpdateChecker: React.FC<{ collapsed?: boolean }> = ({ collapsed = false })
     };
   }, [checkUpdate]);
 
-  // Poll until the runtime reports no update available (meaning the new version
-  // is installed), then call restartRuntime so the window reloads with the
-  // fresh runtime on its real port.
+  // Poll until the runtime reports no update available. Keep the current
+  // conversation and UI alive; restart only when the user explicitly chooses.
   const startPollingForCompletion = useCallback(() => {
     clearPollTimer();
     pollStartRef.current = Date.now();
 
-    const doRestart = async () => {
-      setPhase('restarting');
-      clearPollTimer();
-      try {
-        if (window.electronAPI?.restartRuntime) {
-          await window.electronAPI.restartRuntime();
-          // Window will reload — nothing more to do.
-          return;
-        }
-      } catch {
-        // fallback: just reset state
-      }
-      setPhase('idle');
-    };
-
     const poll = async () => {
       const elapsed = Date.now() - pollStartRef.current;
       if (elapsed > POLL_TIMEOUT) {
-        // Timed out — force a restart anyway to pick up whatever was installed.
-        await doRestart();
+        clearPollTimer();
+        setPhase('idle');
+        Notification.warning({
+          title: t('common.updateFailed', { defaultValue: 'Update status unknown' }),
+          content: t('common.updateFailedMsg', { defaultValue: 'The update is still running or could not be verified.' }),
+        });
         return;
       }
 
       const data = await checkUpdate();
       if (!data?.update_available) {
-        // New version is installed — restart cleanly.
-        await doRestart();
+        clearPollTimer();
+        setUpdateInfo(data);
+        setPhase('installed');
+        Notification.success({
+          title: t('common.runtimeUpdateInstalled', { defaultValue: 'Update installed' }),
+          content: t('common.runtimeUpdateRestartReady', { defaultValue: 'Restart when ready to use the new runtime.' }),
+        });
         return;
       }
 
@@ -102,7 +95,7 @@ const UpdateChecker: React.FC<{ collapsed?: boolean }> = ({ collapsed = false })
     };
 
     void poll();
-  }, [checkUpdate]);
+  }, [checkUpdate, t]);
 
   // Cleanup on unmount
   useEffect(() => () => clearPollTimer(), []);
@@ -131,16 +124,27 @@ const UpdateChecker: React.FC<{ collapsed?: boolean }> = ({ collapsed = false })
     return null;
   }
 
+  const handleRestart = async () => {
+    if (!window.electronAPI?.restartRuntime) return;
+    setPhase('restarting');
+    try {
+      await window.electronAPI.restartRuntime();
+    } catch {
+      setPhase('installed');
+    }
+  };
+
   const label = (() => {
     switch (phase) {
       case 'triggering': return t('common.runtimeUpdating', { defaultValue: 'Runtime updating…' });
       case 'polling':    return t('common.runtimeUpdating', { defaultValue: 'Runtime updating…' });
+      case 'installed':  return t('common.runtimeUpdateRestartReady', { defaultValue: 'Update installed—restart when ready' });
       case 'restarting': return t('common.runtimeUpdateRestarting', { defaultValue: 'Applying update…' });
       default:           return t('common.runtimeUpdateAvailable', { defaultValue: 'Runtime update available' });
     }
   })();
 
-  const busy = phase !== 'idle';
+  const busy = phase === 'triggering' || phase === 'polling' || phase === 'restarting';
 
   return (
     <div className={classNames('flex items-center gap-6px px-10px h-28px', collapsed && 'justify-center px-0')}>
@@ -149,7 +153,9 @@ const UpdateChecker: React.FC<{ collapsed?: boolean }> = ({ collapsed = false })
         position='right'
       >
         <div
-          onClick={busy ? undefined : handleUpdate}
+          onClick={
+            busy ? undefined : phase === 'installed' ? () => void handleRestart() : handleUpdate
+          }
           className={classNames('flex items-center gap-4px w-full', busy ? 'cursor-default' : 'cursor-pointer')}
           style={{ opacity: busy ? 0.6 : 1 }}
         >

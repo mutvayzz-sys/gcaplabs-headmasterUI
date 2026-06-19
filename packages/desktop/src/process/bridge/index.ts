@@ -16,6 +16,7 @@ import { initHermesBridge } from './hermesBridge';
 import { initBrowserBridge } from './browserBridge';
 import { initAgentBridge } from './agentBridge';
 import { initConnectionBridge } from './connectionBridge';
+import { initFileSystemBridge } from './fsBridge';
 import type { HermesBootstrap } from '@process/backend/hermesBootstrap';
 
 export interface BridgeDependencies {
@@ -37,6 +38,7 @@ export function initAllBridges(deps: BridgeDependencies = {}): void {
   initBrowserBridge();
   initAgentBridge();
   initConnectionBridge();
+  initFileSystemBridge();
 }
 
 export {

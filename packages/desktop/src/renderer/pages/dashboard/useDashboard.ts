@@ -5,7 +5,8 @@
  */
 
 import { useCallback, useEffect, useState } from 'react';
-import { httpGet, httpPost } from '@/common/adapter/httpBridge';
+import { httpGet } from '@/common/adapter/httpBridge';
+import { listHermesConversations } from '@/common/adapter/hermesSessionAdapter';
 import type { SessionItem } from '@/renderer/pages/activity/useActivity';
 import type { KanbanTask } from '@/renderer/pages/kanban/useKanban';
 import type { PlatformConfig } from '@/renderer/pages/integrations/useIntegrations';
@@ -26,17 +27,6 @@ export interface RecentItem {
   title: string;
   timestamp: string;
   meta?: string;
-}
-
-interface AdonisConversationsResponse {
-  items?: Array<Record<string, unknown>>;
-  total?: number;
-}
-
-interface AdonisFsEntry {
-  name?: string;
-  full_path?: string;
-  relative_path?: string;
 }
 
 interface AcpAdapterLike {
@@ -67,15 +57,11 @@ function normalizeSession(raw: Record<string, unknown>): SessionItem {
   };
 }
 
-function inferAionuiRoot(conversations: Array<Record<string, unknown>>): string {
+function inferWorkspaceRoot(conversations: Array<Record<string, unknown>>): string {
   for (const conversation of conversations) {
     const extra = conversation.extra && typeof conversation.extra === 'object' ? conversation.extra as Record<string, unknown> : undefined;
     const workspace = typeof extra?.workspace === 'string' ? extra.workspace : '';
-    if (!workspace) continue;
-    const separator = workspace.includes('\\') ? '\\' : '/';
-    const marker = `${separator}conversations${separator}`;
-    const markerIndex = workspace.toLowerCase().indexOf(marker.toLowerCase());
-    if (markerIndex > 0) return workspace.slice(0, markerIndex);
+    if (workspace) return workspace;
   }
   return '';
 }
@@ -121,15 +107,21 @@ export function useDashboard() {
     setLoading(true);
     setError(null);
     try {
-      const conversationsRaw = await httpGet<AdonisConversationsResponse>('/api/conversations').invoke();
-      const sessions = (conversationsRaw?.items ?? []).map(normalizeSession);
+      const conversationsRaw = await listHermesConversations({ limit: 500 });
+      const conversationItems = conversationsRaw.items as unknown as Array<Record<string, unknown>>;
+      const sessions = conversationItems.map(normalizeSession);
       const [cronRaw, adaptersRaw] = await Promise.all([
         httpGet<Array<Record<string, unknown>>>('/api/cron/jobs').invoke().catch((_error: unknown): Array<Record<string, unknown>> => []),
         httpGet<AcpAdapterLike[]>('/api/extensions/acp-adapters').invoke().catch((_error: unknown): AcpAdapterLike[] => []),
       ]);
-      const root = inferAionuiRoot(conversationsRaw?.items ?? []);
+      const root = inferWorkspaceRoot(conversationItems);
       const filesRaw = root
-        ? await httpPost<AdonisFsEntry[], { root: string }>('/api/fs/list').invoke({ root }).catch((_error: unknown): AdonisFsEntry[] => [])
+        ? await httpGet<{ entries?: Array<Record<string, unknown>> }>(
+            `/api/files?path=${encodeURIComponent(root)}`
+          )
+            .invoke()
+            .then((result) => result.entries ?? [])
+            .catch((_error: unknown): Array<Record<string, unknown>> => [])
         : [];
 
       const tasks = (cronRaw ?? []).map(fromCronJob);

@@ -103,7 +103,7 @@
       "selectFolder": "Вибрати папку",
       "clearFolder": "Очистити",
       "model": "Модель",
-      "aionrsModelRequired": "Виберіть модель для Headmaster CLI",
+      "modelRequired": "Виберіть модель.",
       "aionrsNoProvider": "Немає доступних моделей"
     },
     "freq": {

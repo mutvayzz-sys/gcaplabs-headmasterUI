@@ -5,7 +5,10 @@
  */
 
 import { useCallback, useEffect, useState } from 'react';
-import { httpGet } from '@/common/adapter/httpBridge';
+import {
+  getHermesConversationMessages,
+  listHermesConversations,
+} from '@/common/adapter/hermesSessionAdapter';
 
 export interface SessionItem {
   id: string;
@@ -24,17 +27,6 @@ export interface SessionMessage {
   role: 'user' | 'assistant' | 'system';
   content: string;
   created_at: string;
-}
-
-interface AdonisConversationsResponse {
-  items?: Array<Record<string, unknown>>;
-  total?: number;
-  limit?: number;
-  offset?: number;
-}
-
-interface AdonisMessagesResponse {
-  items?: Array<Record<string, unknown>>;
 }
 
 interface UseActivityReturn {
@@ -112,8 +104,8 @@ export function useActivity(): UseActivityReturn {
     setLoading(true);
     setError(null);
     try {
-      const data = await httpGet<AdonisConversationsResponse>('/api/conversations').invoke();
-      let next = (data?.items ?? []).map(normalizeSession).filter((s) => s.id);
+      const data = await listHermesConversations({ limit: 500 });
+      let next = data.items.map((item) => normalizeSession(item as unknown as Record<string, unknown>)).filter((s) => s.id);
       if (filterStatus) next = next.filter((s) => s.status === filterStatus);
       if (filterAgent) {
         const needle = filterAgent.toLowerCase();
@@ -130,8 +122,20 @@ export function useActivity(): UseActivityReturn {
   const fetchMessages = useCallback(async (sessionId: string) => {
     setMessagesLoading(true);
     try {
-      const data = await httpGet<AdonisMessagesResponse, string>((id: string) => `/api/conversations/${encodeURIComponent(id)}/messages`).invoke(sessionId);
-      setMessages((data?.items ?? []).map(normalizeMessage));
+      const data = await getHermesConversationMessages({ conversation_id: sessionId, content_mode: 'full' });
+      setMessages(
+        data.items.map((message, index) =>
+          normalizeMessage(
+            {
+              id: message.id,
+              role: message.position === 'right' ? 'user' : message.position === 'center' ? 'system' : 'assistant',
+              content: 'content' in message.content ? message.content.content : '',
+              created_at: message.created_at,
+            },
+            index
+          )
+        )
+      );
     } catch (err) {
       console.error('Failed to load session messages:', err);
       setMessages([]);

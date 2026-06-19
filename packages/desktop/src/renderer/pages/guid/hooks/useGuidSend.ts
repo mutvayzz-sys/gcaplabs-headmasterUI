@@ -79,7 +79,7 @@ export type GuidSendResult = {
 };
 
 /**
- * Hook that manages the send logic for ACP and Headmaster CLI conversations.
+ * Hook that manages the send logic for ACP and runtime conversations.
  */
 export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
   const {
@@ -241,7 +241,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
 
         await navigate(`/conversation/${conversation.id}`);
       } catch (error: unknown) {
-        console.error('Failed to create Headmaster CLI conversation:', error);
+        console.error('Failed to create runtime conversation:', error);
         throw error;
       }
       return;

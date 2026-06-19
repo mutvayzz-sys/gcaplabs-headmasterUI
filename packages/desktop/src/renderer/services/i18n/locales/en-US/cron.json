@@ -104,7 +104,7 @@
       "selectFolder": "Select Folder",
       "clearFolder": "Clear",
       "model": "Model",
-      "aionrsModelRequired": "Please select a model for Headmaster CLI",
+      "modelRequired": "Please select a model.",
       "aionrsNoProvider": "No available models"
     },
     "freq": {

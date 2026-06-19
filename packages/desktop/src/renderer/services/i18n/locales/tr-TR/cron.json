@@ -117,7 +117,7 @@
       "selectFolder": "Klasör Seç",
       "clearFolder": "Temizle",
       "model": "Model",
-      "aionrsModelRequired": "Headmaster CLI için bir model seçin",
+      "modelRequired": "Lütfen bir model seçin.",
       "aionrsNoProvider": "Kullanılabilir model yok"
     },
     "freq": {

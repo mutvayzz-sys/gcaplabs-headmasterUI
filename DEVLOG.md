@@ -4,6 +4,35 @@ Running record of what was built, why, and what's next. Newest entries at the to
 
 ---
 
+## 2026-06-19 — v0.1.7: Hermes-native desktop adapter implementation checkpoint
+
+**What:** Replaced the remaining primary inherited desktop/backend paths with Hermes session REST APIs, native Hermes JSON-RPC chat, local desktop services, and explicit unsupported-feature behavior. Removed the legacy desktop backend fallback and Desktop Pet, hardened runtime/update/settings behavior, and advanced the source version to `0.1.7`.
+
+**Conversation and runtime:**
+- Added `hermesChatAdapter.ts` for `session.create`, `session.resume`, `prompt.submit`, `session.interrupt`, event translation, reconnect handling, and interactive runtime prompts.
+- Expanded `hermesSessionAdapter.ts` transcript mapping for reasoning, tool calls, tool results, and context metadata.
+- Routed primary conversation create/send/stop/history/update/delete behavior through Hermes.
+- Added connected/reconnecting/disconnected runtime state with Retry and Restart controls.
+- Added approval, clarification, sudo, and secret request handling in the existing permission renderer.
+- Replaced inherited workspace HTTP browsing with local filesystem IPC.
+
+**Settings and data adapters:**
+- Mapped assistants to `/api/profiles`, provider/model selection to `/api/model/options`, and memory operations to Hermes memory endpoints.
+- Converted Dashboard, Activity, and Documents to Hermes session/file data.
+- Refined Runtime Settings using `/api/config/schema` grouping, descriptions, defaults, and client-side validation.
+- Moved desktop-owned client, theme, tray, web UI, and related settings to local process configuration.
+
+**Cleanup and release behavior:**
+- Removed Desktop Pet process, preload, renderer, route, tray, configuration, and locale code.
+- Removed the legacy desktop backend binary resolver, fallback startup, bundled preparation, and obsolete web/reset/password packaging scripts.
+- Renamed the cron model-required key to neutral wording and removed user-facing legacy CLI terminology.
+- Routed release checks through `gcaplabs.com/api/release`, guarded portable update checks, removed forced runtime restart after update, and made missing `SENTRY_DSN` a no-op.
+- Advanced current source and documentation references to `v0.1.7`.
+
+**Validation status:** No new validation was run for this documentation/publication step by request. TODO sections 14–16 remain the authoritative automated validation, installed-runtime smoke test, debugging, and release closeout sequence.
+
+---
+
 ## 2026-06-18 (Session 3) — v0.1.3: Hermes detection + remote gateway, aioncore/aionui rename
 
 **What:** Implemented Task 9 (local/remote Hermes gateway selector) and Task 10 (rename all internal aioncore/aionui to Headmaster/Hermes). Bumped version to 0.1.3.

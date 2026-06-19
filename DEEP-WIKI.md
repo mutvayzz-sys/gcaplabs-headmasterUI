@@ -216,6 +216,7 @@ The main Electron application package containing:
   - File system operations
   - Native module loading
   - AppData/config migrations (`aionui` → `headmaster`)
+  - No legacy desktop backend resolver or bundled runtime fallback
 
 - **`src/renderer/`** — Renderer process code
   - React components and pages
@@ -234,6 +235,7 @@ The main Electron application package containing:
   - Utility functions
   - Configuration
   - Internationalization (i18n)
+  - Hermes session REST adapter and native JSON-RPC chat/event adapter
 
 ### Build Configuration
 
@@ -695,8 +697,8 @@ node scripts/build-with-builder.js auto --win
 #### Build Output
 Located in `gcaplabs-headmaster/repo/gcaplabs-headmasterUI/out/`:
 - `out/win-unpacked/Headmaster.exe` — Portable executable
-- `out/Headmaster-0.1.3-win-x64.exe` — NSIS installer
-- `out/Headmaster-0.1.3-win-x64.zip` — Portable archive
+- `out/Headmaster-0.1.7-win-x64.exe` — NSIS installer
+- `out/Headmaster-0.1.7-win-x64.zip` — Portable archive
 
 #### Build Wrapper
 Uses `run-headmaster-dist-win-hermes.bat` which sets:
@@ -881,20 +883,21 @@ curl http://127.0.0.1:9119/api/sessions
    - Parses stdout for `HERMES_DASHBOARD_READY port={N}`
 
 2. **WebSocket Communication**
-   - Renderer connects to `ws://127.0.0.1:{port}/api/ws?token={token}`
-   - Uses per-launch session token for authentication
-   - Real-time chat streaming
+   - The desktop adapter connects to `/api/ws` using Hermes JSON-RPC
+   - Uses per-launch or configured session token authentication
+   - Creates/resumes sessions, submits prompts, interrupts turns, and translates runtime events into renderer messages
 
 3. **HTTP API Calls**
    - REST API calls to `/api/*` endpoints
    - Includes `Authorization: Bearer {token}` header
-   - Fetches sessions, config, profiles, etc.
+   - Fetches sessions, transcripts, config/schema, profiles, models, memory, status, and files
 
 #### Critical Dependencies
 - **Dashboard Process**: Must be running for desktop to function
 - **Session Token**: Required for WebSocket and HTTP auth
 - **Port Discovery**: Dynamic port assignment via stdout parsing
 - **HERMES_HOME**: Must be set correctly for binary resolution
+- **No legacy fallback**: Runtime startup failures surface as a disconnected state with Retry and Restart controls
 
 ### Marketing Site → Headmaster Desktop
 
@@ -1273,7 +1276,7 @@ hermes setup                           # Run setup wizard
 ### Version Information
 
 #### Current Versions
-- **Headmaster Desktop**: 0.1.3 (reset from inherited 2.1.18)
+- **Headmaster Desktop**: 0.1.7 (Hermes-native adapter implementation checkpoint)
 - **Electron**: 37.10.3
 - **React**: 19.1.0 (desktop), 19.2.4 (site)
 - **Next.js**: 16.2.6
@@ -1599,6 +1602,18 @@ All tool names start with `browser_` — this is the pattern `useBrowserSessionW
 
 > Major structural changes to the UI — quick reference for what moved, what was removed, and why.
 
+### 2026-06-19 — v0.1.7 Hermes-native desktop adapter
+
+- Conversation history now comes from `/api/sessions` and `/api/sessions/{id}/messages`.
+- Primary chat create, send, stop, and stream behavior uses Hermes JSON-RPC session and prompt methods.
+- Runtime state requires REST and WebSocket readiness and exposes connected, reconnecting, and disconnected states.
+- Approval, clarification, sudo, and secret runtime prompts are translated into the existing permission UI.
+- Profiles, model options, memory, dashboard, activity, documents, and workspace browsing use real Hermes or local desktop data sources.
+- Runtime settings render from `/api/config/schema` with descriptions, defaults, grouping, and client-side validation.
+- Forced restart after runtime updates was removed; installed updates wait for a manual restart.
+- Desktop Pet, legacy desktop backend startup, bundled backend preparation, and obsolete web utility scripts were removed.
+- Source version advanced to `0.1.7`; automated and installed-runtime validation remain tracked in `todo.md`.
+
 ### 2026-06-18 — Remote runtime mode + storage rename
 
 #### Runtime connection mode
@@ -1664,10 +1679,11 @@ All tool names start with `browser_` — this is the pattern `useBrowserSessionW
 - `PreviewProvider` kept in provider chain for now; planned for removal with the rest of the Preview system
 - All 9 locale `conversation.json` files updated with `browser.title` and `browser.close` keys
 
-### Planned (not yet started)
+### Remaining release work
 
-- Remove `PreviewPanel`, `PreviewProvider`, `PreviewContext` and all Preview viewers
-- Polish `RuntimeSettings` UX (field grouping, descriptions, validation) based on real `/api/config/schema` output
+- Complete the automated validation phase.
+- Run the installed-runtime smoke test.
+- Debug all reproducible failures and finish release closeout.
 
 ---
 

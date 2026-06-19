@@ -36,7 +36,6 @@ export interface BackendStartupFailureInfo {
   missingBackendBinary?: boolean;
   missingBundledHermesDir?: boolean;
   missingHubDir?: boolean;
-  missingPetStatesDir?: boolean;
   missingPwaDir?: boolean;
   reason: BackendStartupFailureReason;
   backendBoundaryCode?: string;

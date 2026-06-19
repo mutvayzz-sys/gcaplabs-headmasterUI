@@ -14,17 +14,8 @@
  */
 
 import React from 'react';
-import { useDashboardStatus } from '@renderer/hooks/system/useDashboardStatus';
-
-const STATUS_LABELS: Record<string, string> = {
-  stopped: 'Runtime stopped',
-  installing: 'Installing runtime…',
-  'not-installed': 'Runtime not installed',
-  starting: 'Starting runtime…',
-  ready: 'Ready',
-  restarting: 'Restarting runtime…',
-  failed: 'Runtime failed',
-};
+import { resetHttpBridgeConnections } from '@/common/adapter/httpBridge';
+import { useRuntimeConnectionState } from '@renderer/hooks/system/useRuntimeConnectionState';
 
 const STATUS_COLORS: Record<string, string> = {
   stopped: 'bg-gray-400',
@@ -37,19 +28,45 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 export const HermesStatusBar: React.FC = () => {
-  const { status, lastError } = useDashboardStatus();
+  const { state, reason, retry } = useRuntimeConnectionState();
+  const [restarting, setRestarting] = React.useState(false);
 
-  if (status === 'ready') return null;
+  if (state === 'connected') return null;
 
+  const status = state === 'reconnecting' ? 'restarting' : state;
   const colorClass = STATUS_COLORS[status] ?? 'bg-gray-400';
-  const label = STATUS_LABELS[status] ?? 'Dashboard unknown';
+  const label =
+    state === 'starting'
+      ? 'Connecting to the runtime…'
+      : state === 'reconnecting'
+        ? 'Runtime connection lost. Reconnecting…'
+        : 'Runtime is not connected';
+
+  const restart = async () => {
+    if (!window.electronAPI?.restartRuntime) return;
+    setRestarting(true);
+    resetHttpBridgeConnections();
+    try {
+      await window.electronAPI.restartRuntime();
+    } finally {
+      setRestarting(false);
+    }
+  };
 
   return (
-    <div className={`w-full h-6px ${colorClass} flex items-center justify-center gap-6px`}>
-      <span className='text-10px text-white font-medium leading-none px-8px select-none'>
+    <div className={`w-full min-h-32px ${colorClass} flex items-center justify-center gap-8px px-12px`}>
+      <span className='text-11px text-white font-medium leading-tight select-none'>
         {label}
-        {lastError ? `: ${lastError}` : ''}
+        {reason ? `: ${reason}` : ''}
       </span>
+      <button className='text-11px text-white underline' onClick={() => void retry()} type='button'>
+        Retry
+      </button>
+      {window.electronAPI?.restartRuntime && (
+        <button className='text-11px text-white underline disabled:opacity-50' disabled={restarting} onClick={() => void restart()} type='button'>
+          Restart
+        </button>
+      )}
     </div>
   );
 };

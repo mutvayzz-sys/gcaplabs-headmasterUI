@@ -393,6 +393,12 @@ export function stubProvider<Data, Params = undefined>(name: string, defaultValu
 
 type WsCallback = (data: unknown) => void;
 const wsListeners = new Map<string, Set<WsCallback>>();
+type GatewayEventCallback = (event: {
+  type: string;
+  session_id?: string;
+  payload?: unknown;
+}) => void;
+const gatewayEventListeners = new Set<GatewayEventCallback>();
 let ws: WebSocket | null = null;
 let wsReconnectTimer: ReturnType<typeof setTimeout> | null = null;
 let wsReconnectAttempt = 0;
@@ -453,10 +459,35 @@ function connectRpcWs(): Promise<void> {
       rejectAllRpc(new Error('Headmaster runtime connection closed'));
     });
     socket.addEventListener('message', (event) => {
-      let frame: { id?: RpcId; result?: unknown; error?: { message?: string } };
+      let frame: {
+        id?: RpcId;
+        result?: unknown;
+        error?: { message?: string };
+        method?: string;
+        params?: {
+          type?: string;
+          session_id?: string;
+          payload?: unknown;
+        };
+      };
       try {
         frame = JSON.parse(String(event.data));
       } catch {
+        return;
+      }
+      if (frame.method === 'event' && typeof frame.params?.type === 'string') {
+        const gatewayEvent = {
+          type: frame.params.type,
+          session_id: frame.params.session_id,
+          payload: frame.params.payload,
+        };
+        for (const listener of gatewayEventListeners) {
+          try {
+            listener(gatewayEvent);
+          } catch {
+            // A renderer listener must never break the shared RPC transport.
+          }
+        }
         return;
       }
       if (frame.id === undefined || frame.id === null) return;
@@ -506,6 +537,37 @@ export async function gatewayRpcRequest<T>(
       reject(error instanceof Error ? error : new Error(String(error)));
     }
   });
+}
+
+export function onGatewayEvent(callback: GatewayEventCallback): () => void {
+  gatewayEventListeners.add(callback);
+  return () => gatewayEventListeners.delete(callback);
+}
+
+export function broadcastWsEvent(eventName: string, payload: unknown): void {
+  const handlers = wsListeners.get(eventName);
+  if (!handlers) return;
+  for (const handler of handlers) {
+    try {
+      handler(payload);
+    } catch {
+      // Keep event delivery isolated across subscribers.
+    }
+  }
+}
+
+export function resetHttpBridgeConnections(): void {
+  if (wsReconnectTimer) clearTimeout(wsReconnectTimer);
+  wsReconnectTimer = null;
+  wsReconnectAttempt = 0;
+  wsSupportChecked = false;
+  wsUnsupported = false;
+  ws?.close();
+  ws = null;
+  rpcWs?.close();
+  rpcWs = null;
+  rpcConnectPromise = null;
+  rejectAllRpc(new Error('Headmaster runtime connection reset'));
 }
 
 async function checkWsSupport(): Promise<boolean> {
@@ -632,7 +694,11 @@ type EmitterLike<Params> = {
 export function wsEmitter<Params = undefined>(eventName: string): EmitterLike<Params> {
   return {
     on: (callback: (params: Params) => void) => {
-      ensureWs();
+      // Native Hermes chat events arrive on the JSON-RPC socket and are
+      // translated locally into the inherited renderer event names.
+      if (!['message.stream', 'message.userCreated', 'turn.completed'].includes(eventName)) {
+        ensureWs();
+      }
       if (!wsListeners.has(eventName)) {
         wsListeners.set(eventName, new Set());
       }

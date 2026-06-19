@@ -77,10 +77,6 @@ export type ConfigKeyMap = {
     | { agent_type: string; backend?: string; id?: string; custom_agent_id?: string; name?: string }
     | undefined;
   'skillsMarket.enabled': boolean | undefined;
-  'pet.enabled': boolean | undefined;
-  'pet.size': number | undefined;
-  'pet.dnd': boolean | undefined;
-  'pet.confirmEnabled': boolean | undefined;
   // One-shot completion flags for legacy → backend migrations. Kept in the
   // local config file (not the backend client-preferences bag) so a downgrade
   // to a pre-flag build still re-reads the legacy data unchanged. See

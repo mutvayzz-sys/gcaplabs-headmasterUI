@@ -13,20 +13,16 @@ import { captureBackendStartupFailure, initSentry, scheduleStartupLogReport, set
 initSentry();
 
 import './process/utils/configureConsoleLog';
-import { app, BrowserWindow, ipcMain, nativeImage, powerMonitor } from 'electron';
+import { app, BrowserWindow, ipcMain, nativeImage } from 'electron';
 import fixPath from 'fix-path';
 import * as fs from 'fs';
 import * as path from 'path';
 import { initMainAdapterWithWindow } from './common/adapter/main';
 import { ipcBridge } from './common';
 import { initializeProcess } from './process';
-import { startBackendOrExit } from './process/startup/backendStartup';
-import { assertStartupArchitectureCompatible } from './process/startup/architectureCompatibility';
 import { installQuitCleanup } from './process/startup/quitCleanup';
 import { ProcessConfig } from './process/utils/initStorage';
 import { registerWindowMaximizeListeners } from '@process/bridge';
-import { BackendLifecycleManager } from '@aionui/web-host';
-import { resolveBinaryPath } from '@process/backend';
 import { HermesBootstrap } from '@process/backend/hermesBootstrap';
 import { setHermesBootstrap } from '@process/utils/hermesBootstrapSingleton';
 import { initBridges } from '@process/utils/initBridge';
@@ -191,20 +187,10 @@ let isExplicitQuit = false;
 let appReadyDone = false;
 
 let mainWindow: BrowserWindow;
-const backendManager = new BackendLifecycleManager(
-  {
-    version: app.getVersion(),
-    isPackaged: app.isPackaged,
-    resourcesPath: process.resourcesPath,
-    userDataPath: app.getPath('userData'),
-  },
-  resolveBinaryPath
-);
 
 // Hermes Python dashboard bootstrap. This is the primary Headmaster runtime:
 // Headmaster is a white-label/product shell on top of the real Hermes desktop
-// backend surface (`/api/*`, `/api/ws`, `/v1/*`). The legacy aioncore process is
-// retained only as a fallback for old builds that do not have Hermes installed.
+// backend surface (`/api/*`, `/api/ws`, `/v1/*`).
 const hermesBootstrap = new HermesBootstrap({
   version: app.getVersion(),
   isPackaged: app.isPackaged,
@@ -213,19 +199,14 @@ const hermesBootstrap = new HermesBootstrap({
 });
 setHermesBootstrap(hermesBootstrap);
 initBridges({ hermesBootstrap });
-let disposeCronResumeListener: (() => void) | null = null;
 
-// Flag tracking whether the backend subprocess started successfully. Read by
-// the deferred runBackendMigrations trigger in createWindow().
 let backendStartedOk = false;
 let backendStartupFailed = false;
 let rendererInitialLanguage: string | null = null;
-let backendMigrationsScheduled = false;
-let ensureAdminUserPromise: Promise<void> | null = null;
 
 ipcMain.on('get-backend-port', (event) => {
   event.returnValue =
-    (globalThis as typeof globalThis & { __backendPort?: number }).__backendPort ?? hermesBootstrap.port ?? backendManager.port;
+    (globalThis as typeof globalThis & { __backendPort?: number }).__backendPort ?? hermesBootstrap.port;
 });
 
 ipcMain.on('get-backend-host', (event) => {
@@ -275,8 +256,7 @@ const RUNTIME_STATUS_ENDPOINTS: Array<{ id: string; endpoint: string; countKey: 
 ipcMain.handle('runtime:get-status', async () => {
   const port =
     (globalThis as typeof globalThis & { __backendPort?: number }).__backendPort ??
-    hermesBootstrap.port ??
-    backendManager.port;
+    hermesBootstrap.port;
   const token =
     (globalThis as typeof globalThis & { __hermesSessionToken?: string }).__hermesSessionToken ??
     hermesBootstrap.sessionToken ??
@@ -363,49 +343,6 @@ function markBackendStartupFailed(_error: unknown): void {
   (globalThis as typeof globalThis & { __backendStartupFailed?: boolean }).__backendStartupFailed = true;
 }
 
-function registerCronResumeBridge(backendPort: number, runtime: 'hermes' | 'aioncore' = 'hermes'): void {
-  disposeCronResumeListener?.();
-
-  const onResume = () => {
-    // Hermes Agent has no aioncore-internal resume route. Keep the hook only
-    // for legacy aioncore fallback so sleep/wake doesn't spam 404s.
-    if (runtime !== 'aioncore') return;
-    void fetch(`http://127.0.0.1:${backendPort}/api/cron/internal/system-resume`, {
-      method: 'POST',
-      headers: {
-        'x-aionui-internal': '1',
-      },
-    }).catch((error) => {
-      console.error('[Headmaster] Failed to notify backend about system resume:', error);
-    });
-  };
-
-  powerMonitor.on('resume', onResume);
-  disposeCronResumeListener = () => {
-    powerMonitor.removeListener('resume', onResume);
-  };
-}
-
-/**
- * Run one-shot backend migrations after the renderer has loaded. Some steps
- * (ConfigStorage.get, ipcBridge.listProviders) route through the renderer via
- * BroadcastChannel, so invoking them before the renderer exists deadlocks the
- * main process. Called from did-finish-load.
- */
-const scheduleBackendMigrations = (): void => {
-  if (backendMigrationsScheduled || !backendStartedOk) return;
-  backendMigrationsScheduled = true;
-  void (async () => {
-    try {
-      const { runBackendMigrations } = await import('./process/utils/runBackendMigrations');
-      await runBackendMigrations(ProcessConfig);
-      console.info('[Headmaster] runBackendMigrations completed');
-    } catch (error) {
-      console.error('[Headmaster] Backend migration hook threw:', error);
-    }
-  })();
-};
-
 function exposeBackendPort(backendPort: number): void {
   // Expose the backend port to main-process callers of httpBridge (e.g. the
   // one-shot assistant migration hook below). Must land BEFORE any
@@ -414,32 +351,13 @@ function exposeBackendPort(backendPort: number): void {
   (globalThis as typeof globalThis & { __backendPort?: number }).__backendPort = backendPort;
 }
 
-function ensureAdminUserOnce(backendPort: number): Promise<void> {
-  if (!ensureAdminUserPromise) {
-    ensureAdminUserPromise = (async () => {
-      try {
-        const { ensureAdminUser } = await import('./process/utils/ensureAdminUser');
-        await ensureAdminUser(backendPort);
-      } catch (err) {
-        console.error('[WebUI] ensureAdminUser failed:', err);
-      }
-    })();
-  }
-  return ensureAdminUserPromise;
-}
-
-function markBackendReady(backendPort: number, source: string, runtime: 'hermes' | 'aioncore' = 'hermes'): void {
+function markBackendReady(backendPort: number, source: string): void {
   if (backendStartedOk) return;
   console.log(`[Headmaster] ${source} ready (port=${backendPort})`);
   exposeBackendPort(backendPort);
-  registerCronResumeBridge(backendPort, runtime);
   backendStartedOk = true;
   backendStartupFailed = false;
   (globalThis as typeof globalThis & { __backendStartupFailed?: boolean }).__backendStartupFailed = false;
-  if (runtime === 'aioncore') {
-    void ensureAdminUserOnce(backendPort);
-    scheduleBackendMigrations();
-  }
 }
 
 const createWindow = ({ showOnReady = true }: { showOnReady?: boolean } = {}): void => {
@@ -515,7 +433,6 @@ const createWindow = ({ showOnReady = true }: { showOnReady?: boolean } = {}): v
     mainWindow.webContents.once('did-finish-load', () => {
       console.log('[Headmaster] Renderer did-finish-load');
       showWindow();
-      scheduleBackendMigrations();
     });
     // Fallback: show window after 5s even if events don't fire (e.g. loadURL failure)
     setTimeout(showWindow, 5000);
@@ -693,7 +610,7 @@ const handleAppReady = async (): Promise<void> => {
     (globalThis as typeof globalThis & { __hermesPort?: number; __hermesSessionToken?: string }).__hermesPort =
       remoteConfig.port;
     (globalThis as typeof globalThis & { __hermesSessionToken?: string }).__hermesSessionToken = remoteConfig.token;
-    markBackendReady(remoteConfig.port, `remote.gateway:${remoteConfig.host}`, 'hermes');
+    markBackendReady(remoteConfig.port, `remote.gateway:${remoteConfig.host}`);
     mark('remote.gateway.connect');
   } else {
     (globalThis as typeof globalThis & { __backendHost?: string }).__backendHost = '127.0.0.1';
@@ -707,90 +624,21 @@ const handleAppReady = async (): Promise<void> => {
         hermesStartup.port;
       (globalThis as typeof globalThis & { __hermesSessionToken?: string }).__hermesSessionToken =
         hermesBootstrap.sessionToken;
-      markBackendReady(hermesStartup.port, 'hermes.dashboard', 'hermes');
+      markBackendReady(hermesStartup.port, 'hermes.dashboard');
       mark('hermesBootstrap.start');
     } else {
-      console.warn('[Headmaster] Hermes dashboard bootstrap failed; falling back to legacy backend:', hermesStartup.error);
-    }
-
-    // Legacy fallback: start the bundled backend only when the Hermes dashboard is not
-    // available. This keeps old/dev installs usable but removes the packaging
-    // dependency on a missing Adonis Core release asset.
-    const backendStartup = await startBackendOrExit({
-      startBackend: async () => {
-        if (backendStartedOk) {
-          return (globalThis as typeof globalThis & { __backendPort?: number }).__backendPort ?? hermesStartup.port ?? 0;
-        }
-        assertStartupArchitectureCompatible({
-          arch: process.arch,
-          isPackaged: app.isPackaged,
-          platform: process.platform,
-        });
-        const { getDataPath } = await import('./process/utils/utils');
-        const { getSystemDir } = await import('./process/utils/initStorage');
-        const sysDir = getSystemDir();
-        return backendManager.start(
-          getDataPath(),
-          sysDir.logDir,
-          {
-            cacheDir: sysDir.cacheDir,
-            workDir: sysDir.workDir,
-            logDir: sysDir.logDir,
-          },
-          {
-            allowPendingOnHealthTimeout: !(isWebUIMode || isResetPasswordMode),
-            onHealthTimeout: async (error) => {
-              markBackendStartupFailed(error);
-              await captureBackendStartupFailure(error);
-            },
-            onPendingExit: async (error) => {
-              markBackendStartupFailed(error);
-              await captureBackendStartupFailure(error);
-            },
-            onReady: (backendPort) => {
-              markBackendReady(backendPort, 'backendManager.lateReady', 'aioncore');
-            },
-          }
-        );
-      },
-      onStarted: (backendPort) => {
-        exposeBackendPort(backendPort);
-        if (hermesStartup.ok) return;
-        if (backendManager.status === 'running') {
-          markBackendReady(backendPort, 'backendManager.start', 'aioncore');
-          return;
-        }
-        mark(`backendManager.start pending health (port=${backendPort})`);
-      },
-      captureFailure: async (error) => {
-        markBackendStartupFailed(error);
-        await captureBackendStartupFailure(error);
-      },
-      exitApp: (code) => app.exit(code),
-      exitOnFailure: isWebUIMode || isResetPasswordMode,
-      logError: console.error,
-    });
-    if (!backendStartup.ok) {
+      const error = new Error(hermesStartup.error || 'Hermes dashboard failed to start');
+      console.error('[Headmaster] Hermes dashboard bootstrap failed:', error.message);
+      markBackendStartupFailed(error);
+      await captureBackendStartupFailure(error);
       if (isWebUIMode || isResetPasswordMode) {
+        app.exit(1);
         return;
       }
     }
   }
 
 
-
-  // One-shot WebUI admin credential migration. Must run after the backend is
-  // up (__backendPort set) and before any mode branch below that might log the
-  // user in. Swallows its own errors; the next boot retries.
-  const bootBackendPort = (globalThis as typeof globalThis & { __backendPort?: number }).__backendPort;
-  if (backendStartedOk && bootBackendPort) {
-    await ensureAdminUserOnce(bootBackendPort);
-  }
-
-  // One-shot backend migrations are deferred until after the renderer finishes
-  // loading. Some migration steps (ConfigStorage.get, ipcBridge.listProviders)
-  // route through the renderer via BroadcastChannel; running them here would
-  // deadlock because the renderer does not exist yet. See scheduleBackendMigrations().
 
   try {
     initializeZoomFactor(await ProcessConfig.get('ui.zoomFactor'));
@@ -867,7 +715,7 @@ const handleAppReady = async (): Promise<void> => {
             // Spawning a second backend here would race the first on SQLite.
             const port = (globalThis as typeof globalThis & { __backendPort?: number }).__backendPort;
             if (!port) {
-              throw new Error('[WebUI] Cannot start: aioncore is not running (globalThis.__backendPort unset)');
+              throw new Error('[WebUI] Cannot start: Headmaster runtime is not running (globalThis.__backendPort unset)');
             }
             return port;
           })(),
@@ -912,25 +760,6 @@ const handleAppReady = async (): Promise<void> => {
     createWindow({ showOnReady: showMainWindowOnReady });
     appReadyDone = true;
     mark('createWindow');
-
-    // Initialize desktop pet (delayed to not block main window)
-    setTimeout(() => {
-      void (async () => {
-        try {
-          const petEnabled = await ProcessConfig.get('pet.enabled');
-          if (petEnabled === true) {
-            // Read pet sub-settings before creating the pet so flags are honored
-            // on the first createPetWindow() call (which is sync).
-            const confirmEnabled = (await ProcessConfig.get('pet.confirmEnabled')) ?? true;
-            const { createPetWindow, setPetConfirmEnabled } = await import('./process/pet/petManager');
-            setPetConfirmEnabled(confirmEnabled);
-            createPetWindow();
-          }
-        } catch (error) {
-          console.error('[Pet] Failed to initialize:', error);
-        }
-      })();
-    }, 3000);
 
     // 读取语言设置并初始化主进程 i18n，然后刷新托盘菜单
     // Read language setting and initialize main process i18n, then refresh tray menu
@@ -1053,17 +882,7 @@ installQuitCleanup({
     isExplicitQuit = true;
   },
   destroyTray,
-  disposeCronResumeListener: () => {
-    disposeCronResumeListener?.();
-    disposeCronResumeListener = null;
-  },
-  // Stop aioncore subprocess — backend shutdown kills all agent children
-  // transitively (no separate frontend workerTaskManager remains).
-  stopBackend: () => backendManager.stop(),
-  destroyPetWindow: async () => {
-    const { destroyPetWindow } = await import('./process/pet/petManager');
-    destroyPetWindow();
-  },
+  stopBackend: async () => hermesBootstrap.stop(),
   logInfo: console.log,
   logWarn: console.warn,
   logError: console.error,

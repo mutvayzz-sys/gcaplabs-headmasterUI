@@ -226,7 +226,7 @@ export async function readDirectoryRecursive(
       process.dir += 1;
       const child = await readDirectoryRecursive(itemPath, {
         ...options,
-        maxDepth: searchText ? maxDepth : maxDepth - 1,
+        maxDepth: maxDepth === Infinity ? Infinity : maxDepth - 1,
         root,
         search: {
           ...search,

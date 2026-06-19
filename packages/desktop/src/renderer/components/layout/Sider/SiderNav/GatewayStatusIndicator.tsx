@@ -4,42 +4,24 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Tooltip } from '@arco-design/web-react';
 import { ArrowsClockwise } from '@phosphor-icons/react';
-import { httpRequest } from '@/common/adapter/httpBridge';
+import { resetHttpBridgeConnections } from '@/common/adapter/httpBridge';
+import { useRuntimeConnectionState } from '@/renderer/hooks/system/useRuntimeConnectionState';
 import classNames from 'classnames';
-
-type GatewayStatus = {
-  gateway_running?: boolean;
-  gateway_state?: string | null;
-};
 
 const GatewayStatusIndicator: React.FC<{ collapsed?: boolean }> = ({ collapsed = false }) => {
   const { t } = useTranslation();
-  const [status, setStatus] = useState<GatewayStatus | null>(null);
+  const { state, retry } = useRuntimeConnectionState();
   const [restarting, setRestarting] = useState(false);
-
-  const fetchStatus = useCallback(async () => {
-    try {
-      const data = await httpRequest<GatewayStatus>('GET', '/api/status');
-      setStatus(data);
-    } catch {
-      setStatus(null);
-    }
-  }, []);
-
-  useEffect(() => {
-    void fetchStatus();
-    const interval = setInterval(fetchStatus, 30000);
-    return () => clearInterval(interval);
-  }, [fetchStatus]);
 
   const handleRestart = useCallback(async () => {
     setRestarting(true);
     try {
       if (window.electronAPI?.restartRuntime) {
+        resetHttpBridgeConnections();
         await window.electronAPI.restartRuntime();
         // Window will reload once the runtime is ready — nothing more to do here.
         return;
@@ -48,10 +30,10 @@ const GatewayStatusIndicator: React.FC<{ collapsed?: boolean }> = ({ collapsed =
       // silent
     }
     setRestarting(false);
-    setTimeout(fetchStatus, 2000);
-  }, [fetchStatus]);
+    setTimeout(() => void retry(), 2000);
+  }, [retry]);
 
-  const running = status?.gateway_running ?? false;
+  const running = state === 'connected';
 
   return (
     <div className={classNames('flex items-center gap-6px px-10px h-28px', collapsed && 'justify-center px-0')}>

@@ -42,96 +42,13 @@ const hasLoadedSkill = (conversation: TChatConversation | undefined, skillName: 
 };
 
 const _AssociatedConversation: React.FC<{ conversation_id: string }> = ({ conversation_id }) => {
-  const { data } = useSWR(['getAssociateConversation', conversation_id], () =>
-    ipcBridge.conversation.getAssociateConversation.invoke({ conversation_id })
-  );
-  const navigate = useNavigate();
-  const list = useMemo(() => {
-    if (!data?.length) return [];
-    return data.filter((conversation) => conversation.id !== conversation_id);
-  }, [data]);
-  if (!list.length) return null;
-  return (
-    <Dropdown
-      droplist={
-        <Menu
-          onClickMenuItem={(key) => {
-            Promise.resolve(navigate(`/conversation/${key}`)).catch((error) => {
-              console.error('Navigation failed:', error);
-            });
-          }}
-        >
-          {list.map((conversation) => {
-            return (
-              <Menu.Item key={conversation.id}>
-                <Typography.Ellipsis className={'max-w-300px'}>{conversation.name}</Typography.Ellipsis>
-              </Menu.Item>
-            );
-          })}
-        </Menu>
-      }
-      trigger={['click']}
-    >
-      <Button
-        size='mini'
-        icon={
-          <History
-            theme='filled'
-            size='14'
-            fill={iconColors.primary}
-            strokeWidth={2}
-            strokeLinejoin='miter'
-            strokeLinecap='square'
-          />
-        }
-      ></Button>
-    </Dropdown>
-  );
+  void conversation_id;
+  return null;
 };
 
 const _AddNewConversation: React.FC<{ conversation: TChatConversation }> = ({ conversation }) => {
-  const { t } = useTranslation();
-  const navigate = useNavigate();
-  const isCreatingRef = useRef(false);
-  if (!conversation.extra?.workspace) return null;
-  return (
-    <Tooltip content={t('conversation.workspace.createNewConversation')}>
-      <Button
-        size='mini'
-        icon={<img src={addChatIcon} alt='Add chat' className='w-14px h-14px block m-auto' />}
-        onClick={async () => {
-          if (isCreatingRef.current) return;
-          isCreatingRef.current = true;
-          try {
-            const id = uuid();
-            // Fetch latest conversation from DB to ensure session_mode is current
-            const latest = await getConversationOrNull(conversation.id);
-            const source = latest || conversation;
-            await ipcBridge.conversation.createWithConversation.invoke({
-              conversation: {
-                ...source,
-                id,
-                created_at: Date.now(),
-                modified_at: Date.now(),
-                // Clear ACP session fields to prevent new conversation from inheriting old session context
-                extra:
-                  source.type === 'acp'
-                    ? { ...source.extra, acp_session_id: undefined, acp_session_updated_at: undefined }
-                    : source.extra,
-              } as TChatConversation,
-            });
-            void navigate(`/conversation/${id}`);
-            emitter.emit('chat.history.refresh');
-          } catch (error) {
-            console.error('Failed to create conversation:', error);
-            Message.error(getConversationCreateErrorMessage(error, t));
-          } finally {
-            isCreatingRef.current = false;
-          }
-        }}
-      />
-    </Tooltip>
-  );
+  void conversation;
+  return null;
 };
 
 type AionrsConversation = Extract<TChatConversation, { type: 'aionrs' }>;
