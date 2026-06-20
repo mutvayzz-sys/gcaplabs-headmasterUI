@@ -1,5 +1,80 @@
 # Changelog
 
+## [0.1.8](https://github.com/mutvayzz-sys/gcaplabs-headmasterUI/compare/v0.1.6...v0.1.8) (2026-06-19)
+
+### Desktop
+
+#### Features
+
+- Added Hermes session history through `/api/sessions` and
+  `/api/sessions/{id}/messages`, including transcript mapping for text,
+  reasoning, tools, results, and context metadata.
+- Added native Hermes JSON-RPC chat using `session.create`, `session.resume`,
+  `prompt.submit`, and `session.interrupt`.
+- Added stale-session recovery while keeping stored session IDs separate from
+  live runtime session IDs.
+- Added interactive approval, clarification, permission, sudo, and secret
+  request handling through the existing conversation UI.
+- Added connected, reconnecting, and disconnected runtime states that require
+  both REST and JSON-RPC WebSocket readiness.
+- Added runtime recovery controls and sanitized failure reasons.
+- Added real Hermes profile, model-option, memory, dashboard, activity,
+  document, and workspace mappings.
+- Added schema-driven Runtime Settings using `/api/config/schema`, including
+  grouping, descriptions, defaults, and client-side validation.
+- Added a local CLI agent scanner for supported desktop engines.
+- Restored the multi-tab file Preview panel with markdown, code, HTML, PDF, Office, image, and diff viewers.
+- Restored editable markdown, code, and HTML previews.
+- Restored automatic previews for files written by agents and newly created Office documents.
+- Added a shared Files / Browser panel switcher while preserving the existing Camofox noVNC BrowserPanel.
+
+#### Fixes
+
+- Replaced or intentionally disabled remaining inherited conversation routes
+  that Hermes does not support.
+- Added compatibility handling and tests for disconnects, reconnects,
+  interruption, RPC errors, malformed events, and out-of-order events.
+- Stored desktop client settings locally instead of calling the inherited
+  `/api/settings/client` endpoint.
+- Removed Desktop Pet and its process, preload, route, asset, tray, settings,
+  config, and locale surfaces.
+- Removed the legacy desktop backend resolver, bundled binary preparation, and
+  fallback startup path. Hermes is the only desktop runtime.
+- Removed residual non-desktop `aioncore` web and utility paths.
+- Removed forced runtime restarts after runtime updates; installed updates now
+  wait for an explicit restart.
+- Routed application release checks through the GCAP Labs release endpoint
+  without shipping a private GitHub token.
+- Guarded `electron-updater` in portable and unpacked builds.
+- Made missing `SENTRY_DSN` a clean no-op and renamed the attached startup log
+  bundle to `headmaster-logs.log.gz`.
+- Close file previews when switching conversations to prevent cross-conversation state leakage.
+- Use Headmaster-specific preview persistence keys and branding.
+- **White screen fix:** Removed all startup imports through the heavy `Preview/index.ts` barrel and corrected renderer vendor chunk classification. `@monaco-editor/react` was previously mistaken for React itself, creating a circular `vendor-react → vendor-editor → vendor-highlight → vendor-arco → vendor-react` dependency that evaluated Arco before React and crashed at `React.createContext`.
+- Normalized Hermes MCP responses such as `{ "servers": [] }`.
+- Removed startup requests to unsupported `/api/skills/builtin-auto`,
+  `/api/extensions/acp-adapters`, and `/api/teams` routes.
+- Removed the obsolete `HEAD /api/ws` capability probe.
+- Skip automatic update checks cleanly in portable `--dir` builds that do not contain `app-update.yml`.
+- Skip the startup Sentry log report cleanly when `SENTRY_DSN` is not configured.
+
+#### CI and verification
+
+- Simplified PR checks to Windows x64 TypeScript and Vitest validation.
+- Repaired release workflow action versions and removed obsolete reusable
+  AionUI workflows.
+- Passed TypeScript validation and focused Hermes adapter tests.
+- Passed 33 renderer chunk, Hermes response, Sentry, and adapter regression
+  tests.
+- Passed the production Electron bundle.
+- Produced a signed Windows portable package with native `better-sqlite3`
+  verification.
+- Verified the packaged renderer through CDP with a mounted React root, visible
+  navigation/session history, no automatic DevTools window, and zero observed
+  startup console, network, or uncaught renderer errors.
+
+---
+
 ## [2.1.17](https://github.com/iOfficeAI/Headmaster/compare/v2.1.16...v2.1.17) (2026-06-11)
 
 ### Desktop

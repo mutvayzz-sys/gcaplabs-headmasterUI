@@ -399,9 +399,6 @@ let ws: WebSocket | null = null;
 let wsReconnectTimer: ReturnType<typeof setTimeout> | null = null;
 let wsReconnectAttempt = 0;
 
-let wsUnsupported = false;
-let wsSupportChecked = false;
-
 type RpcId = number;
 type PendingRpc = {
   resolve: (value: unknown) => void;
@@ -556,8 +553,6 @@ export function resetHttpBridgeConnections(): void {
   if (wsReconnectTimer) clearTimeout(wsReconnectTimer);
   wsReconnectTimer = null;
   wsReconnectAttempt = 0;
-  wsSupportChecked = false;
-  wsUnsupported = false;
   ws?.close();
   ws = null;
   rpcWs?.close();
@@ -566,48 +561,16 @@ export function resetHttpBridgeConnections(): void {
   rejectAllRpc(new Error('Headmaster runtime connection reset'));
 }
 
-async function checkWsSupport(): Promise<boolean> {
-  if (wsSupportChecked) return !wsUnsupported;
-  wsSupportChecked = true;
-  try {
-    const url = `${getBaseUrl()}/api/ws`;
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 2000);
-    const response = await fetch(url, { method: 'HEAD', signal: controller.signal });
-    clearTimeout(timer);
-    // 404 means the active backend (the active backend) doesn't expose /api/ws.
-    if (response.status === 404) {
-      wsUnsupported = true;
-      console.debug('[ensureWs] /api/ws returned 404; marking WebSocket unsupported for this backend');
-      return false;
-    }
-    return true;
-  } catch {
-    // Network/timout: still attempt WebSocket; don't permanently block.
-    return true;
-  }
-}
-
 function ensureWs(): void {
   if (typeof window === 'undefined') {
     console.debug('[ensureWs] skipped: no window');
-    return;
-  }
-  if (wsUnsupported) {
-    console.debug('[ensureWs] skipped: /api/ws is unsupported on this backend');
     return;
   }
   if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
     console.debug('[ensureWs] skipped: already open/connecting, readyState=', ws.readyState);
     return;
   }
-  if (wsSupportChecked) {
-    connectWs();
-    return;
-  }
-  void checkWsSupport().then((supported) => {
-    if (supported) connectWs();
-  });
+  connectWs();
 }
 
 function connectWs(): void {

@@ -9,7 +9,6 @@ import { httpGet } from '@/common/adapter/httpBridge';
 import { listHermesConversations } from '@/common/adapter/hermesSessionAdapter';
 import type { SessionItem } from '@/renderer/pages/activity/useActivity';
 import type { KanbanTask } from '@/renderer/pages/kanban/useKanban';
-import type { PlatformConfig } from '@/renderer/pages/integrations/useIntegrations';
 
 export interface DashboardStats {
   activeSessions: number;
@@ -27,14 +26,6 @@ export interface RecentItem {
   title: string;
   timestamp: string;
   meta?: string;
-}
-
-interface AcpAdapterLike {
-  id?: string;
-  name?: string;
-  backend?: string;
-  enabled?: boolean;
-  available?: boolean;
 }
 
 function isoFromUnknown(value: unknown): string | undefined {
@@ -80,18 +71,6 @@ function fromCronJob(raw: Record<string, unknown>): KanbanTask {
   };
 }
 
-function normalizePlatform(raw: Record<string, unknown>): PlatformConfig {
-  const id = String(raw.id ?? raw.platform ?? raw.name ?? '');
-  const state = String(raw.state ?? '').toLowerCase();
-  return {
-    id,
-    name: String(raw.name ?? id),
-    connected: state === 'connected' || raw.connected === true,
-    enabled: raw.enabled !== false,
-    settings: raw,
-  };
-}
-
 export function useDashboard() {
   const [stats, setStats] = useState<DashboardStats>({
     activeSessions: 0,
@@ -113,14 +92,9 @@ export function useDashboard() {
       const conversationsRaw = await listHermesConversations({ limit: 500 });
       const conversationItems = conversationsRaw.items as unknown as Array<Record<string, unknown>>;
       const sessions = conversationItems.map(normalizeSession);
-      const [cronRaw, adaptersRaw] = await Promise.all([
-        httpGet<Array<Record<string, unknown>>>('/api/cron/jobs')
-          .invoke()
-          .catch((_error: unknown): Array<Record<string, unknown>> => []),
-        httpGet<AcpAdapterLike[]>('/api/extensions/acp-adapters')
-          .invoke()
-          .catch((_error: unknown): AcpAdapterLike[] => []),
-      ]);
+      const cronRaw = await httpGet<Array<Record<string, unknown>>>('/api/cron/jobs')
+        .invoke()
+        .catch((_error: unknown): Array<Record<string, unknown>> => []);
       const root = inferWorkspaceRoot(conversationItems);
       const filesRaw = root
         ? await httpGet<{ entries?: Array<Record<string, unknown>> }>(`/api/files?path=${encodeURIComponent(root)}`)
@@ -130,23 +104,14 @@ export function useDashboard() {
         : [];
 
       const tasks = (cronRaw ?? []).map(fromCronJob);
-      const platforms = (adaptersRaw ?? []).map((adapter) =>
-        normalizePlatform({
-          id: adapter.id ?? adapter.backend ?? adapter.name,
-          name: adapter.name ?? adapter.backend ?? adapter.id,
-          connected: adapter.available !== false,
-          enabled: adapter.enabled !== false,
-        })
-      );
       const activeSessions = sessions.filter((s) => s.status === 'running' || s.status === 'thinking').length;
-      const connectedPlatforms = platforms.filter((p) => p.connected && p.enabled).length;
       const pendingTasks = tasks.filter((t) => t.status !== 'done').length;
 
       setStats({
         activeSessions,
         totalTokens: sessions.reduce((sum, session) => sum + (session.token_count ?? 0), 0),
         messagesToday: 0,
-        connectedPlatforms,
+        connectedPlatforms: 0,
         pendingTasks,
         memoryProviders: 0,
         documentsCount: filesRaw.length,

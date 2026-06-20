@@ -6,6 +6,7 @@ import { sentryVitePlugin } from '@sentry/vite-plugin';
 import UnoCSS from 'unocss/vite';
 import unoConfig from '../../uno.config.ts';
 import { viteStaticCopy } from 'vite-plugin-static-copy';
+import { getRendererManualChunk } from './scripts/rendererChunks';
 
 // Read the real Headmaster version from the repo-root package.json.
 // `packages/desktop/package.json` is a workspace-internal placeholder pinned
@@ -270,38 +271,7 @@ export default defineConfig(({ mode }) => {
             warn(warning);
           },
           output: {
-            manualChunks(id: string) {
-              if (!id.includes('node_modules')) return undefined;
-              if (id.includes('/react-dom/') || id.includes('/react/')) return 'vendor-react';
-              if (id.includes('/@arco-design/')) return 'vendor-arco';
-              if (
-                id.includes('/react-markdown/') ||
-                id.includes('/remark-') ||
-                id.includes('/rehype-') ||
-                id.includes('/unified/') ||
-                id.includes('/mdast-') ||
-                id.includes('/hast-') ||
-                id.includes('/micromark')
-              )
-                return 'vendor-markdown';
-              if (
-                id.includes('/react-syntax-highlighter/') ||
-                id.includes('/refractor/') ||
-                id.includes('/highlight.js/')
-              )
-                return 'vendor-highlight';
-              if (
-                id.includes('/monaco-editor/') ||
-                id.includes('/@monaco-editor/') ||
-                id.includes('/codemirror/') ||
-                id.includes('/@codemirror/')
-              )
-                return 'vendor-editor';
-              if (id.includes('/katex/')) return 'vendor-katex';
-              if (id.includes('/@icon-park/')) return 'vendor-icons';
-              if (id.includes('/diff2html/')) return 'vendor-diff';
-              return undefined;
-            },
+            manualChunks: getRendererManualChunk,
           },
         },
       },

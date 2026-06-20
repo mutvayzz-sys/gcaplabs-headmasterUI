@@ -7,12 +7,14 @@ import useSWR from 'swr';
 import ChatConversation from './components/ChatConversation';
 import { useAutoTitle } from '@/renderer/hooks/chat/useAutoTitle';
 import { useBrowserSessionWatch } from '@/renderer/hooks/chat/useBrowserSessionWatch';
+import { usePreviewContext } from '@/renderer/pages/conversation/Preview/context';
 import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
 
 const ChatConversationIndex: React.FC = () => {
   const { id } = useParams();
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { closePreview } = usePreviewContext();
   const { syncTitleFromHistory } = useAutoTitle();
   useBrowserSessionWatch(id);
   const previousConversationIdRef = useRef<string | undefined>(undefined);
@@ -22,8 +24,12 @@ const ChatConversationIndex: React.FC = () => {
   useEffect(() => {
     if (!id) return;
 
+    if (previousConversationIdRef.current !== id) {
+      closePreview();
+    }
+
     previousConversationIdRef.current = id;
-  }, [id]);
+  }, [id, closePreview]);
 
   const { data, isLoading, mutate } = useSWR(id ? `conversation/${id}` : null, () => {
     return getConversationOrNull(id!);

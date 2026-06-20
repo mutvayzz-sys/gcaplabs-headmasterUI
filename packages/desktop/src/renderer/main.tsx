@@ -48,6 +48,7 @@ import { AuthProvider } from './hooks/context/AuthContext';
 import { FeedbackProvider } from './hooks/context/FeedbackContext';
 import { ThemeProvider } from './hooks/context/ThemeContext';
 import { BrowserPanelProvider } from './pages/conversation/BrowserPanel';
+import { PreviewProvider } from './pages/conversation/Preview/context';
 
 // Arco Design
 import { ConfigProvider } from '@arco-design/web-react';
@@ -126,7 +127,11 @@ const AppProviders: React.FC<PropsWithChildren> = ({ children }) =>
     React.createElement(
       ThemeProvider,
       null,
-      React.createElement(BrowserPanelProvider, null, React.createElement(FeedbackProvider, null, children))
+      React.createElement(
+        BrowserPanelProvider,
+        null,
+        React.createElement(PreviewProvider, null, React.createElement(FeedbackProvider, null, children))
+      )
     )
   );
 
@@ -167,7 +172,13 @@ const Main = () => {
   }, [ready]);
 
   if (!ready || !configReady) {
-    return null;
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh' }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ fontSize: '14px', color: '#999' }}>Initializing...</div>
+        </div>
+      </div>
+    );
   }
 
   return (

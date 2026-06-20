@@ -52,6 +52,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   setRemoteConnectionConfig: (config: { host: string; port: number; token: string }) =>
     ipcRenderer.invoke('connection:set-remote-config', config),
   restartRuntime: () => ipcRenderer.invoke('runtime:restart'),
+  // Runtime detection for startup
+  checkHermesRuntime: () => ipcRenderer.invoke('runtime:check-and-prompt'),
 });
 
 // Synchronously fetch the backend port/session token and expose it to the renderer

@@ -77,6 +77,7 @@ import {
   wsEmitter,
   wsMappedEmitter,
 } from './httpBridge';
+import { normalizeHermesList } from './hermesResponse';
 import { fromApiSearchResult, type ApiMessageSearchItem } from './searchMapper';
 import type { IAddTeamAgentParams, ICreateTeamParams } from './teamMapper';
 import {
@@ -658,8 +659,11 @@ export const fs = {
     }>,
     void
   >('/api/skills'),
-  listBuiltinAutoSkills: httpGet<Array<{ name: string; description: string; location: string }>, void>(
-    '/api/skills/builtin-auto'
+  // Hermes exposes one enabled-skills catalog at `/api/skills`; it has no
+  // separate auto-injected subset.
+  listBuiltinAutoSkills: stubProvider<Array<{ name: string; description: string; location: string }>, void>(
+    'fs.listBuiltinAutoSkills',
+    []
   ),
   materializeSkillsForAgent: httpPost<
     { skills: Array<{ name: string; source_path: string }> },
@@ -890,38 +894,9 @@ export const acpConversation = {
         // scanner not available (e.g. browser mode) — continue
       }
 
-      // 2. Try backend ACP adapters endpoint
-      const adaptersEnvelope = await httpRequest<unknown>('GET', '/api/extensions/acp-adapters').catch(
-        (_error: unknown): null => null
-      );
-      const adaptersRaw = (
-        adaptersEnvelope && typeof adaptersEnvelope === 'object' && 'data' in adaptersEnvelope
-          ? (adaptersEnvelope as { data?: unknown }).data
-          : adaptersEnvelope
-      ) as unknown;
-      const adapters = Array.isArray(adaptersRaw) ? adaptersRaw : [];
-      const backendAgents: AgentMetadata[] = adapters.map((raw) => {
-        const adapter = raw as Record<string, unknown>;
-        const id = String(adapter.id ?? adapter.name ?? adapter.backend ?? '');
-        return {
-          id,
-          name: String(adapter.display_name ?? adapter.name ?? id),
-          description: typeof adapter.description === 'string' ? adapter.description : undefined,
-          backend: typeof adapter.backend === 'string' ? adapter.backend : id,
-          agent_type: 'acp',
-          agent_source: 'extension',
-          enabled: adapter.enabled !== false,
-          available: adapter.available !== false,
-          command: typeof adapter.command === 'string' ? adapter.command : undefined,
-          args: Array.isArray(adapter.args) ? adapter.args.map(String) : undefined,
-        } as AgentMetadata;
-      });
-
-      // 3. Merge local + backend, dedup by id (local scanner takes priority)
+      // Hermes has no inherited `/api/extensions/acp-adapters` endpoint.
+      // The local scanner is the authoritative desktop catalog.
       const byId = new Map<string, AgentMetadata>();
-      for (const agent of backendAgents) {
-        byId.set(agent.id, agent);
-      }
       for (const agent of localAgents) {
         byId.set(agent.id, agent);
       }
@@ -1062,7 +1037,13 @@ export const acpConversation = {
 // ---------------------------------------------------------------------------
 
 export const mcpService = {
-  listServers: httpGet<IMcpServer[], void>('/api/mcp/servers'),
+  listServers: {
+    provider: () => {},
+    invoke: async () => {
+      const result = await httpRequest<unknown>('GET', '/api/mcp/servers');
+      return normalizeHermesList<IMcpServer>(result, 'servers');
+    },
+  },
   createServer: httpPost<
     IMcpServer,
     Pick<IMcpServer, 'name' | 'description' | 'transport' | 'original_json' | 'builtin'>
@@ -1849,7 +1830,7 @@ export const extensions = {
   getLoadedExtensions: httpGet<IExtensionInfo[], void>('/api/extensions'),
   getAssistants: httpGet<Record<string, unknown>[], void>('/api/extensions/assistants'),
   getAgents: httpGet<Record<string, unknown>[], void>('/api/extensions/agents'),
-  getAcpAdapters: httpGet<Record<string, unknown>[], void>('/api/extensions/acp-adapters'),
+  getAcpAdapters: stubProvider<Record<string, unknown>[], void>('extensions.getAcpAdapters', []),
   getMcpServers: httpGet<Record<string, unknown>[], void>('/api/extensions/mcp-servers'),
   getSkills: httpGet<Array<{ name: string; description: string; location: string }>, void>('/api/extensions/skills'),
   getSettingsTabs: httpGet<IExtensionSettingsTab[], void>('/api/extensions/settings-tabs'),
@@ -1992,11 +1973,8 @@ export const hub = {
 
 export type { IAddTeamAgentParams, ICreateTeamParams } from './teamMapper';
 
-// Hermes path-correction (RECON §3 + Phase 4B): `/api/teams` doesn't exist
-// in Hermes. The Council (formerly Team) will be re-wired to
-// `GET /api/profiles/sessions` in Phase 4B. For v1 we stub the mutating
-// methods (which require a backend store) and pass-through the read paths
-// to `/api/profiles` so the sidebar icon at least doesn't 404.
+// Hermes has no inherited `/api/teams` surface. Keep the sidebar read path
+// inert instead of issuing a failing request during every startup.
 export const team = {
   create: httpPost<TTeam, ICreateTeamParams>('/api/teams', (params) => ({
     user_id: params.user_id,
@@ -2005,7 +1983,7 @@ export const team = {
     workspace_mode: params.workspace_mode,
     agents: params.agents.map(toBackendAgent),
   })),
-  list: withResponseMap(httpGet<unknown[], { user_id: string }>('/api/teams'), (raw) => fromBackendTeamList(raw)),
+  list: stubProvider<TTeam[], { user_id: string }>('team.list', []),
   get: withResponseMap(
     httpGet<unknown, { id: string }>((p) => `/api/teams/${encodeURIComponent(p.id)}`),
     (raw) => fromBackendTeamOptional(raw)
