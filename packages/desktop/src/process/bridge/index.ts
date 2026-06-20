@@ -17,6 +17,7 @@ import { initBrowserBridge } from './browserBridge';
 import { initAgentBridge } from './agentBridge';
 import { initConnectionBridge } from './connectionBridge';
 import { initFileSystemBridge } from './fsBridge';
+import { initRuntimeDetectionBridge } from './runtimeDetectionBridge';
 import type { HermesBootstrap } from '@process/backend/hermesBootstrap';
 
 export interface BridgeDependencies {
@@ -27,6 +28,7 @@ export function initAllBridges(deps: BridgeDependencies = {}): void {
   initDialogBridge();
   if (deps.hermesBootstrap) {
     initHermesBridge(deps.hermesBootstrap);
+    initRuntimeDetectionBridge(deps.hermesBootstrap);
   }
   initApplicationBridge();
   initWindowControlsBridge();

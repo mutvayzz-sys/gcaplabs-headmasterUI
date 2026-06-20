@@ -1,262 +1,188 @@
 # Headmaster — Active TODO
 
-Updated: **2026-06-19**
+Updated: **2026-06-20**
 
-Current source version: **v0.1.7**
+Current source version: **v0.1.8**
 
-> **PR #4 merged (2026-06-19):** Completed §9 individual message deletion stub, §10 gateway edge-case tests, §12 RuntimeSettings DOM tests. Branch: `codex/headmaster-v0.1.7`.
-
-This file tracks the remaining implementation and verification work from
-`C:\Users\Matve\Desktop\gcap-labs\codexplan.md`.
+Completed work belongs in `CHANGELOG.md`. This file contains only remaining
+implementation, validation, and release work.
 
 ## Current position
 
-The core Hermes migration is substantially implemented. Headmaster now uses
-Hermes sessions for history and native Hermes JSON-RPC for primary chat
-create/send/stop operations. Runtime connectivity, update behavior, settings,
-Desktop Pet removal, and most inherited backend cleanup are also implemented.
+The Hermes-native adapter and packaged-renderer recovery are implemented. A
+signed Windows portable build mounts successfully with a clean observed
+startup console.
 
-The work is **not release-complete**. Remaining inherited conversation routes
-must be replaced or intentionally disabled, then the complete app must pass
-build, packaging, live-runtime smoke testing, and debugging.
+Release completion is blocked by interactive chat/profile bugs, unfinished
+settings and support surfaces, full validation, installer packaging, and
+publication.
 
-## Completed
+## P0 — Release blockers
 
-### 1. Preserve existing v0.1.6 work
+### Profile launch and chat crash
 
-- [x] Reviewed and preserved the existing worktree.
-- [x] Created preservation commit `85708dd`.
-- [x] Created initial Hermes session adapter commit `7e98e5d`.
-- [x] Pushed branch `codex/hermes-session-adapter-v0.1.6`.
-- [x] Opened draft PR #2.
-- [x] Left unrelated untracked files `Driver`, `Manager`, and `Tasks` untouched.
+Evidence:
+`C:\Users\Matve\AppData\Local\Temp\codex-clipboard-99cf4f0e-8441-4ff7-95d3-1e896b516075.png`
 
-### 2. Hermes session history adapter
+- [ ] Reproduce launching the `recruiter` Hermes profile from Specialists.
+- [ ] Fix `Cannot read properties of undefined (reading 'model')`.
+- [ ] Identify the profile/session/model mapper returning `undefined`.
+- [ ] Add regression coverage for non-default profile provider/model metadata.
+- [ ] Prevent a single conversation failure from replacing every route with
+      the global error boundary.
+- [ ] Add conversation- or route-level recovery.
+- [ ] Make **Try again** restore the failed route without leaving Chat
+      inaccessible.
+- [ ] Verify `default`, `recruiter`, and other configured profiles can create,
+      resume, and render conversations.
 
-- [x] Use `/api/sessions` as the primary conversation source.
-- [x] Load transcripts from `/api/sessions/{id}/messages`.
-- [x] Map Hermes sessions into Headmaster conversation models.
-- [x] Map text, reasoning, tool calls, tool results, and context metadata.
-- [x] Route session get, rename, delete, and archive operations through Hermes.
-- [x] Suppress unsupported active-conversation count behavior.
-- [x] Convert Dashboard, Activity, and Documents to Hermes session/file APIs.
-- [x] Add focused session adapter tests.
+### Existing-chat message submission stalls
 
-### 3. Native Hermes chat flow
+Intended flow:
 
-- [x] Add JSON-RPC support for `session.create`.
-- [x] Add JSON-RPC support for `session.resume`.
-- [x] Send prompts through `prompt.submit`.
-- [x] Stop generation through `session.interrupt`.
-- [x] Keep durable stored session IDs separate from live runtime session IDs.
-- [x] Recover from stale live session IDs by resuming the stored session.
-- [x] Translate text, reasoning, tool, completion, and error events.
-- [x] Pass attachments to Hermes as `@file:` references.
-- [x] Add focused chat adapter tests.
+- New Mission → `session.create`
+- Existing stored chat → `session.resume`
+- Follow-up message → `prompt.submit` on the same live session
+- Stop → `session.interrupt`
 
-### 4. Runtime state and diagnostics
+- [ ] Reproduce the processing state where no user or assistant message appears.
+- [ ] Verify stored-session → live-session mapping for profile chats.
+- [ ] Confirm `message.userCreated` reaches active conversation state.
+- [ ] Confirm `prompt.submit` uses the resumed live session ID.
+- [ ] Confirm streamed events map back to the stored conversation ID in order.
+- [ ] Add timeout/error recovery instead of indefinite processing.
+- [ ] Add a regression test covering resume → follow-up → stream → persistence.
 
-- [x] Require both REST readiness and JSON-RPC WebSocket connectivity.
-- [x] Add connected/reconnecting/disconnected runtime state.
-- [x] Add a persistent disconnected banner with Retry and Restart controls.
-- [x] Show a sanitized runtime failure reason.
-- [x] Make sidebar status reflect real runtime connectivity.
-- [x] Reset bridge sockets when the runtime restarts.
-- [x] Keep the installed Hermes runtime as the canonical local runtime.
+### Skills tab fails to fetch
 
-### 5. Replace inherited settings/data endpoints
+- [ ] Capture the exact failing request, status, and response shape.
+- [ ] Route the page to real Hermes `GET /api/skills`.
+- [ ] Remove or adapt inherited skill CRUD routes Hermes does not expose.
+- [ ] Add a useful non-looping empty/error state.
+- [ ] Use one normalized skill catalog across Settings, Specialists, and New
+      Mission.
 
-- [x] Store desktop client settings locally instead of using `/api/settings/client`.
-- [x] Map assistants to `/api/profiles`.
-- [x] Map provider/model choices to `/api/model/options`.
-- [x] Map memory operations to Hermes memory endpoints.
-- [x] Remove the unsupported settings dependency from the MCP catalog.
-- [x] Use local process configuration for system, web UI, and tray settings.
+## P1 — Models and Specialists
 
-### 6. Remove inherited dead features and backend fallback
+### Model catalog and authentication state
 
-- [x] Remove Desktop Pet process code, preload entries, renderer assets, routes,
-      settings, tray integration, config keys, and all locale files.
-- [x] Rename the cron model-required key to neutral `modelRequired` wording.
-- [x] Remove user-facing “Headmaster CLI” terminology.
-- [x] Remove the desktop legacy `aioncore` binary resolver and fallback startup.
-- [x] Remove desktop build preparation and verification for bundled aioncore.
-- [x] Stop Hermes bootstrap cleanly on application quit.
+- [ ] Determine why Models & Providers shows zero API keys for providers Hermes
+      already uses.
+- [ ] Distinguish model availability, provider authentication, direct API-key
+      storage, OAuth, environment credentials, and profile configuration.
+- [ ] Stop describing OAuth/environment/profile-backed authentication as
+      “0 API keys”.
+- [ ] Hide providers/models without usable authentication.
+- [ ] Keep **Add Model** only for adding a genuinely unavailable custom
+      provider or endpoint.
+- [ ] Verify displayed authentication agrees with models used by existing
+      Hermes chats.
 
-### 7. Update and diagnostics behavior
+### Specialist engine identity
 
-- [x] Route application release checks through `gcaplabs.com/api/release`.
-- [x] Avoid shipping a GitHub token for private-repository release checks.
-- [x] Guard `electron-updater` in portable and `--dir` builds.
-- [x] Remove forced runtime restart after a runtime update.
-- [x] Show an installed/restart-when-ready state with manual restart.
-- [x] Make missing `SENTRY_DSN` a clean no-op.
-- [x] Rename the Sentry log attachment to `headmaster-logs.log.gz`.
+- [ ] Show each Specialist’s backing engine/provider next to its model.
+- [ ] Label Hermes/Headmaster profiles, local CLI agents, preset personas, and
+      remote/custom agents distinctly.
+- [ ] Add real product icons and accessible labels for Claude Code, Codex,
+      Gemini CLI, Headmaster profiles, and other engines.
+- [ ] Define which engines each Specialist supports.
+- [ ] Prevent unsupported Specialist/engine/model combinations.
 
-### 8. Verification completed so far
+## P1 — Settings information architecture
 
-- [x] TypeScript typecheck passed after the adapter work.
-- [x] Hermes session and chat adapter unit tests passed (8 tests).
-- [x] Electron bundle passed before the latest complete adapter increment.
+Target structure:
 
-## Remaining implementation
+- **Tools** — local/runtime tools and permissions.
+- **Skills** — skill catalog and management.
+- **Integrations** — MCP connections and Webhooks.
+- **Channels** — Hermes gateway channels plus remote/web access.
 
-### 9. P0 — Remove or adapt remaining inherited conversation APIs
+- [ ] Remove the inherited AionUI Channels section.
+- [ ] Build Channels from the real Hermes gateway catalog and status.
+- [ ] Use each channel’s real icon and connection state.
+- [ ] Make Channels its own settings sidebar tab in the Tools group.
+- [ ] Move Remote / Headmaster on the Go / Web UI under Channels.
+- [ ] Move MCP and Webhooks under Integrations.
+- [ ] Keep Tools shallow rather than nesting another tab container.
+- [ ] Rehome remaining Advanced/Capabilities content where appropriate.
+- [ ] Update routes, deep links, extension anchors, i18n, and tests.
 
-These routes are still present in `common/adapter/ipcBridge.ts` and may produce
-404s or broken UI paths against Hermes:
+## P1 — Updates
 
-- [x] Conversation clone and associated-conversation operations.
-- [x] Reset, warmup, slash commands, and side questions.
-- [x] Confirmation, clarification, and approval interactions.
-- [x] Conversation artifacts.
-- [x] Conversation workspace browsing.
-- [x] Per-conversation mode and model operations.
-- [x] OpenClaw conversation runtime operations.
-- [x] Individual conversation-message deletion.
-- [x] Cron conversation-history mapping, if its current response differs from
-      the inherited AionUI shape.
-- [x] For every unsupported Hermes feature, disable or hide the UI explicitly
-      instead of allowing a failing request.
+- [ ] Audit `mutvayzz-sys/gcaplabs-headmasterhub` for private material.
+- [ ] Make the Headmaster Hub repository public after explicit approval.
+- [ ] Use Headmaster Hub or the GCAP Labs release endpoint as the public
+      Headmaster Desktop version source.
+- [ ] Keep a persistent sidebar indicator for Headmaster Desktop updates.
+- [ ] Show Hermes runtime updates at most once on the first launch each day.
+- [ ] Add daily dismissal/acknowledgement state for Hermes update notices.
+- [ ] Remove the persistent Hermes update badge.
+- [ ] Remove the current runtime restart button from the Hermes status/update
+      indicator.
+- [ ] Put restart/install actions on the Headmaster Desktop update UI.
+- [ ] Clearly distinguish Desktop and runtime updates.
+- [ ] Verify About → Check for updates works without a private GitHub token.
 
-### 10. P0 — Complete gateway event compatibility
+## P1 — About, help, and support
 
-- [x] Verify the exact live payloads for confirmation, clarification, approval,
-      and permission events.
-- [x] Add adapter handling for supported interactive runtime events.
-- [x] Verify tool progress, tool completion, tool errors, and rich results in
-      the actual message renderer.
-- [x] Add mocked tests for disconnect, reconnect, interruption, RPC errors, and
-      malformed or out-of-order events.
+- [ ] Create and publish Headmaster documentation through Headmaster Hub.
+- [ ] Wire **Help Documentation** to the published docs.
+- [ ] Make **Update Log** show Headmaster Desktop release notes and selected
+      runtime changes.
+- [ ] Wire **Report Issue** to a working feedback/issue flow.
+- [ ] Make **Contact Me** open a modal with:
+  - `admin@gcaplabs.com`
+  - `+971 50 105 2900`
+  - a Discord link after its destination is specified.
+- [ ] Make **Official Website** open `https://gcaplabs.com`.
+- [ ] Make all About actions keyboard accessible with visible failure feedback.
 
-### 11. P1 — Remove residual non-desktop aioncore paths
+## Validation
 
-The desktop startup and package path are clean, but legacy web/utility scripts
-still reference aioncore:
+### Automated
 
-- [x] Adapt or remove `scripts/webui.ts`.
-- [x] Adapt or remove `scripts/resetpass.ts`.
-- [x] Adapt or remove `scripts/pack-web-cli.js`.
-- [x] Adapt or remove `scripts/smoke-test-web-cli.sh`.
-- [x] Replace stale aioncore comments in renderer API/status files.
-- [x] Replace the stale aioncore error in `packages/desktop/src/index.ts`.
-- [x] Decide whether historical `vic-*` migration scripts remain archived or
-      should be deleted from the shipping repository.
+- [ ] Run the complete unit suite: `bunx vitest run`.
+- [ ] Run i18n generation/checks:
+      `bun run i18n:types && node scripts/check-i18n.js`.
+- [ ] Build the Windows installer and zip:
+      `node scripts/build-with-builder.js auto --win`.
 
-### 12. P1 — Runtime Settings refinement
+### Interactive runtime smoke test
 
-- [x] Group fields using real `/api/config/schema` metadata.
-- [x] Show useful descriptions and defaults.
-- [x] Add client-side validation for schema constraints.
-- [x] Verify save, reload, invalid-value, and backend-error behavior.
+- [ ] Verify the sidebar reports connected REST and JSON-RPC WebSocket state.
+- [ ] Compare loaded transcripts with `/api/sessions/{id}/messages`.
+- [ ] Create a new mission and stream a complete response.
+- [ ] Send a follow-up in the same session.
+- [ ] Send a file attachment and verify `@file:` delivery.
+- [ ] Interrupt generation without leaving a spinner.
+- [ ] Restart Headmaster and verify session resume/history.
+- [ ] Test every configured CLI agent/tool backend.
+- [ ] Verify tool progress, completion, rich results, and errors.
+- [ ] Verify approval, clarification, and secret-input prompts.
+- [ ] Test Council creation, activity, completion, history, and approval gates.
+- [ ] Verify Dashboard, Activity, Deliverables, Memory, Models, Specialists,
+      Skills, Integrations, Channels, and Runtime surfaces.
+- [ ] Kill Hermes and verify disconnect/restart/reconnect behavior.
+- [ ] Smoke-test System from the installer variant.
+- [ ] Complete the full log review for 404/500 loops and stale branding.
 
-### 13. P2 — Documentation, version, and publication
+### Exploratory audit
 
-- [x] Update this active TODO.
-- [x] Update `DEVLOG.md`.
-- [x] Update `AGENTS.md`.
-- [x] Update `DEEP-WIKI.md`.
-- [x] Update the source version to v0.1.7.
-- [x] Update stale current-version references to v0.1.7 where appropriate.
-- [x] Push the completed implementation to GitHub on
-      `codex/headmaster-v0.1.7` with commit `7a636cc`.
-- [x] Open draft PR
-      [#3](https://github.com/mutvayzz-sys/gcaplabs-headmasterUI/pull/3).
-- [x] Report back before starting sections 15 and 16.
+- [ ] Audit every sidebar route and Settings page with screenshots, console
+      output, failing requests, and reproduction steps.
+- [ ] Test all configured Hermes profiles separately.
+- [ ] Test direct-key, OAuth, environment-backed, profile-backed,
+      unauthenticated, and custom-provider states.
+- [ ] Remove unsupported inherited UI instead of allowing repeated failures.
 
-## Final testing and debugging phase
+## Release closeout
 
-Run this phase only after sections 9–12 are complete. **Sections 9–12 are now fully complete as of 2026-06-19 (PR #4).**
-
-### CI/CD cleanup (completed 2026-06-19)
-
-- [x] Fixed 3 Codex P1 test bugs in `hermesChatAdapter.test.ts` and `RuntimeSettings.dom.test.tsx`:
-  - Bug A: `rpc_error` disconnect test — changed assertion to `not.toHaveBeenCalled()` (adapter silently drops events with no matching session)
-  - Bug B: `error` event test — fixed payload key (`error` → `message`) and expected broadcast (`turn.error` → `message.stream` with `type: 'tips'`)
-  - Bug C: i18n assertion — changed `toContain('Retry')` to `toMatch(/settings\.runtime\.(error|retry)/i)` to match the key-passthrough mock
-- [x] Rewrote `pr-checks.yml` — stripped from 5-platform matrix to Windows x64 only; replaced `prek` with `bunx tsc --noEmit` + `bunx vitest run`
-- [x] Rewrote `build-and-release.yml` — fixed broken `actions/checkout@v6` (→ v4) and `actions/download-artifact@v7` (→ v4); inlined Windows x64 build steps; removed `pack-web-cli`, `auto-retry-workflow`
-- [x] Delete dead AionUI workflow files: `_build-reusable.yml`, `bump-homebrew.yml`, `pack-web-cli.yml`, `pr-e2e-artifacts.yml`, `release-distribute.yml`
-
-### 14. Automated validation
-
-```bash
-# 1. Typecheck
-bunx tsc --noEmit
-
-# 2. Hermes adapter unit tests only (fast)
-bunx vitest run tests/unit/common/adapter/
-
-# 3. Full unit test suite
-bunx vitest run
-
-# 4. i18n generation and packaged-i18n check
-bun run i18n:types && node scripts/check-i18n.js
-
-# 5. Electron bundle
-bunx electron-vite build --config packages/desktop/electron.vite.config.ts
-
-# 6. Windows portable (fast — skip installer/zip)
-node scripts/build-with-builder.js auto --win --dir
-
-# 7. Full Windows package (installer + zip)
-node scripts/build-with-builder.js auto --win
-```
-
-- [ ] Run `bunx tsc --noEmit`.
-- [ ] Run focused Hermes adapter tests (`tests/unit/common/adapter/`).
-- [ ] Run the complete unit test suite (`bunx vitest run`).
-- [ ] Run i18n generation/checks (`bun run i18n:types && node scripts/check-i18n.js`).
-- [ ] Run `bunx electron-vite build --config packages/desktop/electron.vite.config.ts`.
-- [ ] Build the Windows portable package with `--dir`.
-- [ ] Build the Windows installer and zip.
-
-### 15. Live installed-runtime smoke test
-
-Launch `out\win-unpacked\Headmaster.exe` and verify the following in order:
-
-#### Runtime connectivity
-- [ ] Sidebar shows green/connected state for REST and JSON-RPC WebSocket.
-- [ ] Existing Hermes sessions load; transcripts match `GET /api/sessions/{id}/messages`.
-
-#### Primary chat — Hermes/Headmaster
-- [ ] Create a new mission and stream a complete multi-sentence response.
-- [ ] Send a follow-up in the same session; verify history is maintained.
-- [ ] Send a file attachment; verify Hermes receives it as an `@file:` reference.
-- [ ] Interrupt a running response mid-stream; verify clean stop (no hanging spinner).
-- [ ] Close and reopen Headmaster; verify the stored session resumes and transcript is intact.
-
-#### CLI agent and tool chat
-- [ ] Open each configured CLI agent/tool backend (Settings → Engines or agent scanner) and send a test prompt.
-- [ ] Verify tool-call events render correctly (tool name, progress, result).
-- [ ] Verify tool-error events render an error state without crashing the message list.
-- [ ] Confirm agents requiring approval surface the interactive approval prompt.
-- [ ] Confirm clarification and secret-input prompts work end-to-end.
-
-#### Council (multi-agent orchestration)
-- [ ] Start a Council/multi-agent run from Runs / Workflows / Automations tab.
-- [ ] Verify the run appears in the Active Runs list with correct status and assigned agent names.
-- [ ] Verify run completion updates the status pill and records an entry in Runs history.
-- [ ] Action approval gates (approve / reject) and verify the run proceeds or halts accordingly.
-
-#### Supporting surfaces
-- [ ] Dashboard KPI cards and panels render live data (not stale/empty).
-- [ ] Activity, Documents, Memory, Models, Profiles, and MCP pages all load without errors.
-- [ ] Runtime and application update flows show installed/restart-when-ready state and do NOT auto-restart.
-
-#### Runtime resilience
-- [ ] Kill the Hermes process externally; verify the disconnected banner appears with Retry/Restart controls.
-- [ ] Click Restart; verify Hermes respawns and the UI reconnects automatically.
-
-#### Log review
-- [ ] Review `%APPDATA%\Headmaster\logs\YYYY-MM-DD.log` for 404/500 loops, uncaught errors, and stale branding strings.
-
-### 16. Debug and release closeout
-
-- [ ] Fix every reproducible failure found during the smoke test.
+- [ ] Fix every reproducible failure from remaining interactive testing.
 - [ ] Repeat affected automated and live tests after each fix.
-- [ ] Perform a final white-label grep of source and packaged output (see `WHITE-LABEL-AUDIT.md §6` verification commands).
-- [ ] Record final test results and known limitations in project docs.
-- [ ] Commit the completed implementation intentionally.
+- [ ] Run the final source and packaged white-label grep from
+      `WHITE-LABEL-AUDIT.md §6`.
+- [ ] Record final test results and known limitations.
+- [ ] Commit the implementation intentionally.
 - [ ] Push the branch and update the draft PR.
-- [ ] Mark the plan complete only after the packaged live-runtime test passes.
+- [ ] Mark release work complete only after the packaged interactive smoke test
+      passes.

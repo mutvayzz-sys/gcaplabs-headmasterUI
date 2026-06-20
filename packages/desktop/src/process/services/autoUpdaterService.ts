@@ -342,6 +342,12 @@ class AutoUpdaterService extends EventEmitter {
    */
   async checkForUpdatesAndNotify(): Promise<void> {
     try {
+      const updateConfig = join(process.resourcesPath, 'app-update.yml');
+      if (!app.isPackaged || !existsSync(updateConfig)) {
+        log.info('Skipping automatic update check: updater metadata is unavailable in this portable build.');
+        return;
+      }
+
       // Ensure clean state: prevent stale allowDowngrade=true from prior setAllowPrerelease(true) calls
       autoUpdater.allowDowngrade = false;
       await autoUpdater.checkForUpdatesAndNotify();

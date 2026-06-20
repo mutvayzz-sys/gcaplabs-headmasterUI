@@ -11,7 +11,8 @@ import { useLayoutConstraints } from '@/renderer/pages/conversation/hooks/useLay
 import { useTitleRename } from '@/renderer/pages/conversation/hooks/useTitleRename';
 import { useWorkspaceCollapse } from '@/renderer/pages/conversation/hooks/useWorkspaceCollapse';
 import { BrowserPanel, useBrowserPanelContext } from '@/renderer/pages/conversation/BrowserPanel';
-import { PreviewPanel, usePreviewContext } from '@/renderer/pages/conversation/Preview';
+import PreviewPanel from '@/renderer/pages/conversation/Preview/components/PreviewPanel/PreviewPanel';
+import { usePreviewContext } from '@/renderer/pages/conversation/Preview/context';
 import { dispatchWorkspaceToggleEvent } from '@/renderer/utils/workspace/workspaceEvents';
 import { useConversationAgents } from '@/renderer/pages/conversation/hooks/useConversationAgents';
 import classNames from 'classnames';

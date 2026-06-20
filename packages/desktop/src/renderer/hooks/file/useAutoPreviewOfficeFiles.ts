@@ -6,7 +6,7 @@
 
 import { ipcBridge } from '@/common';
 import type { ConversationContextValue } from '@/renderer/hooks/context/ConversationContext';
-import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
+import { usePreviewContext } from '@/renderer/pages/conversation/Preview/context';
 import { useAutoPreviewOfficeFilesEnabled } from '@/renderer/hooks/system/useAutoPreviewOfficeFilesEnabled';
 import { getFileTypeInfo } from '@/renderer/utils/file/fileType';
 import { useCallback, useEffect, useRef } from 'react';

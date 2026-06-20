@@ -7,7 +7,7 @@ import useSWR from 'swr';
 import ChatConversation from './components/ChatConversation';
 import { useAutoTitle } from '@/renderer/hooks/chat/useAutoTitle';
 import { useBrowserSessionWatch } from '@/renderer/hooks/chat/useBrowserSessionWatch';
-import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
+import { usePreviewContext } from '@/renderer/pages/conversation/Preview/context';
 import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
 
 const ChatConversationIndex: React.FC = () => {

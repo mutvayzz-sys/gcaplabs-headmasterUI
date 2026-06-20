@@ -310,6 +310,7 @@ if (cdpStartupEnabled) {
   const preferredPort = getPreferredPort(cdpConfig);
   const port = findAvailablePort(preferredPort);
   app.commandLine.appendSwitch('remote-debugging-port', String(port));
+  app.commandLine.appendSwitch('remote-allow-origins', '*');
   cdpPort = port;
   registerInstance(port);
 

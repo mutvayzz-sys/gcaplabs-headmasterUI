@@ -1138,6 +1138,54 @@ Types: feat, fix, refactor, chore, docs, test, style, perf
 4. Check firewall/antivirus settings
 5. Verify WebSocket URL format: `ws://127.0.0.1:{port}/api/ws?token={token}`
 
+#### Packaged App Opens to a White Screen
+
+**Symptoms**:
+
+- Main Electron window opens but the React root is empty.
+- DevTools reports an exception in a generated vendor chunk rather than an application source file.
+- The main-process log still shows `Renderer did-finish-load`, because the HTML loaded successfully even though module evaluation failed.
+
+**Known 2026-06-19 root cause**:
+
+The renderer `manualChunks` rule classified dependencies by loose path substring matching. `@monaco-editor/react` contains `/react/` in its package path and was incorrectly assigned to `vendor-react`. Remaining imports through the broad `Preview/index.ts` barrel also pulled editor and viewer dependencies into the startup graph.
+
+Rollup emitted this circular dependency:
+
+```text
+vendor-react
+  → vendor-editor
+  → vendor-highlight
+  → vendor-arco
+  → vendor-react
+```
+
+Arco evaluated before React had finished initializing, causing:
+
+```text
+TypeError: Cannot read properties of undefined (reading 'createContext')
+```
+
+**Permanent fix**:
+
+- Renderer chunk assignment lives in `packages/desktop/scripts/rendererChunks.ts`.
+- The classifier examines the innermost `node_modules` package name.
+- Only the real `react` and `react-dom` packages enter `vendor-react`.
+- `@monaco-editor/react`, Monaco, and CodeMirror enter `vendor-editor`.
+- Startup consumers import Preview context and components directly instead of using the broad `Preview/index.ts` barrel.
+- Regression tests live in `tests/unit/rendererChunks.test.ts`.
+
+**How to diagnose a future packaged renderer crash**:
+
+1. Build the production renderer; development mode may not reproduce Rollup chunk cycles.
+2. Package with `node scripts/build-with-builder.js auto --win --dir --skip-vite`.
+3. Launch `out/win-unpacked/Headmaster.exe`.
+4. Use the configured CDP endpoint or launch with a temporary remote-debugging port.
+5. Inspect `Runtime.exceptionThrown`, the contents of `#root`, and generated chunk import headers.
+6. Verify a vendor chunk does not import another chunk that eventually imports it back.
+
+Do not assume that `did-finish-load` means React mounted. The reliable packaged check is that `document.getElementById('root').children.length > 0` and no `Runtime.exceptionThrown` events occurred.
+
 #### Build Failures
 
 **Symptoms**: Build errors during `bun run dist`
@@ -1464,19 +1512,21 @@ The conversation layout (`ChatLayout/index.tsx`) has **one right-side panel slot
 
 **Requires:** Camofox running with `ENABLE_VNC=1`.
 
-#### PreviewPanel — PENDING REMOVAL
+#### PreviewPanel — ACTIVE
 
 **File:** `renderer/pages/conversation/Preview/components/PreviewPanel/PreviewPanel.tsx`
 
-**What it is:** A tabbed preview system with support for markdown, diff, code, HTML, PDF, PPT, Word, Excel, image, and URL content types. Had a full tab bar with unsaved-indicator (dirty flag) and per-viewer toolbars.
+**What it is:** A tabbed preview system with support for markdown, diff, code, HTML, PDF, PPT, Word, Excel, image, and URL content types. It includes a tab bar, unsaved indicator, editing support, and per-viewer toolbars.
 
-**Status:** BrowserPanel has taken its slot in `ChatLayout`. `PreviewProvider` and `PreviewPanel` code still exists but the slot no longer renders it. **Do not add features to this system.** Plan is to remove it entirely.
+**Status:** Restored and active. `ChatLayout` now provides a shared right-side slot for both PreviewPanel and BrowserPanel. If both are open, the user can switch between **Files** and **Browser** without discarding either panel's state.
 
-**Still present in codebase:**
+**Important import boundary:**
 
-- `Preview/context/PreviewContext.tsx` — `PreviewProvider` still in `main.tsx` provider chain
-- `Preview/components/PreviewPanel/` — full tab/toolbar system
-- `Preview/components/viewers/` — URLViewer, CodeViewer, ImageViewer, etc.
+- `Preview/index.ts` is a broad feature barrel that exports contexts, hooks, components, editors, and viewers.
+- Do not import this broad barrel from renderer startup or provider code.
+- Import `PreviewProvider` and `usePreviewContext` from `Preview/context`.
+- Import `PreviewPanel` directly from `Preview/components/PreviewPanel/PreviewPanel`.
+- This boundary prevents Monaco, CodeMirror, PDF, Office, and other heavyweight viewers from entering the initial provider graph accidentally.
 
 ---
 
@@ -1722,6 +1772,54 @@ All tool names start with `browser_` — this is the pattern `useBrowserSessionW
 
 > Major structural changes to the UI — quick reference for what moved, what was removed, and why.
 
+### 2026-06-20 — v0.1.8 packaged renderer recovery and clean startup
+
+#### White-screen root cause and fix
+
+- Captured the packaged renderer exception through Chrome DevTools Protocol:
+  `vendor-arco-*.js: TypeError: Cannot read properties of undefined (reading 'createContext')`.
+- Confirmed the crash occurred during static module evaluation before `main.tsx` reached `createRoot`.
+- Replaced loose renderer vendor substring matching with the package-aware classifier in `packages/desktop/scripts/rendererChunks.ts`.
+- Correctly assigns `@monaco-editor/react` to `vendor-editor` rather than `vendor-react`.
+- Removed remaining startup imports through the broad Preview feature barrel.
+- Added chunk-classification regression coverage in `tests/unit/rendererChunks.test.ts`.
+
+#### Preview and Browser panel state
+
+- PreviewPanel is active again and shares the ChatLayout side-panel slot with BrowserPanel.
+- Files and Browser tabs appear when both panels are open.
+- Preview context consumers now use narrow direct imports to avoid pulling all viewers into provider/bootstrap modules.
+
+#### Hermes response and unsupported-route cleanup
+
+- Hermes `GET /api/mcp/servers` returns `{ "servers": [] }`, not a bare array.
+- Added `normalizeHermesList` and regression tests so catalog consumers receive a stable array.
+- Hermes `GET /api/skills` is the available/enabled skill catalog; it has no inherited `/api/skills/builtin-auto` endpoint.
+- Hermes has no inherited `/api/extensions/acp-adapters` endpoint. Desktop agent discovery now treats the local CLI scanner as authoritative.
+- Hermes has no inherited `/api/teams` endpoint. The startup Council list is inert instead of generating a 404 loop.
+- Removed the obsolete `HEAD /api/ws` capability probe. Hermes supports the WebSocket upgrade endpoint but correctly rejects an HTTP HEAD request with 405.
+- REST authentication uses `X-Hermes-Session-Token`; WebSocket authentication uses the `?token=` query parameter.
+
+#### Packaged startup behavior
+
+- Portable `--dir` builds skip automatic updates when `resources/app-update.yml` is absent.
+- Missing `SENTRY_DSN` now skips the startup log report cleanly without throwing into the scheduler catch.
+- Removed the temporary detached DevTools auto-open patch.
+- The Windows packaging pass completed with executable signing and native `better-sqlite3` verification.
+
+#### Verification
+
+- `bunx tsc --noEmit` passed.
+- Focused renderer, Sentry, Hermes response, and adapter tests passed: 33 tests.
+- Production Electron bundle passed.
+- Signed Windows `--dir` package passed.
+- Live packaged CDP verification reported:
+  - `rootChildren: 1`
+  - full Headmaster navigation and session history rendered
+  - DevTools did not auto-open
+  - zero uncaught exceptions
+  - zero console or network errors during the observed startup window
+
 ### 2026-06-19 — v0.1.7 Hermes-native desktop adapter
 
 - Conversation history now comes from `/api/sessions` and `/api/sessions/{id}/messages`.
@@ -1801,12 +1899,12 @@ All tool names start with `browser_` — this is the pattern `useBrowserSessionW
 - All "Hermes" and "HeadmasterUI" mentions in user-visible UI strings replaced across all 9 locales
 - Internal/env var/IPC references to "Hermes" left intact (allowed per white-label rules)
 
-### 2026-06-17 — BrowserPanel replaces PreviewPanel slot
+### 2026-06-17 — BrowserPanel initially replaced the PreviewPanel slot
 
 - The right-side panel slot in `ChatLayout` now shows `BrowserPanel` (driven by `useBrowserPanelContext`)
-- `PreviewPanel` (tabbed file preview) still exists in code but no longer renders in this slot
+- At this checkpoint, `PreviewPanel` still existed but no longer rendered in this slot.
 - `BrowserPanel` auto-triggers from `browser_*` tool use; shows Camofox VNC at `localhost:6080`
-- `PreviewProvider` kept in provider chain for now; planned for removal with the rest of the Preview system
+- This was superseded by the v0.1.8 shared Files / Browser panel restoration.
 - All 9 locale `conversation.json` files updated with `browser.title` and `browser.close` keys
 
 ### Remaining release work
