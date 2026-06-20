@@ -43,13 +43,25 @@ publication.
 - [x] Keep a newly created chat directly accessible while it is open.
 - [x] Require a second user prompt before a chat appears in tracked history.
 - [x] Preserve correct visible totals and pagination after filtering.
-- [x] Add coverage for text-only, tool-heavy, empty, and two-query sessions.
+- [x] Add coverage for empty, incomplete, text-only, tool-heavy, interrupted,
+      failed, and two-query sessions.
 - [ ] Verify the policy across packaged History, Dashboard, Activity, search,
       exports, restart, interrupted first queries, and failed first queries.
 
 - [x] Keep individual stored-message deletion unsupported.
 - [x] Prevent the unsupported action from calling an inherited Hermes route.
 - [x] Preserve whole-chat deletion.
+
+### Gateway resilience
+
+- [x] Finalize interrupted turns once when the gateway disconnects.
+- [x] Clear stale live-session mappings on disconnect.
+- [x] Resume the durable session before the next prompt after reconnecting.
+- [x] Ignore malformed, unknown, duplicate, and out-of-order events safely.
+- [x] Sanitize RPC submission failures without leaking runtime details.
+- [x] Leave the chat reusable after an RPC failure.
+- [x] Add a regression test proving individual-message deletion sends no
+      inherited API request.
 
 ## P0 — Release blockers
 
@@ -149,7 +161,7 @@ Target structure:
       discovered credentials, tokens, or user data; it is not yet a published
       documentation site.
 - [ ] Make the Headmaster Hub repository public after explicit approval.
-- [ ] Use Headmaster Hub or the GCAP Labs release endpoint as the public
+- [x] Use Headmaster Hub or the GCAP Labs release endpoint as the public
       Headmaster Desktop version source.
 - [x] Keep a persistent sidebar indicator for Headmaster Desktop updates.
 - [x] Show Hermes runtime updates at most once on the first launch each day.
@@ -157,14 +169,17 @@ Target structure:
 - [x] Remove the persistent Hermes update badge.
 - [x] Remove the current runtime restart button from the Hermes status/update
       indicator.
-- [ ] Put restart/install actions on the Headmaster Desktop update UI.
-- [ ] Clearly distinguish Desktop and runtime updates.
+- [x] Put restart/install actions on the Headmaster Desktop update UI.
+- [x] Clearly distinguish Desktop and runtime updates.
 - [ ] Verify About → Check for updates works without a private GitHub token.
+      The desktop request is tokenless and covered by a unit test, but the live
+      `https://gcaplabs.com/api/release` deployment returned HTTP 404 on
+      2026-06-20.
 
 ## P1 — About, help, and support
 
 - [ ] Create and publish Headmaster documentation through Headmaster Hub.
-- [ ] Wire **Help Documentation** to the published docs.
+- [x] Wire **Help Documentation** to the published docs.
 - [ ] Make **Update Log** show Headmaster Desktop release notes and selected
       runtime changes.
 - [x] Wire **Report Issue** to a working feedback/issue flow.
@@ -189,7 +204,7 @@ Target structure:
 
 - [ ] Verify the sidebar reports connected REST and JSON-RPC WebSocket state.
 - [ ] Compare loaded transcripts with `/api/sessions/{id}/messages`.
-- [ ] Create a new mission and stream a complete response.
+- [ ] Create a new chat and stream a complete response.
 - [ ] Send a follow-up in the same session.
 - [ ] Send a file attachment and verify `@file:` delivery.
 - [ ] Interrupt generation without leaving a spinner.

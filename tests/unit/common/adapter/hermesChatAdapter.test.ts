@@ -438,6 +438,64 @@ describe('gateway edge cases', () => {
     );
   });
 
+  it('resumes the durable session before the next prompt after reconnecting', async () => {
+    mocks.request
+      .mockResolvedValueOnce({ session_id: 'live-old', stored_session_id: 'stored-1' })
+      .mockResolvedValueOnce({ status: 'streaming' })
+      .mockResolvedValueOnce({ session_id: 'live-new', resumed: 'stored-1', messages: [] })
+      .mockResolvedValueOnce({ status: 'streaming' });
+
+    await createHermesChatConversation({
+      type: 'aionrs',
+      model: {
+        id: 'openai',
+        name: 'OpenAI',
+        platform: 'openai',
+        api_key: '',
+        base_url: '',
+        use_model: 'openai/gpt-5',
+      },
+      extra: {},
+    });
+    await sendHermesMessage({ conversation_id: 'stored-1', input: 'first' });
+    mocks.gatewayListener?.({ type: 'gateway.disconnected' });
+
+    await sendHermesMessage({ conversation_id: 'stored-1', input: 'second' });
+
+    expect(mocks.request.mock.calls.slice(-2)).toEqual([
+      ['session.resume', { session_id: 'stored-1', cols: 96 }],
+      ['prompt.submit', { session_id: 'live-new', text: 'second' }],
+    ]);
+  });
+
+  it('sanitizes RPC failures and leaves the chat reusable', async () => {
+    mocks.request
+      .mockResolvedValueOnce({ session_id: 'live-1', stored_session_id: 'stored-1' })
+      .mockRejectedValueOnce(new Error('Bearer super-secret-token at http://127.0.0.1/private'))
+      .mockResolvedValueOnce({ status: 'streaming' });
+
+    await createHermesChatConversation({
+      type: 'aionrs',
+      model: {
+        id: 'openai',
+        name: 'OpenAI',
+        platform: 'openai',
+        api_key: '',
+        base_url: '',
+        use_model: 'openai/gpt-5',
+      },
+      extra: {},
+    });
+
+    await expect(sendHermesMessage({ conversation_id: 'stored-1', input: 'first' })).rejects.toThrow(
+      'The runtime could not start this response.'
+    );
+    await expect(sendHermesMessage({ conversation_id: 'stored-1', input: 'retry' })).resolves.toMatchObject({
+      runtime: { state: 'running' },
+    });
+    expect(JSON.stringify(mocks.broadcast.mock.calls)).not.toContain('super-secret-token');
+  });
+
   it('ignores duplicate and out-of-order terminal events', async () => {
     mocks.request
       .mockResolvedValueOnce({ session_id: 'live-1', stored_session_id: 'stored-1' })

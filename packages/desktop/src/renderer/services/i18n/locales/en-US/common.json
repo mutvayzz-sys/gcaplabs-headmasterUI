@@ -109,10 +109,10 @@
   "runtimeInactive": "Headmaster: Inactive",
   "restartRuntime": "Restart Headmaster",
   "runtimeUpdating": "Headmaster updating…",
-  "runtimeUpdateAvailable": "Headmaster Update Available",
+  "runtimeUpdateAvailable": "Runtime update available",
   "runtimeUpdateRestarting": "Applying update…",
   "runtimeUpdateDone": "Update applied — restarting",
-  "appUpdateAvailable": "New version available: v{{version}}",
+  "appUpdateAvailable": "Headmaster Desktop v{{version}} available",
   "sidebar": {
     "dashboard": "Dashboard",
     "chat": "Chat",

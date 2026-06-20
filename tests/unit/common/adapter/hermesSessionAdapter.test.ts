@@ -193,6 +193,57 @@ describe('Hermes session adapter', () => {
     expect(String(mocks.httpRequest.mock.calls[0]?.[1])).toContain('min_messages=2');
   });
 
+  it('ignores incomplete, interrupted, failed, and tool-heavy first-query sessions', async () => {
+    const sessions = [
+      session({ id: 'incomplete', message_count: 2, is_active: true }),
+      session({ id: 'interrupted', message_count: 3, is_active: false }),
+      session({ id: 'failed', message_count: 2, is_active: false }),
+      session({ id: 'tool-heavy', message_count: 5, tool_call_count: 2 }),
+      session({ id: 'two-query', message_count: 4 }),
+    ];
+    const transcripts: Record<string, HermesSessionMessage[]> = {
+      incomplete: [
+        { role: 'user', content: 'one' },
+        { role: 'assistant', content: '' },
+      ],
+      interrupted: [
+        { role: 'user', content: 'one' },
+        { role: 'assistant', content: 'partial' },
+        { role: 'system', content: 'interrupted' },
+      ],
+      failed: [
+        { role: 'user', content: 'one' },
+        { role: 'assistant', content: 'request failed' },
+      ],
+      'tool-heavy': [
+        { role: 'user', content: 'one' },
+        { role: 'assistant', content: '', tool_calls: [{ id: 'a' }, { id: 'b' }] },
+        { role: 'tool', content: 'a', tool_call_id: 'a' },
+        { role: 'tool', content: 'b', tool_call_id: 'b' },
+        { role: 'assistant', content: 'answer' },
+      ],
+      'two-query': [
+        { role: 'user', content: 'one' },
+        { role: 'assistant', content: 'answer' },
+        { role: 'user', content: 'two' },
+        { role: 'assistant', content: 'answer two' },
+      ],
+    };
+
+    mocks.httpRequest.mockImplementation(async (_method: string, url: string) => {
+      if (url.startsWith('/api/sessions?')) {
+        return { limit: 200, offset: 0, sessions, total: sessions.length };
+      }
+      const id = /\/api\/sessions\/([^/]+)\/messages/.exec(url)?.[1] ?? '';
+      return { session_id: id, messages: transcripts[id] ?? [] };
+    });
+
+    const result = await listHermesConversations({ limit: 20 });
+
+    expect(result.items.map((item) => item.id)).toEqual(['two-query']);
+    expect(result.total).toBe(1);
+  });
+
   it('paginates over visible chats rather than raw Hermes sessions', async () => {
     const sessions = [
       session({ id: 'single-1', message_count: 2 }),

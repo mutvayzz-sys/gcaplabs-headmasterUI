@@ -23,6 +23,12 @@ type LinkItem =
   | { title: string; url: string; icon: React.ReactNode; onClick?: never }
   | { title: string; onClick: () => void; icon: React.ReactNode; url?: never };
 
+export const ABOUT_LINKS = {
+  documentation: 'https://gcaplabs.com/docs/headmaster',
+  changelog: 'https://gcaplabs.com/changelog',
+  website: 'https://gcaplabs.com',
+} as const;
+
 const AboutModalContent: React.FC = () => {
   const { t } = useTranslation();
   const viewMode = useSettingsViewMode();
@@ -61,12 +67,12 @@ const AboutModalContent: React.FC = () => {
   const linkItems: LinkItem[] = [
     {
       title: t('settings.helpDocumentation'),
-      url: 'https://gcaplabs.com/headmaster',
+      url: ABOUT_LINKS.documentation,
       icon: <Right theme='outline' size='16' />,
     },
     {
       title: t('settings.updateLog'),
-      url: 'https://gcaplabs.com/headmaster#updates',
+      url: ABOUT_LINKS.changelog,
       icon: <Right theme='outline' size='16' />,
     },
     {
@@ -81,7 +87,7 @@ const AboutModalContent: React.FC = () => {
     },
     {
       title: t('settings.officialWebsite'),
-      url: 'https://gcaplabs.com',
+      url: ABOUT_LINKS.website,
       icon: <Right theme='outline' size='16' />,
     },
   ];

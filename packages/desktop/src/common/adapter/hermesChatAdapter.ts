@@ -405,6 +405,8 @@ export function handleHermesGatewayEvent(event: HermesGatewayEvent): void {
         'The runtime connection was interrupted. Reconnect and send your message again.'
       );
     }
+    liveByStored.clear();
+    storedByLive.clear();
     return;
   }
   const liveSessionId = event.session_id;
@@ -520,6 +522,9 @@ const rememberSession = (storedId: string, liveId: string): void => {
 const isSessionNotFound = (error: unknown): boolean =>
   error instanceof Error && /session not found/i.test(error.message);
 
+const runtimeSubmissionError = (): Error =>
+  new Error('The runtime could not start this response. Reconnect if needed, then try again.');
+
 async function resumeSession(storedId: string): Promise<string> {
   const profile = profilesByStored.get(storedId) ?? getHermesConversationProfile(storedId);
   if (profile) profilesByStored.set(storedId, profile);
@@ -575,7 +580,12 @@ export async function sendHermesMessage(params: {
   files?: string[];
 }): Promise<ISendMessageResult> {
   ensureSubscribed();
-  let liveSessionId = await ensureLiveSession(params.conversation_id);
+  let liveSessionId: string;
+  try {
+    liveSessionId = await ensureLiveSession(params.conversation_id);
+  } catch {
+    throw runtimeSubmissionError();
+  }
   const msgId = uuid();
   const turnId = uuid();
   const timeout = setTimeout(() => {
@@ -611,13 +621,19 @@ export async function sendHermesMessage(params: {
     if (!isSessionNotFound(error)) {
       clearTimeout(turn.timeout);
       turnsByLive.delete(liveSessionId);
-      throw error;
+      throw runtimeSubmissionError();
     }
     turnsByLive.delete(liveSessionId);
-    liveSessionId = await resumeSession(params.conversation_id);
-    turn.liveSessionId = liveSessionId;
-    turnsByLive.set(liveSessionId, turn);
-    await gatewayRpcRequest('prompt.submit', { session_id: liveSessionId, text });
+    try {
+      liveSessionId = await resumeSession(params.conversation_id);
+      turn.liveSessionId = liveSessionId;
+      turnsByLive.set(liveSessionId, turn);
+      await gatewayRpcRequest('prompt.submit', { session_id: liveSessionId, text });
+    } catch {
+      clearTimeout(turn.timeout);
+      turnsByLive.delete(liveSessionId);
+      throw runtimeSubmissionError();
+    }
   }
 
   return { msg_id: msgId, turn_id: turnId, runtime: runningRuntime(turnId) };
