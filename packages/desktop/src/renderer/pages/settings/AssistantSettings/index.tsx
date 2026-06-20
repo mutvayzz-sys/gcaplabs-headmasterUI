@@ -36,7 +36,12 @@ type AssistantNavigationState = {
 };
 const OPEN_ASSISTANT_EDITOR_INTENT_KEY = 'guid.openAssistantEditorIntent';
 
-const AssistantSettings: React.FC = () => {
+interface AssistantSettingsProps {
+  /** When true, renders without SettingsPageWrapper for embedding in Agents tab */
+  embedded?: boolean;
+}
+
+const AssistantSettings: React.FC<AssistantSettingsProps> = ({ embedded = false }) => {
   const [message, messageContext] = Message.useMessage({ maxCount: 10 });
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -202,57 +207,65 @@ const AssistantSettings: React.FC = () => {
     void editor.handleEdit(targetAssistant);
   }, [assistants, editor, navigationState]);
 
+  const body = (
+    <div className='flex flex-col h-full w-full'>
+      {messageContext}
+      <div className='flex-1 min-h-0'>
+        {showEditor ? (
+          <AssistantEditorPage
+            editor={editorViewModel}
+            activeAssistant={activeAssistant}
+            onBack={() => editor.setEditVisible(false)}
+          />
+        ) : (
+          <AssistantListPanel
+            assistants={assistants}
+            localeKey={localeKey}
+            avatarImageMap={avatarImageMap}
+            onEdit={(assistant) => void editor.handleEdit(assistant)}
+            onDuplicate={(assistant) => void editor.handleDuplicate(assistant)}
+            onDelete={(assistant) => editor.handleDeleteRequest(assistant)}
+            onCreate={() => void editor.handleCreate()}
+            onToggleEnabled={(assistant, checked) => void editor.handleToggleEnabled(assistant, checked)}
+            onReorder={(activeId, overId) => void reorderAssistants(activeId, overId)}
+            setActiveAssistantId={setActiveAssistantId}
+            highlightId={highlightId}
+            onHighlightConsumed={handleHighlightConsumed}
+          />
+        )}
+
+        <DeleteAssistantModal
+          visible={editor.deleteConfirmVisible}
+          onCancel={() => editor.setDeleteConfirmVisible(false)}
+          onConfirm={editor.handleDeleteConfirm}
+          activeAssistant={activeAssistant}
+          avatarImageMap={avatarImageMap}
+        />
+
+        <SkillConfirmModals
+          deletePendingSkillName={editor.deletePendingSkillName}
+          setDeletePendingSkillName={editor.setDeletePendingSkillName}
+          pendingSkills={editor.pendingSkills}
+          setPendingSkills={editor.setPendingSkills}
+          deleteCustomSkillName={editor.deleteCustomSkillName}
+          setDeleteCustomSkillName={editor.setDeleteCustomSkillName}
+          customSkills={editor.customSkills}
+          setCustomSkills={editor.setCustomSkills}
+          selectedSkills={editor.selectedSkills}
+          setSelectedSkills={editor.setSelectedSkills}
+          message={message}
+        />
+      </div>
+    </div>
+  );
+
+  if (embedded) {
+    return body;
+  }
+
   return (
     <SettingsPageWrapper className='!h-full !overflow-hidden' contentClassName='!h-full'>
-      <div className='flex flex-col h-full w-full'>
-        {messageContext}
-        <div className='flex-1 min-h-0'>
-          {showEditor ? (
-            <AssistantEditorPage
-              editor={editorViewModel}
-              activeAssistant={activeAssistant}
-              onBack={() => editor.setEditVisible(false)}
-            />
-          ) : (
-            <AssistantListPanel
-              assistants={assistants}
-              localeKey={localeKey}
-              avatarImageMap={avatarImageMap}
-              onEdit={(assistant) => void editor.handleEdit(assistant)}
-              onDuplicate={(assistant) => void editor.handleDuplicate(assistant)}
-              onDelete={(assistant) => editor.handleDeleteRequest(assistant)}
-              onCreate={() => void editor.handleCreate()}
-              onToggleEnabled={(assistant, checked) => void editor.handleToggleEnabled(assistant, checked)}
-              onReorder={(activeId, overId) => void reorderAssistants(activeId, overId)}
-              setActiveAssistantId={setActiveAssistantId}
-              highlightId={highlightId}
-              onHighlightConsumed={handleHighlightConsumed}
-            />
-          )}
-
-          <DeleteAssistantModal
-            visible={editor.deleteConfirmVisible}
-            onCancel={() => editor.setDeleteConfirmVisible(false)}
-            onConfirm={editor.handleDeleteConfirm}
-            activeAssistant={activeAssistant}
-            avatarImageMap={avatarImageMap}
-          />
-
-          <SkillConfirmModals
-            deletePendingSkillName={editor.deletePendingSkillName}
-            setDeletePendingSkillName={editor.setDeletePendingSkillName}
-            pendingSkills={editor.pendingSkills}
-            setPendingSkills={editor.setPendingSkills}
-            deleteCustomSkillName={editor.deleteCustomSkillName}
-            setDeleteCustomSkillName={editor.setDeleteCustomSkillName}
-            customSkills={editor.customSkills}
-            setCustomSkills={editor.setCustomSkills}
-            selectedSkills={editor.selectedSkills}
-            setSelectedSkills={editor.setSelectedSkills}
-            message={message}
-          />
-        </div>
-      </div>
+      {body}
     </SettingsPageWrapper>
   );
 };

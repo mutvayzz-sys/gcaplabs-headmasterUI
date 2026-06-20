@@ -24,7 +24,7 @@ publication.
 - [x] Fast-forward `main` to the latest `origin/main`.
 - [x] Create fresh branch `codex/headmaster-v0.2.0`.
 - [x] Set the root application version to `0.2.0`.
-- [x] Rename user-facing **New Mission** actions and fallback titles to
+- [x] Rename user-facing **New Chat** actions and fallback titles to
       **New Chat**.
 - [ ] Verify packaged About, sidebar, installer, zip, and executable metadata
       all report v0.2.0.
@@ -35,6 +35,8 @@ publication.
       support, and model changes.
 - [x] Pass focused Hermes session/chat, assistant-default, and Runtime Settings
       tests (27 tests).
+- [x] Pass the v0.2.0 focused naming/session/settings validation (35 tests)
+      and remove stale current-version and New Mission references.
 
 ### Conversation tracking policy
 
@@ -45,6 +47,9 @@ publication.
 - [x] Preserve correct visible totals and pagination after filtering.
 - [x] Add coverage for empty, incomplete, text-only, tool-heavy, interrupted,
       failed, and two-query sessions.
+- [x] Verify in the packaged v0.2.0 app that a failed first query remains
+      absent from Headmaster history while the open chat stays usable. Hermes
+      received the prompt and returned provider HTTP 429 on 2026-06-20.
 - [ ] Verify the policy across packaged History, Dashboard, Activity, search,
       exports, restart, interrupted first queries, and failed first queries.
 
@@ -91,13 +96,20 @@ Intended flow:
 - Follow-up message → `prompt.submit` on the same live session
 - Stop → `session.interrupt`
 
-- [ ] Reproduce the processing state where no user or assistant message appears.
+- [x] Reproduce the processing state where no user or assistant message appears.
+      Packaged v0.2.0 created a durable session ID, then immediately redirected
+      because Hermes returned 404 for that session before the first prompt.
+- [x] Keep the newly created conversation routable in renderer memory until
+      Hermes exposes it through REST, without adding it to tracked history.
 - [x] Preserve profile identity across `session.create` and `session.resume`.
 - [x] Confirm `message.userCreated` is emitted against the stored conversation.
 - [x] Confirm `prompt.submit` uses the active live session ID.
 - [x] Confirm streamed events map back to the stored conversation ID in order.
 - [x] Add timeout/error recovery instead of indefinite processing.
 - [x] Add a regression test covering resume → follow-up → stream → persistence.
+- [x] Verify the packaged first prompt remains on its durable conversation
+      route, renders the user message, reaches Hermes, and exits processing on
+      a terminal provider error instead of disappearing.
 
 ### Skills tab fails to fetch
 
@@ -194,9 +206,25 @@ Target structure:
 
 ### Automated
 
-- [ ] Run the complete unit suite: `bunx vitest run`.
-- [ ] Run i18n generation/checks:
-      `bun run i18n:types && node scripts/check-i18n.js`.
+- [x] Run the complete unit suite: `bun run test` (162 files passed, 1
+      skipped; 1,296 tests passed, 3 skipped). The only warning was Node's
+      upstream `punycode` deprecation notice.
+- [x] Run `bun run test:contract`; the command passed with no contract test
+      files currently present.
+- [x] Run `bun run test:integration`; the only integration file and its three
+      live-backend tests were skipped by their environment gate.
+- [x] Run i18n generation/checks:
+      `bun run i18n:types && node scripts/check-i18n.js`. Validation passed
+      and generated types stayed in sync; the checker reported 295
+      warning-only legacy literal keys plus existing non-English translation
+      gaps.
+- [x] Restore and pass `bun run test:packaged:i18n` (3 tests) to verify every
+      supported locale and namespace is statically packaged and English ships
+      the New Chat terminology.
+- [x] Build the production main, preload, and renderer bundles with
+      `bunx electron-vite build --config packages/desktop/electron.vite.config.ts`.
+      Build passed with existing dynamic/static import and large-chunk
+      warnings.
 - [ ] Build the Windows installer and zip:
       `node scripts/build-with-builder.js auto --win`.
 

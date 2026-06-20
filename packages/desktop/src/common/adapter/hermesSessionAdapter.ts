@@ -63,6 +63,7 @@ type PaginatedResult<T> = {
 
 const sessionProfiles = new Map<string, string>();
 const locallyOpenSessions = new Set<string>();
+const localConversations = new Map<string, TChatConversation>();
 
 const toMilliseconds = (value: number | null | undefined): number => {
   if (!value) return Date.now();
@@ -117,9 +118,14 @@ async function isTrackedHermesSession(session: HermesSessionInfo, includeLocally
   }
 }
 
-export function rememberOpenHermesConversation(id: string, profile?: string): void {
+export function rememberOpenHermesConversation(
+  id: string,
+  profile?: string,
+  conversation?: TChatConversation
+): void {
   locallyOpenSessions.add(id);
   if (profile) sessionProfiles.set(id, profile);
+  if (conversation) localConversations.set(id, conversation);
 }
 
 export function getHermesConversationProfile(id: string): string | undefined {
@@ -128,7 +134,7 @@ export function getHermesConversationProfile(id: string): string | undefined {
 
 export function fromHermesSession(session: HermesSessionInfo): TChatConversation {
   if (session.profile) sessionProfiles.set(session.id, session.profile);
-  return {
+  const conversation = {
     id: session.id,
     name: sessionName(session),
     desc: session.preview || undefined,
@@ -149,6 +155,8 @@ export function fromHermesSession(session: HermesSessionInfo): TChatConversation
       hermes_lineage_root_id: session._lineage_root_id || undefined,
     },
   } as TChatConversation;
+  if (locallyOpenSessions.has(session.id)) localConversations.set(session.id, conversation);
+  return conversation;
 }
 
 const contentToText = (content: unknown): string => {
@@ -335,16 +343,23 @@ export async function listHermesConversations(params: {
 
 export async function getHermesConversation(id: string): Promise<TChatConversation | null> {
   const profile = sessionProfiles.get(id);
-  const session = await httpRequest<HermesSessionInfo>(
-    'GET',
-    `/api/sessions/${encodeURIComponent(id)}${profileQuery(profile)}`,
-    undefined,
-    {
-      silentStatuses: [404],
-    }
-  );
-  if (!session) return null;
-  if (!(await isTrackedHermesSession(session, true))) return null;
+  let session: HermesSessionInfo | null | undefined;
+  try {
+    session = await httpRequest<HermesSessionInfo>(
+      'GET',
+      `/api/sessions/${encodeURIComponent(id)}${profileQuery(profile)}`,
+      undefined,
+      {
+        silentStatuses: [404],
+      }
+    );
+  } catch (error) {
+    const local = localConversations.get(id);
+    if (local) return local;
+    throw error;
+  }
+  if (!session) return localConversations.get(id) ?? null;
+  if (!(await isTrackedHermesSession(session, true))) return localConversations.get(id) ?? null;
   return fromHermesSession(session);
 }
 
@@ -379,6 +394,17 @@ export async function updateHermesConversation(id: string, updates: Partial<TCha
   if (typeof extra?.hermes_archived === 'boolean') body.archived = extra.hermes_archived;
   const profile = sessionProfiles.get(id);
   if (profile && profile !== 'default') body.profile = profile;
+  const local = localConversations.get(id);
+  if (local) {
+    localConversations.set(id, {
+      ...local,
+      ...updates,
+      extra: {
+        ...(local.extra ?? {}),
+        ...((updates.extra as Record<string, unknown> | undefined) ?? {}),
+      },
+    } as TChatConversation);
+  }
   if (!Object.keys(body).length) return true;
   const result = await httpRequest<{ ok: boolean }>('PATCH', `/api/sessions/${encodeURIComponent(id)}`, body);
   return result.ok;
@@ -392,5 +418,6 @@ export async function deleteHermesConversation(id: string): Promise<boolean> {
   );
   sessionProfiles.delete(id);
   locallyOpenSessions.delete(id);
+  localConversations.delete(id);
   return result.ok;
 }

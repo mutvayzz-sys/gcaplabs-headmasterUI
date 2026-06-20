@@ -1,6 +1,16 @@
 import { ipcBridge } from '@/common';
-import { Message } from '@arco-design/web-react';
+import { httpPut } from '@/common/adapter/httpBridge';
+import { Message, Switch } from '@arco-design/web-react';
 import { Info, Puzzle, Search, Refresh } from '@icon-park/react';
+import {
+  Clock,
+  Code,
+  Globe,
+  GraduationCap,
+  PuzzlePiece,
+  Terminal,
+  Wrench,
+} from '@phosphor-icons/react';
 import React, { useCallback, useEffect, useRef, useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router-dom';
@@ -28,22 +38,40 @@ const normalizeTestId = (name: string): string => {
   return name.replace(/[:/\s<>"'|?*]/g, '-');
 };
 
-const getAvatarColorClass = (name: string) => {
-  if (!name) return 'bg-[#165DFF] text-white';
-  const colors = [
-    'bg-[#165DFF] text-white', // Blue
-    'bg-[#00B42A] text-white', // Green
-    'bg-[#722ED1] text-white', // Purple
-    'bg-[#F5319D] text-white', // Pink
-    'bg-[#F77234] text-white', // Orange
-    'bg-[#14C9C9] text-white', // Cyan
-  ];
-  let hash = 0;
-  for (let i = 0; i < name.length; i++) {
-    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+function skillCategory(skill: SkillInfo): string {
+  const cat = skill.category?.trim();
+  if (cat) return cat.toLowerCase();
+  const rel = skill.relative_location?.split('/')[0]?.toLowerCase();
+  if (rel) return rel;
+  const name = skill.name.toLowerCase();
+  if (name.includes('cron') || name.includes('schedule')) return 'automation';
+  if (name.includes('web') || name.includes('browser')) return 'web';
+  if (name.includes('code') || name.includes('git')) return 'coding';
+  return 'general';
+}
+
+function SkillIcon({ category, name }: { category: string; name: string }) {
+  const props = { size: 20, weight: 'duotone' as const, className: 'text-t-primary' };
+  switch (category) {
+    case 'coding':
+    case 'code':
+      return <Code {...props} />;
+    case 'automation':
+    case 'cron':
+      return <Clock {...props} />;
+    case 'web':
+      return <Globe {...props} />;
+    case 'terminal':
+    case 'cli':
+      return <Terminal {...props} />;
+    case 'tools':
+      return <Wrench {...props} />;
+    case 'extension':
+      return <PuzzlePiece {...props} />;
+    default:
+      return name.toLowerCase().includes('skill') ? <GraduationCap {...props} /> : <GraduationCap {...props} />;
   }
-  return colors[Math.abs(hash) % colors.length];
-};
+}
 
 interface SkillsHubSettingsProps {
   /** When false, renders without SettingsPageWrapper — useful for embedding in a tab */
@@ -59,18 +87,41 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
   const [loading, setLoading] = useState(false);
   const [availableSkills, setAvailableSkills] = useState<SkillInfo[]>([]);
   const [search_query, setSearchQuery] = useState('');
+  const [activeCategory, setActiveCategory] = useState<string>('all');
 
   const mySkills = useMemo(() => availableSkills.filter((s) => s.source !== 'extension'), [availableSkills]);
   const extensionSkills = useMemo(() => availableSkills.filter((s) => s.source === 'extension'), [availableSkills]);
 
+  const categories = useMemo(() => {
+    const set = new Set<string>();
+    mySkills.forEach((s) => set.add(skillCategory(s)));
+    return ['all', ...Array.from(set).sort()];
+  }, [mySkills]);
+
   const filteredSkills = useMemo(() => {
-    if (!search_query.trim()) return mySkills;
-    const lowerQuery = search_query.toLowerCase();
-    return mySkills.filter(
-      (s) =>
-        s.name.toLowerCase().includes(lowerQuery) || (s.description && s.description.toLowerCase().includes(lowerQuery))
-    );
-  }, [mySkills, search_query]);
+    const lowerQuery = search_query.trim().toLowerCase();
+    return mySkills.filter((s) => {
+      if (activeCategory !== 'all' && skillCategory(s) !== activeCategory) return false;
+      if (!lowerQuery) return true;
+      return (
+        s.name.toLowerCase().includes(lowerQuery) ||
+        (s.description && s.description.toLowerCase().includes(lowerQuery)) ||
+        skillCategory(s).includes(lowerQuery)
+      );
+    });
+  }, [mySkills, search_query, activeCategory]);
+
+  const toggleSkill = useCallback(async (name: string, enabled: boolean) => {
+    try {
+      await httpPut<{ ok: boolean }, { name: string; enabled: boolean }>('/api/skills/toggle').invoke({
+        name,
+        enabled,
+      });
+      setAvailableSkills((prev) => prev.map((s) => (s.name === name ? { ...s, enabled } : s)));
+    } catch (error) {
+      Message.error(String(error));
+    }
+  }, []);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -155,6 +206,23 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
             </div>
           </div>
 
+          <div className='flex flex-wrap gap-8px mb-16px relative z-10'>
+            {categories.map((cat) => (
+              <button
+                key={cat}
+                type='button'
+                onClick={() => setActiveCategory(cat)}
+                className={`px-10px py-4px rd-100px text-12px font-medium border transition-colors ${
+                  activeCategory === cat
+                    ? 'bg-[rgba(var(--primary-6),0.12)] border-primary-5 text-primary-6'
+                    : 'bg-fill-1 border-border-2 text-t-secondary hover:text-t-primary'
+                }`}
+              >
+                {cat === 'all' ? t('common.all', { defaultValue: 'All' }) : cat}
+              </button>
+            ))}
+          </div>
+
           {mySkills.length > 0 ? (
             <div className='w-full flex flex-col gap-6px relative z-10'>
               {filteredSkills.map((skill) => (
@@ -164,19 +232,20 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
                   ref={(el) => {
                     skillRefs.current[skill.name] = el;
                   }}
-                  className={`group flex flex-col sm:flex-row gap-16px p-16px bg-base border hover:border-border-1 hover:bg-fill-1 hover:shadow-sm rd-12px transition-all duration-200 ${highlightedSkill === skill.name ? 'border-primary-5 bg-primary-1' : 'border-transparent'}`}
+                  className={`group flex flex-col sm:flex-row gap-16px p-16px bg-base border hover:border-border-1 hover:bg-fill-1 hover:shadow-sm rd-12px transition-all duration-200 items-center ${highlightedSkill === skill.name ? 'border-primary-5 bg-primary-1' : 'border-transparent'}`}
                 >
                   <div className='shrink-0 flex items-start sm:mt-2px'>
-                    <div
-                      className={`w-40px h-40px rd-10px flex items-center justify-center font-bold text-16px shadow-sm text-transform-uppercase ${getAvatarColorClass(skill.name)}`}
-                    >
-                      {skill.name.charAt(0).toUpperCase()}
+                    <div className='w-40px h-40px rd-10px bg-fill-2 border border-border-2 flex items-center justify-center shadow-sm'>
+                      <SkillIcon category={skillCategory(skill)} name={skill.name} />
                     </div>
                   </div>
 
                   <div className='flex-1 min-w-0 flex flex-col justify-center gap-6px'>
                     <div className='flex items-center gap-10px flex-wrap'>
                       <h3 className='text-14px font-semibold text-t-primary/90 truncate m-0'>{skill.name}</h3>
+                      <span className='bg-slate-500/10 text-slate-300 text-11px px-6px py-1px rd-4px font-medium capitalize'>
+                        {skillCategory(skill)}
+                      </span>
                       {skill.source === 'custom' ? (
                         <span className='bg-[rgba(var(--orange-6),0.08)] text-orange-6 border border-[rgba(var(--orange-6),0.2)] text-11px px-6px py-1px rd-4px font-medium'>
                           {t('settings.skillsHub.custom', { defaultValue: 'Custom' })}
@@ -197,6 +266,13 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
                     )}
                   </div>
 
+                  <div className='shrink-0 flex items-center' onClick={(e) => e.stopPropagation()}>
+                    <Switch
+                      size='small'
+                      checked={skill.enabled !== false}
+                      onChange={(checked) => void toggleSkill(skill.name, checked)}
+                    />
+                  </div>
                 </div>
               ))}
             </div>

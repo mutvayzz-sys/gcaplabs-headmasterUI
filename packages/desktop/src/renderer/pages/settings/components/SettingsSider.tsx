@@ -21,8 +21,6 @@ export const BUILTIN_TAB_IDS = [
   'model',
   'memory',
   // 'hermes', // Connection — hidden until remote-mode is a real user-facing feature
-  'assistants',
-  'agent',
   'tools',
   'skills-hub',
   'integrations',
@@ -44,6 +42,8 @@ export const LEGACY_ANCHOR_REMAP: Record<string, string> = {
   runtime: 'hermes',
   webui: 'channels',
   integrations: 'integrations',
+  assistants: 'skills-hub',
+  agent: 'tools',
 };
 
 /**
@@ -53,8 +53,7 @@ export const LEGACY_ANCHOR_REMAP: Record<string, string> = {
  */
 const GROUP_HEADER_BEFORE: Record<string, string> = {
   model: 'settings.groupIntelligence',
-  assistants: 'settings.groupWorkspace',
-  agent: 'settings.groupTools',
+  tools: 'settings.groupTools',
   appearance: 'settings.groupApp',
 };
 

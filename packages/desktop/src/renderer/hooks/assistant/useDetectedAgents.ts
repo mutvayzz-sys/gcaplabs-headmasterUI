@@ -47,7 +47,7 @@ export const buildAvailableBackends = (agents: AgentMetadata[]): AvailableBacken
   const byId = new Map<string, AvailableBackend>();
 
   for (const agent of agents) {
-    if (!agent.enabled || !agent.available || !isSupportedNewConversationAgent(agent)) continue;
+    if (agent.enabled === false || agent.available === false || !isSupportedNewConversationAgent(agent)) continue;
     const id = agent.backend || agent.agent_type;
     byId.set(id, {
       id,

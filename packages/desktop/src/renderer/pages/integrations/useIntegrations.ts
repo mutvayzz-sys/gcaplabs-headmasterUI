@@ -7,12 +7,26 @@
 import { useCallback, useEffect, useState } from 'react';
 import { httpGet, httpPut } from '@/common/adapter/httpBridge';
 
+export interface MessagingEnvVar {
+  key: string;
+  prompt?: string;
+  description?: string;
+  is_password?: boolean;
+  is_set?: boolean;
+  redacted_value?: string;
+  url?: string;
+}
+
 export interface PlatformConfig {
   id: string;
   name: string;
   icon?: string;
   connected: boolean;
   enabled: boolean;
+  configured?: boolean;
+  description?: string;
+  state?: string;
+  envVars?: MessagingEnvVar[];
   settings?: Record<string, unknown>;
   lastError?: string;
 }
@@ -43,6 +57,7 @@ interface UseIntegrationsReturn {
   error: string | null;
   refresh: () => void;
   updatePlatform: (id: string, updates: Partial<PlatformConfig>) => Promise<void>;
+  savePlatformEnv: (id: string, env: Record<string, string>) => Promise<void>;
 }
 
 function normalizePlatform(raw: Record<string, unknown>): PlatformConfig {
@@ -87,6 +102,8 @@ interface HermesMessagingPlatform {
   state?: string;
   icon?: string;
   error_message?: string;
+  description?: string;
+  env_vars?: MessagingEnvVar[];
 }
 
 interface HermesMessagingPlatformsResponse {
@@ -95,12 +112,17 @@ interface HermesMessagingPlatformsResponse {
 
 function normalizePlatformFromChannel(raw: HermesMessagingPlatform): PlatformConfig {
   const id = String(raw.id ?? '');
+  const state = raw.state ?? '';
   return {
     id,
     name: String(raw.name ?? id),
     icon: typeof raw.icon === 'string' ? raw.icon : undefined,
-    connected: raw.connected === true || raw.state === 'connected',
+    connected: raw.connected === true || state === 'connected',
     enabled: raw.enabled !== false,
+    configured: raw.configured === true,
+    description: typeof raw.description === 'string' ? raw.description : undefined,
+    state: typeof state === 'string' ? state : undefined,
+    envVars: Array.isArray(raw.env_vars) ? raw.env_vars : [],
     settings: raw as unknown as Record<string, unknown>,
     lastError:
       typeof raw.error_message === 'string'
@@ -144,6 +166,16 @@ export function useIntegrations(): UseIntegrationsReturn {
     setPlatforms((prev) => prev.map((p) => (p.id === id ? { ...p, enabled: updates.enabled ?? p.enabled } : p)));
   }, []);
 
+  const savePlatformEnv = useCallback(
+    async (id: string, env: Record<string, string>) => {
+      await httpPut<{ ok: boolean }, { env?: Record<string, string> }>(
+        `/api/messaging/platforms/${encodeURIComponent(id)}`
+      ).invoke({ env });
+      await fetchData();
+    },
+    [fetchData]
+  );
+
   useEffect(() => {
     fetchData();
   }, [fetchData]);
@@ -155,5 +187,6 @@ export function useIntegrations(): UseIntegrationsReturn {
     error,
     refresh: fetchData,
     updatePlatform,
+    savePlatformEnv,
   };
 }

@@ -7,6 +7,9 @@
 import { useCallback, useEffect, useState } from 'react';
 import { httpRequest } from '@/common/adapter/httpBridge';
 
+export const DEFAULT_OPENCONCHO_URL = 'https://memory.gcaplabs.com';
+export const MEMORY_URL_KEY = 'memory.openconchoUrl' as const;
+
 export interface MemoryProvider {
   id: string;
   name: string;

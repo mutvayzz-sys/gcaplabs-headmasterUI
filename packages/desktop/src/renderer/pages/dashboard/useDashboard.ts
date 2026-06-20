@@ -65,7 +65,7 @@ function fromCronJob(raw: Record<string, unknown>): KanbanTask {
     id: String(raw.id ?? raw.job_id ?? ''),
     title: String(raw.name ?? raw.id ?? raw.job_id ?? 'Scheduled job'),
     description: typeof raw.prompt === 'string' ? raw.prompt : undefined,
-    status: raw.enabled === false ? 'review' : 'todo',
+    status: raw.enabled === false ? 'blocked' : 'ready',
     created_at: isoFromUnknown(raw.created_at),
     updated_at: isoFromUnknown(raw.updated_at ?? raw.last_run_at),
   };

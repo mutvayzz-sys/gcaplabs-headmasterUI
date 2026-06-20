@@ -554,9 +554,8 @@ export async function createHermesChatConversation(params: ICreateConversationPa
   const storedId = created.stored_session_id || created.session_id;
   rememberSession(storedId, created.session_id);
   if (profile) profilesByStored.set(storedId, profile);
-  rememberOpenHermesConversation(storedId, profile);
   const now = Date.now();
-  return {
+  const conversation = {
     id: storedId,
     name: params.name?.trim() || 'New Chat',
     type: 'aionrs',
@@ -572,6 +571,8 @@ export async function createHermesChatConversation(params: ICreateConversationPa
       custom_workspace: Boolean(created.info?.cwd || workspace),
     },
   } as TChatConversation;
+  rememberOpenHermesConversation(storedId, profile, conversation);
+  return conversation;
 }
 
 export async function sendHermesMessage(params: {

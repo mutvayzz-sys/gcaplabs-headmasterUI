@@ -171,8 +171,8 @@ wiki/
 # Local design docs and screenshots
 desdoc/
 
-# Local kanban (协作工作簿，不入库)
-kanban/
+# Local kanban workbook at repo root (协作工作簿，不入库)
+/kanban/
 
 # E2E test artifacts (Playwright)
 tests/e2e/screenshots/

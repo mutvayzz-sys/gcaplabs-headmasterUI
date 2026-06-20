@@ -7,10 +7,12 @@
 import React from 'react';
 import ToolsModalContent from '@/renderer/components/settings/SettingsModal/contents/ToolsModalContent';
 import SettingsPageWrapper from './components/SettingsPageWrapper';
+import ToolsetsPanel from './ToolsetsPanel';
 
 const ToolsSettingsPage: React.FC = () => (
   <SettingsPageWrapper contentClassName='max-w-1100px'>
     <ToolsModalContent />
+    <ToolsetsPanel />
   </SettingsPageWrapper>
 );
 

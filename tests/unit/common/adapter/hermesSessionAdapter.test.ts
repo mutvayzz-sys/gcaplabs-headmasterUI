@@ -11,7 +11,9 @@ vi.mock('../../../../packages/desktop/src/common/adapter/httpBridge', () => ({
 import {
   fromHermesMessage,
   fromHermesSession,
+  getHermesConversation,
   listHermesConversations,
+  rememberOpenHermesConversation,
   type HermesSessionInfo,
   type HermesSessionMessage,
 } from '../../../../packages/desktop/src/common/adapter/hermesSessionAdapter';
@@ -67,6 +69,17 @@ describe('Hermes session adapter', () => {
   it('falls back to preview and then New Chat for unnamed sessions', () => {
     expect(fromHermesSession(session({ title: null })).name).toBe('Previous work');
     expect(fromHermesSession(session({ title: null, preview: null })).name).toBe('New Chat');
+  });
+
+  it('keeps a newly created session routable before Hermes exposes it through REST', async () => {
+    const local = fromHermesSession(session({ id: 'just-created', title: 'New Chat' }));
+    rememberOpenHermesConversation(local.id, undefined, local);
+    mocks.httpRequest.mockRejectedValue(new Error('Backend GET failed (404): Session not found'));
+
+    await expect(getHermesConversation(local.id)).resolves.toMatchObject({
+      id: 'just-created',
+      name: 'New Chat',
+    });
   });
 
   it('maps user and assistant transcript messages into text messages', () => {
