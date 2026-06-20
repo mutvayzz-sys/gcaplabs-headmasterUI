@@ -74,7 +74,7 @@ Evidence:
 
 Intended flow:
 
-- New Mission → `session.create`
+- New Chat → `session.create`
 - Existing stored chat → `session.resume`
 - Follow-up message → `prompt.submit` on the same live session
 - Stop → `session.interrupt`
@@ -85,7 +85,7 @@ Intended flow:
 - [x] Confirm `prompt.submit` uses the active live session ID.
 - [x] Confirm streamed events map back to the stored conversation ID in order.
 - [x] Add timeout/error recovery instead of indefinite processing.
-- [ ] Add a regression test covering resume → follow-up → stream → persistence.
+- [x] Add a regression test covering resume → follow-up → stream → persistence.
 
 ### Skills tab fails to fetch
 
@@ -100,27 +100,27 @@ Intended flow:
 
 ### Model catalog and authentication state
 
-- [ ] Determine why Models & Providers shows zero API keys for providers Hermes
+- [x] Determine why Models & Providers shows zero API keys for providers Hermes
       already uses.
-- [ ] Distinguish model availability, provider authentication, direct API-key
+- [x] Distinguish model availability, provider authentication, direct API-key
       storage, OAuth, environment credentials, and profile configuration.
 - [x] Stop describing OAuth/environment/profile-backed authentication as
       “0 API keys”.
 - [x] Hide providers/models without usable authentication.
-- [ ] Keep **Add Model** only for adding a genuinely unavailable custom
+- [x] Keep **Add Model** only for adding a genuinely unavailable custom
       provider or endpoint.
 - [ ] Verify displayed authentication agrees with models used by existing
       Hermes chats.
 
 ### Specialist engine identity
 
-- [ ] Show each Specialist’s backing engine/provider next to its model.
-- [ ] Label Hermes/Headmaster profiles, local CLI agents, preset personas, and
+- [x] Show each Specialist’s backing engine/provider next to its model.
+- [x] Label Hermes/Headmaster profiles, local CLI agents, preset personas, and
       remote/custom agents distinctly.
-- [ ] Add real product icons and accessible labels for Claude Code, Codex,
+- [x] Add real product icons and accessible labels for Claude Code, Codex,
       Gemini CLI, Headmaster profiles, and other engines.
-- [ ] Define which engines each Specialist supports.
-- [ ] Prevent unsupported Specialist/engine/model combinations.
+- [x] Define which engines each Specialist supports.
+- [x] Prevent unsupported Specialist/engine/model combinations.
 
 ## P1 — Settings information architecture
 
@@ -140,11 +140,14 @@ Target structure:
 - [x] Keep Tools shallow rather than nesting another tab container.
 - [x] Rehome remaining Advanced/Capabilities content where appropriate.
 - [x] Update routes, deep links, and extension anchors.
-- [ ] Complete i18n and route regression tests for the new settings structure.
+- [x] Complete i18n and route regression tests for the new settings structure.
 
 ## P1 — Updates
 
-- [ ] Audit `mutvayzz-sys/gcaplabs-headmasterhub` for private material.
+- [x] Audit `mutvayzz-sys/gcaplabs-headmasterhub` for private material. The
+      current private repository is a clean extension-registry skeleton with no
+      discovered credentials, tokens, or user data; it is not yet a published
+      documentation site.
 - [ ] Make the Headmaster Hub repository public after explicit approval.
 - [ ] Use Headmaster Hub or the GCAP Labs release endpoint as the public
       Headmaster Desktop version source.

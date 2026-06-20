@@ -13,7 +13,6 @@ const SystemSettings = React.lazy(() => import('@renderer/pages/settings/SystemS
 const ExtensionSettingsPage = React.lazy(() => import('@renderer/pages/settings/ExtensionSettingsPage'));
 const RuntimeSettings = React.lazy(() => import('@renderer/pages/settings/RuntimeSettings'));
 const MemorySettings = React.lazy(() => import('@renderer/pages/settings/MemorySettings'));
-const AdvancedSettings = React.lazy(() => import('@renderer/pages/settings/AdvancedSettings'));
 const ToolsSettingsPage = React.lazy(() => import('@renderer/pages/settings/ToolsSettingsPage'));
 const SkillsHubSettings = React.lazy(() => import('@renderer/pages/settings/SkillsHubSettings'));
 const IntegrationsSettingsPage = React.lazy(() => import('@renderer/pages/settings/IntegrationsSettingsPage'));
@@ -34,6 +33,20 @@ const AgentsPage = React.lazy(() => import('@renderer/pages/agents'));
 const KanbanPage = React.lazy(() => import('@renderer/pages/kanban'));
 const BrowserPage = React.lazy(() => import('@renderer/pages/browser'));
 const AssetsPage = React.lazy(() => import('@renderer/pages/assets'));
+
+export const SETTINGS_PRIMARY_ROUTES = {
+  tools: '/settings/tools',
+  skills: '/settings/skills-hub',
+  integrations: '/settings/integrations',
+  channels: '/settings/channels',
+} as const;
+
+export const SETTINGS_LEGACY_REDIRECTS = {
+  '/settings/capabilities': SETTINGS_PRIMARY_ROUTES.tools,
+  '/settings/skills': SETTINGS_PRIMARY_ROUTES.skills,
+  '/settings/webui': SETTINGS_PRIMARY_ROUTES.channels,
+  '/settings/advanced': SETTINGS_PRIMARY_ROUTES.tools,
+} as const;
 
 const withRouteFallback = (Component: React.LazyExoticComponent<React.ComponentType>) => (
   <Suspense fallback={<AppLoader />}>
@@ -79,16 +92,25 @@ const PanelRoute: React.FC<{ layout: React.ReactElement }> = ({ layout }) => {
           <Route path='/settings/hermes' element={withRouteFallback(RuntimeSettings)} />
           <Route path='/settings/runtime' element={<Navigate to='/settings/hermes' replace />} />
           <Route path='/settings/memory' element={withRouteFallback(MemorySettings)} />
-          <Route path='/settings/capabilities' element={<Navigate to='/settings/tools' replace />} />
-          <Route path='/settings/integrations' element={withRouteFallback(IntegrationsSettingsPage)} />
-          <Route path='/settings/skills-hub' element={withRouteFallback(SkillsHubSettings)} />
-          <Route path='/settings/skills' element={<Navigate to='/settings/skills-hub' replace />} />
-          <Route path='/settings/tools' element={withRouteFallback(ToolsSettingsPage)} />
-          <Route path='/settings/channels' element={withRouteFallback(ChannelsSettingsPage)} />
+          <Route
+            path='/settings/capabilities'
+            element={<Navigate to={SETTINGS_LEGACY_REDIRECTS['/settings/capabilities']} replace />}
+          />
+          <Route path={SETTINGS_PRIMARY_ROUTES.integrations} element={withRouteFallback(IntegrationsSettingsPage)} />
+          <Route path={SETTINGS_PRIMARY_ROUTES.skills} element={withRouteFallback(SkillsHubSettings)} />
+          <Route
+            path='/settings/skills'
+            element={<Navigate to={SETTINGS_LEGACY_REDIRECTS['/settings/skills']} replace />}
+          />
+          <Route path={SETTINGS_PRIMARY_ROUTES.tools} element={withRouteFallback(ToolsSettingsPage)} />
+          <Route path={SETTINGS_PRIMARY_ROUTES.channels} element={withRouteFallback(ChannelsSettingsPage)} />
           <Route path='/settings/appearance' element={withRouteFallback(AppearanceSettings)} />
           <Route path='/settings/display' element={<Navigate to='/settings/appearance' replace />} />
-          <Route path='/settings/webui' element={<Navigate to='/settings/channels' replace />} />
-          <Route path='/settings/advanced' element={<Navigate to='/settings/tools' replace />} />
+          <Route path='/settings/webui' element={<Navigate to={SETTINGS_LEGACY_REDIRECTS['/settings/webui']} replace />} />
+          <Route
+            path='/settings/advanced'
+            element={<Navigate to={SETTINGS_LEGACY_REDIRECTS['/settings/advanced']} replace />}
+          />
           <Route path='/settings/system' element={withRouteFallback(SystemSettings)} />
           <Route path='/settings/about' element={withRouteFallback(SystemSettings)} />
           <Route path='/settings/ext/:tabId' element={withRouteFallback(ExtensionSettingsPage)} />

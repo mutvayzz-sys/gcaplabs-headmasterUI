@@ -21,6 +21,7 @@ import {
   sendHermesMessage,
   stopHermesConversation,
 } from '../../../../packages/desktop/src/common/adapter/hermesChatAdapter';
+import { rememberOpenHermesConversation } from '../../../../packages/desktop/src/common/adapter/hermesSessionAdapter';
 
 describe('Hermes chat adapter', () => {
   beforeEach(() => {
@@ -156,6 +157,74 @@ describe('Hermes chat adapter', () => {
       ['session.interrupt', { session_id: 'live-resumed' }],
     ]);
     expect(result.runtime.state).toBe('idle');
+  });
+
+  it('resumes a profile chat, submits a follow-up, and persists streamed events to the stored id', async () => {
+    rememberOpenHermesConversation('stored-recruiter', 'recruiter');
+    mocks.request
+      .mockResolvedValueOnce({
+        session_id: 'live-recruiter',
+        resumed: 'stored-recruiter',
+        message_count: 2,
+        messages: [],
+      })
+      .mockResolvedValueOnce({ status: 'streaming' });
+
+    const sent = await sendHermesMessage({
+      conversation_id: 'stored-recruiter',
+      input: 'Continue the search',
+    });
+
+    expect(mocks.request.mock.calls).toEqual([
+      [
+        'session.resume',
+        {
+          session_id: 'stored-recruiter',
+          cols: 96,
+          profile: 'recruiter',
+        },
+      ],
+      [
+        'prompt.submit',
+        {
+          session_id: 'live-recruiter',
+          text: 'Continue the search',
+        },
+      ],
+    ]);
+
+    mocks.gatewayListener?.({
+      type: 'message.delta',
+      session_id: 'live-recruiter',
+      payload: { text: 'Candidate found' },
+    });
+    mocks.gatewayListener?.({
+      type: 'message.complete',
+      session_id: 'live-recruiter',
+      payload: { text: 'Candidate found' },
+    });
+
+    expect(mocks.broadcast).toHaveBeenCalledWith(
+      'message.userCreated',
+      expect.objectContaining({
+        conversation_id: 'stored-recruiter',
+        content: 'Continue the search',
+      })
+    );
+    expect(mocks.broadcast).toHaveBeenCalledWith(
+      'message.stream',
+      expect.objectContaining({
+        conversation_id: 'stored-recruiter',
+        data: { content: 'Candidate found' },
+      })
+    );
+    expect(mocks.broadcast).toHaveBeenCalledWith(
+      'turn.completed',
+      expect.objectContaining({
+        session_id: 'stored-recruiter',
+        turn_id: sent.turn_id,
+      })
+    );
   });
 });
 

@@ -14,7 +14,7 @@ import type {
   ISendMessageResult,
 } from './ipcBridge';
 import { broadcastWsEvent, gatewayRpcRequest, onGatewayEvent } from './httpBridge';
-import { rememberOpenHermesConversation } from './hermesSessionAdapter';
+import { getHermesConversationProfile, rememberOpenHermesConversation } from './hermesSessionAdapter';
 
 export interface HermesSessionCreateResponse {
   info?: {
@@ -521,7 +521,8 @@ const isSessionNotFound = (error: unknown): boolean =>
   error instanceof Error && /session not found/i.test(error.message);
 
 async function resumeSession(storedId: string): Promise<string> {
-  const profile = profilesByStored.get(storedId);
+  const profile = profilesByStored.get(storedId) ?? getHermesConversationProfile(storedId);
+  if (profile) profilesByStored.set(storedId, profile);
   const resumed = await gatewayRpcRequest<HermesSessionResumeResponse>('session.resume', {
     session_id: storedId,
     cols: 96,

@@ -48,6 +48,13 @@ describe('agentLogo', () => {
       expect(logo).toBeTruthy();
     });
 
+    it('returns product logos for CLI aliases and Headmaster profiles', () => {
+      expect(getAgentLogo('claude-code')).toBeTruthy();
+      expect(getAgentLogo('openai-codex')).toBeTruthy();
+      expect(getAgentLogo('gemini-cli')).toBeTruthy();
+      expect(getAgentLogo('aionrs')).toBeTruthy();
+    });
+
     it('returns null for unknown agent', () => {
       expect(getAgentLogo('unknown-agent')).toBeNull();
     });

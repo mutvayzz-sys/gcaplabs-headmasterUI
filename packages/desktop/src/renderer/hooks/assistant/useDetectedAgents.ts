@@ -3,6 +3,7 @@ import { DEFAULT_CODEX_MODELS } from '@/common/types/codex/codexModels';
 import type { AcpModelInfo } from '@/common/types/platform/acpTypes';
 import type { AgentMetadata } from '@/renderer/utils/model/agentTypes';
 import { DETECTED_AGENTS_SWR_KEY, fetchDetectedAgents } from '@/renderer/utils/model/agentTypes';
+import { isSupportedNewConversationAgent } from '@/renderer/utils/model/agentTypeSupportPolicy';
 import { useCallback, useMemo } from 'react';
 import useSWR, { mutate } from 'swr';
 
@@ -42,6 +43,23 @@ const resolveBackendModelOptions = (agent: AgentMetadata): AvailableBackendModel
   return [];
 };
 
+export const buildAvailableBackends = (agents: AgentMetadata[]): AvailableBackend[] => {
+  const byId = new Map<string, AvailableBackend>();
+
+  for (const agent of agents) {
+    if (!agent.enabled || !agent.available || !isSupportedNewConversationAgent(agent)) continue;
+    const id = agent.backend || agent.agent_type;
+    byId.set(id, {
+      id,
+      name: agent.name,
+      isExtension: agent.agent_source === 'extension',
+      modelOptions: resolveBackendModelOptions(agent),
+    });
+  }
+
+  return Array.from(byId.values());
+};
+
 /**
  * Provides detected execution engines for assistant editor backend selectors.
  * Excludes preset assistants — those live in the backend catalog
@@ -54,17 +72,7 @@ export const useDetectedAgents = () => {
   const { data: rawAgents = [] } = useSWR<AgentMetadata[]>(DETECTED_AGENTS_SWR_KEY, fetchDetectedAgents);
 
   const availableBackends = useMemo<AvailableBackend[]>(
-    () =>
-      rawAgents
-        .filter((a) => a.agent_type !== 'remote')
-        .map((a) => ({
-          // `preset_agent_type` stores the backend slug (e.g. "claude", "gemini"),
-          // not the AgentMetadata row id. Align the Select value with that contract.
-          id: a.backend || a.agent_type,
-          name: a.name,
-          isExtension: a.agent_source === 'extension',
-          modelOptions: resolveBackendModelOptions(a),
-        })),
+    () => buildAvailableBackends(rawAgents),
     [rawAgents]
   );
 

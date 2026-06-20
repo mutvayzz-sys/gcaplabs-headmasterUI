@@ -29,6 +29,10 @@ const AGENT_LOGO_PATH_MAP = {
   gemini: geminiLogo,
   codex: codexLogo,
   grok: grokLogo,
+  'claude-code': claudeLogo,
+  'gemini-cli': geminiLogo,
+  'openai-codex': codexLogo,
+  aionrs: headmasterLogo,
   hermes: headmasterLogo,
   headmaster: headmasterLogo,
 } as const satisfies Record<string, string>;

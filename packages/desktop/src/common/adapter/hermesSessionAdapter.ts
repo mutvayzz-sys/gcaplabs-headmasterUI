@@ -122,6 +122,10 @@ export function rememberOpenHermesConversation(id: string, profile?: string): vo
   if (profile) sessionProfiles.set(id, profile);
 }
 
+export function getHermesConversationProfile(id: string): string | undefined {
+  return sessionProfiles.get(id);
+}
+
 export function fromHermesSession(session: HermesSessionInfo): TChatConversation {
   if (session.profile) sessionProfiles.set(session.id, session.profile);
   return {

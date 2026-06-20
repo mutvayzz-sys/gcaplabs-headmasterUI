@@ -16,11 +16,11 @@ import { getAgentLogo } from '@renderer/utils/model/agentLogo';
 import type { AgentMetadata } from '@renderer/utils/model/agentTypes';
 
 const TYPE_META: Record<string, { icon: React.ReactNode; color: string; label: string }> = {
-  acp: { icon: <Robot size={14} />, color: 'bg-amber-500/10 text-amber-300', label: 'ACP' },
-  aionrs: { icon: <ChatCircle size={14} />, color: 'bg-emerald-500/10 text-emerald-300', label: 'CLI' },
+  acp: { icon: <Robot size={14} />, color: 'bg-amber-500/10 text-amber-300', label: 'Local CLI agent' },
+  aionrs: { icon: <ChatCircle size={14} />, color: 'bg-emerald-500/10 text-emerald-300', label: 'Headmaster profile' },
   remote: { icon: <Code size={14} />, color: 'bg-blue-500/10 text-blue-300', label: 'Remote' },
-  nanobot: { icon: <Robot size={14} />, color: 'bg-purple-500/10 text-purple-300', label: 'Nano' },
-  'openclaw-gateway': { icon: <Code size={14} />, color: 'bg-rose-500/10 text-rose-300', label: 'Gateway' },
+  nanobot: { icon: <Robot size={14} />, color: 'bg-purple-500/10 text-purple-300', label: 'Preset persona' },
+  'openclaw-gateway': { icon: <Code size={14} />, color: 'bg-rose-500/10 text-rose-300', label: 'Remote gateway' },
 };
 
 const AgentsPage: React.FC = () => {
@@ -100,7 +100,11 @@ const AgentsPage: React.FC = () => {
         <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12px'>
           {filtered.map((agent: AgentMetadata) => {
             const meta = TYPE_META[agent.agent_type] ?? TYPE_META.acp;
-            const logo = getAgentLogo(agent.name);
+            const engineLabel = agent.backend || agent.agent_type;
+            const logo = getAgentLogo(engineLabel);
+            const modelInfo = agent.handshake?.available_models as
+              | { current_model_id?: string; current_model_label?: string }
+              | undefined;
             return (
               <div
                 key={agent.id}
@@ -113,15 +117,28 @@ const AgentsPage: React.FC = () => {
               >
                 <div className='flex items-center gap-10px'>
                   {logo ? (
-                    <img src={logo} alt={agent.name} className='w-36px h-36px object-contain rd-8px' />
+                    <img
+                      src={logo}
+                      alt={`${engineLabel} logo`}
+                      className='w-36px h-36px object-contain rd-8px'
+                    />
                   ) : (
-                    <div className='w-36px h-36px rd-8px bg-fill-2 flex items-center justify-center'>
+                    <div
+                      className='w-36px h-36px rd-8px bg-fill-2 flex items-center justify-center'
+                      role='img'
+                      aria-label={`${engineLabel} engine`}
+                    >
                       <Robot size={20} className='text-t-secondary' />
                     </div>
                   )}
                   <div className='flex flex-col gap-2px'>
                     <span className='text-14px font-semibold text-t-primary'>{agent.name}</span>
-                    <span className='text-11px text-t-tertiary'>{agent.id}</span>
+                    <span className='text-11px text-t-tertiary'>
+                      {engineLabel}
+                      {modelInfo?.current_model_label || modelInfo?.current_model_id
+                        ? ` · ${modelInfo.current_model_label || modelInfo.current_model_id}`
+                        : ''}
+                    </span>
                   </div>
                 </div>
 

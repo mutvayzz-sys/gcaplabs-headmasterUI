@@ -111,7 +111,9 @@ const SortableAssistantCard: React.FC<SortableAssistantCardProps> = ({
             <div className='flex flex-shrink-0 items-center gap-6px'>{renderSourceTag(assistant)}</div>
           </div>
           <div className='truncate text-12px text-t-secondary'>
-            {assistant.description_i18n?.[localeKey] || assistant.description || ''}
+            {assistant.preset_agent_type === 'aionrs'
+              ? `${t('settings.headmasterProfile', { defaultValue: 'Headmaster profile' })}${assistant.models?.[0] ? ` · ${assistant.models[0]}` : ''}`
+              : `${assistant.preset_agent_type || t('settings.engine', { defaultValue: 'Engine' })}${assistant.models?.[0] ? ` · ${assistant.models[0]}` : ''}`}
           </div>
         </div>
       </div>
@@ -233,7 +235,9 @@ const AssistantListPanel: React.FC<AssistantListPanelProps> = ({
           bordered={false}
           className='!rounded-10px !bg-fill-1 !px-8px !py-1px !text-10px !font-600 !leading-16px !text-primary-6'
         >
-          {t('settings.builtin', { defaultValue: 'Built-in' })}
+          {assistant.preset_agent_type === 'aionrs'
+            ? t('settings.headmasterProfile', { defaultValue: 'Headmaster profile' })
+            : t('settings.builtin', { defaultValue: 'Built-in' })}
         </Tag>
       );
     }
