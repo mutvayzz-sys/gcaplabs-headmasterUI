@@ -5,7 +5,7 @@
  */
 
 import { useCallback, useEffect, useState } from 'react';
-import { httpGet } from '@/common/adapter/httpBridge';
+import { ipcBridge } from '@/common';
 
 export interface SkillItem {
   id: string;
@@ -33,7 +33,7 @@ function normalizeSkill(raw: Record<string, unknown>): SkillItem {
     name,
     description: typeof raw.description === 'string' ? raw.description : undefined,
     enabled: raw.enabled !== false,
-    builtin: raw.builtin === true || path.includes('hermes-agent') || path.includes('skills'),
+    builtin: raw.is_custom !== true,
     category: typeof raw.category === 'string' ? raw.category : undefined,
   };
 }
@@ -48,7 +48,7 @@ export function useSkills(): UseSkillsReturn {
     setLoading(true);
     setError(null);
     try {
-      const data = await httpGet<Array<Record<string, unknown>>>('/api/skills').invoke();
+      const data = await ipcBridge.fs.listAvailableSkills.invoke();
       setSkills((data ?? []).map(normalizeSkill).filter((skill) => skill.name));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load skills');

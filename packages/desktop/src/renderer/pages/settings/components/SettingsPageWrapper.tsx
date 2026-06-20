@@ -54,11 +54,29 @@ export function getBuiltinSettingsNavItems(_isDesktop: boolean, t: TranslateFn):
       icon: <Speed theme='outline' size='16' />,
       path: 'agent',
     },
-    advanced: {
-      id: 'advanced',
-      label: t('settings.advancedSettings', { defaultValue: 'Tools & Integrations' }),
+    tools: {
+      id: 'tools',
+      label: t('settings.capabilitiesTab.tools', { defaultValue: 'Tools' }),
       icon: <Api theme='outline' size='16' />,
-      path: 'advanced',
+      path: 'tools',
+    },
+    'skills-hub': {
+      id: 'skills-hub',
+      label: t('settings.capabilitiesTab.skills', { defaultValue: 'Skills' }),
+      icon: <Puzzle theme='outline' size='16' />,
+      path: 'skills-hub',
+    },
+    integrations: {
+      id: 'integrations',
+      label: t('settings.integrations', { defaultValue: 'Integrations' }),
+      icon: <LinkCloud theme='outline' size='16' />,
+      path: 'integrations',
+    },
+    channels: {
+      id: 'channels',
+      label: t('settings.channels', { defaultValue: 'Channels' }),
+      icon: <LinkCloud theme='outline' size='16' />,
+      path: 'channels',
     },
     appearance: {
       id: 'appearance',

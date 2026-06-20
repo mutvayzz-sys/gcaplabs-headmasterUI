@@ -411,6 +411,16 @@ let rpcConnectPromise: Promise<void> | null = null;
 let rpcNextId = 0;
 const rpcPending = new Map<RpcId, PendingRpc>();
 
+function emitGatewayEvent(event: { type: string; session_id?: string; payload?: unknown }): void {
+  for (const listener of gatewayEventListeners) {
+    try {
+      listener(event);
+    } catch {
+      // A renderer listener must never break the shared RPC transport.
+    }
+  }
+}
+
 function rejectAllRpc(error: Error): void {
   for (const [id, pending] of rpcPending) {
     clearTimeout(pending.timer);
@@ -435,6 +445,7 @@ function connectRpcWs(): Promise<void> {
     const onOpen = () => {
       cleanup();
       rpcConnectPromise = null;
+      emitGatewayEvent({ type: 'gateway.connected' });
       resolve();
     };
 
@@ -450,6 +461,10 @@ function connectRpcWs(): Promise<void> {
     socket.addEventListener('close', () => {
       if (rpcWs === socket) rpcWs = null;
       rejectAllRpc(new Error('Headmaster runtime connection closed'));
+      emitGatewayEvent({
+        type: 'gateway.disconnected',
+        payload: { message: 'Headmaster runtime connection closed' },
+      });
     });
     socket.addEventListener('message', (event) => {
       let frame: {
@@ -474,13 +489,7 @@ function connectRpcWs(): Promise<void> {
           session_id: frame.params.session_id,
           payload: frame.params.payload,
         };
-        for (const listener of gatewayEventListeners) {
-          try {
-            listener(gatewayEvent);
-          } catch {
-            // A renderer listener must never break the shared RPC transport.
-          }
-        }
+        emitGatewayEvent(gatewayEvent);
         return;
       }
       if (frame.id === undefined || frame.id === null) return;

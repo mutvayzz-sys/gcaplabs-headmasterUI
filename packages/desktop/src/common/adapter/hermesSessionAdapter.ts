@@ -62,6 +62,7 @@ type PaginatedResult<T> = {
 };
 
 const sessionProfiles = new Map<string, string>();
+const locallyOpenSessions = new Set<string>();
 
 const toMilliseconds = (value: number | null | undefined): number => {
   if (!value) return Date.now();
@@ -83,7 +84,43 @@ const modelFromHermes = (model: string | null): TProviderWithModel => {
 };
 
 const sessionName = (session: HermesSessionInfo): string =>
-  session.title?.trim() || session.preview?.trim() || 'New Mission';
+  session.title?.trim() || session.preview?.trim() || 'New Chat';
+
+const profileQuery = (profile: string | undefined): string =>
+  profile && profile !== 'default' ? `?profile=${encodeURIComponent(profile)}` : '';
+
+async function loadHermesTranscript(session: HermesSessionInfo): Promise<HermesSessionMessagesResponse> {
+  return httpRequest<HermesSessionMessagesResponse>(
+    'GET',
+    `/api/sessions/${encodeURIComponent(session.id)}/messages${profileQuery(session.profile)}`
+  );
+}
+
+const hasMultipleUserQueries = (messages: HermesSessionMessage[]): boolean => {
+  let userQueries = 0;
+  for (const message of messages) {
+    if (message.role !== 'user') continue;
+    userQueries += 1;
+    if (userQueries >= 2) return true;
+  }
+  return false;
+};
+
+async function isTrackedHermesSession(session: HermesSessionInfo, includeLocallyOpen = false): Promise<boolean> {
+  if (includeLocallyOpen && locallyOpenSessions.has(session.id)) return true;
+  if (session.message_count < 2) return false;
+  try {
+    const transcript = await loadHermesTranscript(session);
+    return hasMultipleUserQueries(transcript.messages);
+  } catch {
+    return false;
+  }
+}
+
+export function rememberOpenHermesConversation(id: string, profile?: string): void {
+  locallyOpenSessions.add(id);
+  if (profile) sessionProfiles.set(id, profile);
+}
 
 export function fromHermesSession(session: HermesSessionInfo): TChatConversation {
   if (session.profile) sessionProfiles.set(session.id, session.profile);
@@ -257,33 +294,54 @@ export async function listHermesConversations(params: {
   limit?: number;
 }): Promise<PaginatedResult<TChatConversation>> {
   const limit = params.limit ?? 100;
-  const offset = Number.parseInt(params.cursor || '0', 10) || 0;
-  const query = new URLSearchParams({
-    limit: String(limit),
-    offset: String(offset),
-    min_messages: '0',
-    order: 'recent',
-  });
-  const result = await httpRequest<HermesPaginatedSessions>('GET', `/api/sessions?${query}`);
+  const visibleOffset = Number.parseInt(params.cursor || '0', 10) || 0;
+  const candidates: HermesSessionInfo[] = [];
+  let rawOffset = 0;
+  const rawLimit = 200;
+
+  while (true) {
+    const query = new URLSearchParams({
+      limit: String(rawLimit),
+      offset: String(rawOffset),
+      min_messages: '2',
+      order: 'recent',
+    });
+    const page = await httpRequest<HermesPaginatedSessions>('GET', `/api/sessions?${query}`);
+    candidates.push(...page.sessions);
+    rawOffset += page.sessions.length;
+    if (page.sessions.length === 0 || rawOffset >= page.total) break;
+  }
+
+  const tracked: HermesSessionInfo[] = [];
+  for (let index = 0; index < candidates.length; index += 12) {
+    const batch = candidates.slice(index, index + 12);
+    const decisions = await Promise.all(batch.map((session) => isTrackedHermesSession(session)));
+    decisions.forEach((include, batchIndex) => {
+      if (include) tracked.push(batch[batchIndex]);
+    });
+  }
+
+  const visible = tracked.slice(visibleOffset, visibleOffset + limit);
   return {
-    items: result.sessions.map(fromHermesSession),
-    total: result.total,
-    has_more: result.offset + result.sessions.length < result.total,
+    items: visible.map(fromHermesSession),
+    total: tracked.length,
+    has_more: visibleOffset + visible.length < tracked.length,
   };
 }
 
 export async function getHermesConversation(id: string): Promise<TChatConversation | null> {
   const profile = sessionProfiles.get(id);
-  const query = profile && profile !== 'default' ? `?profile=${encodeURIComponent(profile)}` : '';
   const session = await httpRequest<HermesSessionInfo>(
     'GET',
-    `/api/sessions/${encodeURIComponent(id)}${query}`,
+    `/api/sessions/${encodeURIComponent(id)}${profileQuery(profile)}`,
     undefined,
     {
       silentStatuses: [404],
     }
   );
-  return session ? fromHermesSession(session) : null;
+  if (!session) return null;
+  if (!(await isTrackedHermesSession(session, true))) return null;
+  return fromHermesSession(session);
 }
 
 export async function getHermesConversationMessages(params: {
@@ -294,10 +352,9 @@ export async function getHermesConversationMessages(params: {
   content_mode?: 'compact' | 'full';
 }): Promise<PaginatedResult<TMessage>> {
   const profile = sessionProfiles.get(params.conversation_id);
-  const query = profile && profile !== 'default' ? `?profile=${encodeURIComponent(profile)}` : '';
   const result = await httpRequest<HermesSessionMessagesResponse>(
     'GET',
-    `/api/sessions/${encodeURIComponent(params.conversation_id)}/messages${query}`
+    `/api/sessions/${encodeURIComponent(params.conversation_id)}/messages${profileQuery(profile)}`
   );
   const all = result.messages.flatMap((message, index) => fromHermesMessage(message, params.conversation_id, index));
   const pageSize = params.page_size ?? all.length;
@@ -325,8 +382,11 @@ export async function updateHermesConversation(id: string, updates: Partial<TCha
 
 export async function deleteHermesConversation(id: string): Promise<boolean> {
   const profile = sessionProfiles.get(id);
-  const query = profile && profile !== 'default' ? `?profile=${encodeURIComponent(profile)}` : '';
-  const result = await httpRequest<{ ok: boolean }>('DELETE', `/api/sessions/${encodeURIComponent(id)}${query}`);
+  const result = await httpRequest<{ ok: boolean }>(
+    'DELETE',
+    `/api/sessions/${encodeURIComponent(id)}${profileQuery(profile)}`
+  );
   sessionProfiles.delete(id);
+  locallyOpenSessions.delete(id);
   return result.ok;
 }

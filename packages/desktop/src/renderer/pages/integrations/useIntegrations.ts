@@ -5,7 +5,7 @@
  */
 
 import { useCallback, useEffect, useState } from 'react';
-import { httpGet } from '@/common/adapter/httpBridge';
+import { httpGet, httpPut } from '@/common/adapter/httpBridge';
 
 export interface PlatformConfig {
   id: string;
@@ -78,32 +78,36 @@ function normalizeWebhook(raw: Record<string, unknown>, index: number): WebhookE
   };
 }
 
-interface AdonisChannelPlugin {
-  plugin_id?: string;
-  type?: string;
+interface HermesMessagingPlatform {
+  id?: string;
   name?: string;
   enabled?: boolean;
   connected?: boolean;
-  status?: string;
-  has_token?: boolean;
-  active_users?: number;
-  is_extension?: boolean;
+  configured?: boolean;
+  state?: string;
+  icon?: string;
+  error_message?: string;
 }
 
-interface AdonisChannelPluginsResponse {
-  data?: AdonisChannelPlugin[];
+interface HermesMessagingPlatformsResponse {
+  platforms?: HermesMessagingPlatform[];
 }
 
-function normalizePlatformFromChannel(raw: AdonisChannelPlugin): PlatformConfig {
-  const id = String(raw.plugin_id ?? raw.type ?? '');
+function normalizePlatformFromChannel(raw: HermesMessagingPlatform): PlatformConfig {
+  const id = String(raw.id ?? '');
   return {
     id,
     name: String(raw.name ?? id),
-    icon: `/api/assets/logos/channels/${id}.svg`,
-    connected: raw.connected === true,
+    icon: typeof raw.icon === 'string' ? raw.icon : undefined,
+    connected: raw.connected === true || raw.state === 'connected',
     enabled: raw.enabled !== false,
     settings: raw as unknown as Record<string, unknown>,
-    lastError: raw.status === 'error' ? 'Channel plugin reported an error' : undefined,
+    lastError:
+      typeof raw.error_message === 'string'
+        ? raw.error_message
+        : raw.configured === false
+          ? 'Not configured'
+          : undefined,
   };
 }
 
@@ -117,9 +121,15 @@ export function useIntegrations(): UseIntegrationsReturn {
     setLoading(true);
     setError(null);
     try {
-      const plugins = await httpGet<AdonisChannelPluginsResponse>('/api/channel/plugins').invoke();
-      setPlatforms((plugins?.data ?? []).map(normalizePlatformFromChannel).filter((p) => p.id));
-      setWebhooks([]);
+      const [platformsResponse, webhooksResponse] = await Promise.all([
+        httpGet<HermesMessagingPlatformsResponse>('/api/messaging/platforms').invoke(),
+        httpGet<HermesWebhooksResponse>('/api/webhooks')
+          .invoke()
+          .catch((): HermesWebhooksResponse => ({ webhooks: [] })),
+      ]);
+      setPlatforms((platformsResponse?.platforms ?? []).map(normalizePlatformFromChannel).filter((p) => p.id));
+      const rawWebhooks = webhooksResponse.webhooks ?? webhooksResponse.subscriptions ?? [];
+      setWebhooks(rawWebhooks.map(normalizeWebhook));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load integrations');
     } finally {
@@ -128,9 +138,9 @@ export function useIntegrations(): UseIntegrationsReturn {
   }, []);
 
   const updatePlatform = useCallback(async (id: string, updates: Partial<PlatformConfig>) => {
-    console.warn(
-      `[integrations] updatePlatform(${id}) is a no-op: Adonis Core channel plugin toggle route is not exposed`
-    );
+    await httpPut<{ ok: boolean }, { enabled?: boolean }>(`/api/messaging/platforms/${encodeURIComponent(id)}`).invoke({
+      enabled: updates.enabled,
+    });
     setPlatforms((prev) => prev.map((p) => (p.id === id ? { ...p, enabled: updates.enabled ?? p.enabled } : p)));
   }, []);
 

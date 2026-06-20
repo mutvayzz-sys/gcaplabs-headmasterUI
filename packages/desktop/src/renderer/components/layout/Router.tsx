@@ -14,6 +14,10 @@ const ExtensionSettingsPage = React.lazy(() => import('@renderer/pages/settings/
 const RuntimeSettings = React.lazy(() => import('@renderer/pages/settings/RuntimeSettings'));
 const MemorySettings = React.lazy(() => import('@renderer/pages/settings/MemorySettings'));
 const AdvancedSettings = React.lazy(() => import('@renderer/pages/settings/AdvancedSettings'));
+const ToolsSettingsPage = React.lazy(() => import('@renderer/pages/settings/ToolsSettingsPage'));
+const SkillsHubSettings = React.lazy(() => import('@renderer/pages/settings/SkillsHubSettings'));
+const IntegrationsSettingsPage = React.lazy(() => import('@renderer/pages/settings/IntegrationsSettingsPage'));
+const ChannelsSettingsPage = React.lazy(() => import('@renderer/pages/settings/ChannelsSettingsPage'));
 const LoginPage = React.lazy(() => import('@renderer/pages/login'));
 const ComponentsShowcase = React.lazy(() => import('@renderer/pages/TestShowcase'));
 const ScheduledTasksPage = React.lazy(() => import('@renderer/pages/cron/ScheduledTasksPage'));
@@ -75,15 +79,16 @@ const PanelRoute: React.FC<{ layout: React.ReactElement }> = ({ layout }) => {
           <Route path='/settings/hermes' element={withRouteFallback(RuntimeSettings)} />
           <Route path='/settings/runtime' element={<Navigate to='/settings/hermes' replace />} />
           <Route path='/settings/memory' element={withRouteFallback(MemorySettings)} />
-          <Route path='/settings/capabilities' element={<Navigate to='/settings/advanced' replace />} />
-          <Route path='/settings/integrations' element={<Navigate to='/settings/advanced' replace />} />
-          {/* Legacy routes — redirect to the merged Advanced Settings page */}
-          <Route path='/settings/skills-hub' element={<Navigate to='/settings/advanced' replace />} />
-          <Route path='/settings/tools' element={<Navigate to='/settings/advanced' replace />} />
+          <Route path='/settings/capabilities' element={<Navigate to='/settings/tools' replace />} />
+          <Route path='/settings/integrations' element={withRouteFallback(IntegrationsSettingsPage)} />
+          <Route path='/settings/skills-hub' element={withRouteFallback(SkillsHubSettings)} />
+          <Route path='/settings/skills' element={<Navigate to='/settings/skills-hub' replace />} />
+          <Route path='/settings/tools' element={withRouteFallback(ToolsSettingsPage)} />
+          <Route path='/settings/channels' element={withRouteFallback(ChannelsSettingsPage)} />
           <Route path='/settings/appearance' element={withRouteFallback(AppearanceSettings)} />
           <Route path='/settings/display' element={<Navigate to='/settings/appearance' replace />} />
-          <Route path='/settings/webui' element={<Navigate to='/settings/advanced' replace />} />
-          <Route path='/settings/advanced' element={withRouteFallback(AdvancedSettings)} />
+          <Route path='/settings/webui' element={<Navigate to='/settings/channels' replace />} />
+          <Route path='/settings/advanced' element={<Navigate to='/settings/tools' replace />} />
           <Route path='/settings/system' element={withRouteFallback(SystemSettings)} />
           <Route path='/settings/about' element={withRouteFallback(SystemSettings)} />
           <Route path='/settings/ext/:tabId' element={withRouteFallback(ExtensionSettingsPage)} />

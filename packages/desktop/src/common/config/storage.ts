@@ -557,6 +557,15 @@ export interface IProvider {
     }
   >;
   is_full_url?: boolean;
+  /** Runtime-reported authentication state; never contains secret values. */
+  authenticated?: boolean;
+  /** Human-readable credential mechanism such as OAuth or environment credentials. */
+  authentication_label?: string;
+  /** True when provider configuration is owned by Hermes rather than desktop CRUD. */
+  managed_by_runtime?: boolean;
+  /** Runtime inventory source, used to distinguish built-in and custom endpoints. */
+  inventory_source?: string;
+  is_user_defined?: boolean;
 }
 
 export type TProviderWithModel = Omit<IProvider, 'models'> & {

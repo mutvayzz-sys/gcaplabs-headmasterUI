@@ -143,18 +143,73 @@ async function buildAssistantsFromHermes(): Promise<Assistant[]> {
   const result = await httpRequest<{ profiles?: HermesProfileInfo[] }>('GET', '/api/profiles').catch(
     (): { profiles: HermesProfileInfo[] } => ({ profiles: [] })
   );
-  return (result.profiles ?? []).map(
-    (profile) =>
-      ({
-        id: profile.name,
-        name: profile.name,
-        description: profile.model
-          ? `${profile.skill_count} skills · ${profile.model}`
-          : `${profile.skill_count} skills`,
-        role: 'specialist',
-        avatar: null,
-      }) as unknown as Assistant
-  );
+  return (result.profiles ?? []).map(profileToAssistant);
+}
+
+function profileToAssistant(profile: HermesProfileInfo): Assistant {
+  return {
+    id: profile.name,
+    source: 'builtin',
+    name: profile.name,
+    name_i18n: {},
+    description: profile.model ? `${profile.skill_count} skills · ${profile.model}` : `${profile.skill_count} skills`,
+    description_i18n: {},
+    enabled: true,
+    sort_order: profile.is_default ? 0 : 100,
+    preset_agent_type: 'aionrs',
+    enabled_skills: [],
+    custom_skill_names: [],
+    disabled_builtin_skills: [],
+    context_i18n: {},
+    prompts: [],
+    prompts_i18n: {},
+    models: profile.model ? [profile.model] : [],
+  };
+}
+
+function profileToAssistantDetail(profile: HermesProfileInfo): AssistantDetail {
+  return {
+    id: profile.name,
+    source: 'builtin',
+    profile: {
+      name: profile.name,
+      name_i18n: {},
+      description: profile.model ? `${profile.skill_count} skills · ${profile.model}` : `${profile.skill_count} skills`,
+      description_i18n: {},
+    },
+    state: {
+      enabled: true,
+      sort_order: profile.is_default ? 0 : 100,
+    },
+    engine: {
+      agent_backend: 'aionrs',
+    },
+    rules: {
+      content: '',
+      storage_mode: 'profile',
+    },
+    prompts: {
+      recommended: [],
+      recommended_i18n: {},
+    },
+    defaults: {
+      model: profile.model ? { mode: 'fixed', value: profile.model } : { mode: 'auto' },
+      permission: { mode: 'auto' },
+      skills: { mode: 'auto', value: [] },
+      mcps: { mode: 'auto', value: [] },
+    },
+    capabilities: {
+      default_skill_ids: [],
+      custom_skill_names: [],
+      default_disabled_builtin_skill_ids: [],
+    },
+    preferences: {
+      last_model_id: profile.model ?? undefined,
+      last_skill_ids: [],
+      last_disabled_builtin_skill_ids: [],
+      last_mcp_ids: [],
+    },
+  };
 }
 
 export const assistants = {
@@ -165,8 +220,11 @@ export const assistants = {
   get: {
     provider: () => {},
     invoke: (async (params: { id: string; locale?: string }) => {
-      const all = await buildAssistantsFromHermes();
-      return (all.find((a) => a.id === params.id) ?? null) as unknown as AssistantDetail | null;
+      const result = await httpRequest<{ profiles?: HermesProfileInfo[] }>('GET', '/api/profiles').catch(
+        (): { profiles: HermesProfileInfo[] } => ({ profiles: [] })
+      );
+      const profile = (result.profiles ?? []).find((item) => item.name === params.id);
+      return profile ? profileToAssistantDetail(profile) : null;
     }) as (params: { id: string; locale?: string }) => Promise<AssistantDetail | null>,
   },
   // Hermes has no `POST /api/profiles` yet (verified recon). Stub for v1.
@@ -648,17 +706,30 @@ export const fs = {
   deleteAssistantRule: httpDelete<boolean, { assistant_id: string }>(
     (p) => `/api/skills/assistant-rule/${p.assistant_id}`
   ),
-  listAvailableSkills: httpGet<
-    Array<{
-      name: string;
-      description: string;
-      location: string;
-      relative_location?: string;
-      is_custom: boolean;
-      source: 'builtin' | 'custom' | 'extension';
-    }>,
-    void
-  >('/api/skills'),
+  listAvailableSkills: {
+    provider: () => {},
+    invoke: async () => {
+      const skills = await httpRequest<
+        Array<{
+          name?: unknown;
+          description?: unknown;
+          category?: unknown;
+          enabled?: unknown;
+        }>
+      >('GET', '/api/skills');
+      return skills
+        .map((skill) => ({
+          name: typeof skill.name === 'string' ? skill.name : '',
+          description: typeof skill.description === 'string' ? skill.description : '',
+          category: typeof skill.category === 'string' ? skill.category : undefined,
+          enabled: skill.enabled !== false,
+          location: '',
+          is_custom: false,
+          source: 'builtin' as const,
+        }))
+        .filter((skill) => skill.name);
+    },
+  },
   // Hermes exposes one enabled-skills catalog at `/api/skills`; it has no
   // separate auto-injected subset.
   listBuiltinAutoSkills: stubProvider<Array<{ name: string; description: string; location: string }>, void>(
@@ -684,11 +755,15 @@ export const fs = {
     }>,
     void
   >('/api/skills/detect-external'),
-  importSkillWithSymlink: httpPost<{ skill_name: string; skill_names?: string[] }, { skill_path: string }>(
-    '/api/skills/import-symlink'
+  importSkillWithSymlink: stubProvider<{ skill_name: string; skill_names?: string[] }, { skill_path: string }>(
+    'fs.importSkillWithSymlink',
+    { skill_name: '', skill_names: [] }
   ),
-  deleteSkill: httpDelete<void, { skill_name: string }>((p) => `/api/skills/${p.skill_name}`),
-  getSkillPaths: httpGet<{ user_skills_dir: string; builtin_skills_dir: string }, void>('/api/skills/paths'),
+  deleteSkill: stubProvider<void, { skill_name: string }>('fs.deleteSkill', undefined as unknown as void),
+  getSkillPaths: stubProvider<{ user_skills_dir: string; builtin_skills_dir: string }, void>('fs.getSkillPaths', {
+    user_skills_dir: '',
+    builtin_skills_dir: '',
+  }),
   getCustomExternalPaths: httpGet<Array<{ name: string; path: string }>, void>('/api/skills/external-paths'),
   addCustomExternalPath: httpPost<void, { name: string; path: string }>('/api/skills/external-paths'),
   removeCustomExternalPath: httpDelete<void, { path: string }>(
@@ -819,9 +894,13 @@ export const bedrock = {
 interface HermesModelOptions {
   providers?: Array<{
     authenticated?: boolean;
+    auth_type?: string;
+    key_env?: string;
     models?: string[];
     name: string;
     slug: string;
+    source?: string;
+    is_user_defined?: boolean;
   }>;
 }
 
@@ -829,7 +908,9 @@ async function buildProvidersFromHermes(): Promise<IProvider[]> {
   const result = await httpRequest<HermesModelOptions>('GET', '/api/model/options').catch(
     (): HermesModelOptions => ({ providers: [] })
   );
-  return (result.providers ?? []).map(
+  return (result.providers ?? [])
+    .filter((provider) => provider.authenticated !== false && (provider.models?.length ?? 0) > 0)
+    .map(
     (provider) =>
       ({
         id: provider.slug,
@@ -838,7 +919,21 @@ async function buildProvidersFromHermes(): Promise<IProvider[]> {
         base_url: '',
         api_key: '',
         models: provider.models ?? [],
-        enabled: provider.authenticated !== false,
+        enabled: true,
+        authenticated: true,
+        authentication_label:
+          provider.auth_type === 'oauth'
+            ? 'OAuth'
+            : provider.auth_type === 'aws_sdk'
+              ? 'AWS environment or profile'
+              : provider.auth_type === 'api_key'
+                ? 'Runtime API key'
+                : provider.source === 'hermes'
+                  ? 'Runtime or OAuth credentials'
+                  : 'Runtime environment credentials',
+        managed_by_runtime: true,
+        inventory_source: provider.source,
+        is_user_defined: provider.is_user_defined === true,
       }) as IProvider
   );
 }

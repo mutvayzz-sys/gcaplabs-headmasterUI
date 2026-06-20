@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Divider, Typography, Button, Switch } from '@arco-design/web-react';
+import { Divider, Typography, Button, Switch, Modal, Message } from '@arco-design/web-react';
 import { Github, Right } from '@icon-park/react';
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -31,6 +31,7 @@ const AboutModalContent: React.FC = () => {
 
   const [includePrerelease, setIncludePrerelease] = useState(false);
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+  const [showContactModal, setShowContactModal] = useState(false);
 
   useEffect(() => {
     const saved = localStorage.getItem('update.includePrerelease');
@@ -46,7 +47,8 @@ const AboutModalContent: React.FC = () => {
     try {
       await openExternalUrl(url);
     } catch (error) {
-      console.log('Failed to open link:', error);
+      console.error('Failed to open link:', error);
+      Message.error(t('settings.openLinkFailed', { defaultValue: 'Could not open that link.' }));
     }
   };
 
@@ -59,12 +61,12 @@ const AboutModalContent: React.FC = () => {
   const linkItems: LinkItem[] = [
     {
       title: t('settings.helpDocumentation'),
-      url: 'https://gcaplabs.com',
+      url: 'https://gcaplabs.com/headmaster',
       icon: <Right theme='outline' size='16' />,
     },
     {
       title: t('settings.updateLog'),
-      url: 'https://gcaplabs.com',
+      url: 'https://gcaplabs.com/headmaster#updates',
       icon: <Right theme='outline' size='16' />,
     },
     {
@@ -74,7 +76,7 @@ const AboutModalContent: React.FC = () => {
     },
     {
       title: t('settings.contactMe'),
-      url: 'https://gcaplabs.com',
+      onClick: () => setShowContactModal(true),
       icon: <Right theme='outline' size='16' />,
     },
     {
@@ -138,9 +140,10 @@ const AboutModalContent: React.FC = () => {
           {/* Links Section */}
           <div className='flex flex-col gap-4px pt-8px'>
             {linkItems.map((item, index) => (
-              <div
+              <button
                 key={index}
-                className='flex items-center justify-between px-16px py-12px rd-8px hover:bg-fill-2 transition-all cursor-pointer group'
+                type='button'
+                className='w-full border-none bg-transparent flex items-center justify-between px-16px py-12px rd-8px hover:bg-fill-2 transition-all cursor-pointer group text-left'
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
@@ -153,12 +156,33 @@ const AboutModalContent: React.FC = () => {
               >
                 <Typography.Text className='text-14px text-t-primary'>{item.title}</Typography.Text>
                 <div className='text-t-secondary group-hover:text-t-primary transition-colors'>{item.icon}</div>
-              </div>
+              </button>
             ))}
           </div>
         </div>
       </div>
       <FeedbackReportModal visible={showFeedbackModal} onCancel={() => setShowFeedbackModal(false)} />
+      <Modal
+        title={t('settings.contactMe', { defaultValue: 'Contact Me' })}
+        visible={showContactModal}
+        footer={null}
+        onCancel={() => setShowContactModal(false)}
+        unmountOnExit
+      >
+        <div className='flex flex-col gap-12px'>
+          <a className='text-primary-6' href='mailto:admin@gcaplabs.com'>
+            admin@gcaplabs.com
+          </a>
+          <a className='text-primary-6' href='tel:+971501052900'>
+            +971 50 105 2900
+          </a>
+          <Typography.Text className='text-12px text-t-secondary'>
+            {t('settings.discordComingSoon', {
+              defaultValue: 'Discord support will appear here once the community destination is finalized.',
+            })}
+          </Typography.Text>
+        </div>
+      </Modal>
     </div>
   );
 };

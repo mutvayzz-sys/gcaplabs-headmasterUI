@@ -23,7 +23,10 @@ export const BUILTIN_TAB_IDS = [
   // 'hermes', // Connection — hidden until remote-mode is a real user-facing feature
   'assistants',
   'agent',
-  'advanced',
+  'tools',
+  'skills-hub',
+  'integrations',
+  'channels',
   'appearance',
   'system',
   'about',
@@ -35,12 +38,12 @@ export const BUILTIN_TAB_IDS = [
  * This keeps older extensions working without requiring them to update.
  */
 export const LEGACY_ANCHOR_REMAP: Record<string, string> = {
-  'skills-hub': 'advanced',
-  tools: 'advanced',
+  'skills-hub': 'skills-hub',
+  tools: 'tools',
   display: 'appearance',
   runtime: 'hermes',
-  webui: 'advanced',
-  integrations: 'advanced',
+  webui: 'channels',
+  integrations: 'integrations',
 };
 
 /**
@@ -108,11 +111,29 @@ const SettingsSider: React.FC<{ collapsed?: boolean; tooltipEnabled?: boolean }>
         icon: <Speed />,
         path: 'agent',
       },
-      advanced: {
-        id: 'advanced',
-        label: t('settings.advancedSettings', { defaultValue: 'Tools & Integrations' }),
+      tools: {
+        id: 'tools',
+        label: t('settings.capabilitiesTab.tools', { defaultValue: 'Tools' }),
         icon: <Api />,
-        path: 'advanced',
+        path: 'tools',
+      },
+      'skills-hub': {
+        id: 'skills-hub',
+        label: t('settings.capabilitiesTab.skills', { defaultValue: 'Skills' }),
+        icon: <Puzzle />,
+        path: 'skills-hub',
+      },
+      integrations: {
+        id: 'integrations',
+        label: t('settings.integrations', { defaultValue: 'Integrations' }),
+        icon: <LinkCloud />,
+        path: 'integrations',
+      },
+      channels: {
+        id: 'channels',
+        label: t('settings.channels', { defaultValue: 'Channels' }),
+        icon: <LinkCloud />,
+        path: 'channels',
       },
       appearance: { id: 'appearance', label: t('settings.appearancePanel'), icon: <Computer />, path: 'appearance' },
       system: { id: 'system', label: t('settings.system'), icon: <System />, path: 'system' },

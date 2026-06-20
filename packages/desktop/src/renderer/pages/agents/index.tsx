@@ -105,7 +105,11 @@ const AgentsPage: React.FC = () => {
               <div
                 key={agent.id}
                 className='bg-fill-1 rd-10px border border-border-2 p-16px flex flex-col gap-10px hover:border-t-primary transition-colors cursor-pointer'
-                onClick={() => navigate(`/conversation/${agent.id}`)}
+                onClick={() =>
+                  navigate('/guid', {
+                    state: { selectedAgentKey: agent.id },
+                  })
+                }
               >
                 <div className='flex items-center gap-10px'>
                   {logo ? (
