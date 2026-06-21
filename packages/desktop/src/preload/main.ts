@@ -59,12 +59,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
 // Synchronously fetch the backend port/session token and expose it to the renderer
 // via contextBridge (direct window assignment is invisible under contextIsolation).
 const backendPort = ipcRenderer.sendSync('get-backend-port') as number;
+const aioncorePort = ipcRenderer.sendSync('get-aioncore-port') as number;
 const backendHost = ipcRenderer.sendSync('get-backend-host') as string;
 const hermesSessionToken = ipcRenderer.sendSync('get-hermes-session-token') as string;
 const initialLanguage = ipcRenderer.sendSync('get-initial-language') as string | null;
 const backendStartupFailed = ipcRenderer.sendSync('get-backend-startup-failed') as boolean;
 const backendStartupFailure = ipcRenderer.sendSync('get-backend-startup-failure') as unknown;
 contextBridge.exposeInMainWorld('__backendPort', backendPort > 0 ? backendPort : 0);
+contextBridge.exposeInMainWorld('__aioncorePort', aioncorePort > 0 ? aioncorePort : 0);
 contextBridge.exposeInMainWorld('__backendHost', backendHost || '127.0.0.1');
 contextBridge.exposeInMainWorld('__hermesSessionToken', hermesSessionToken || '');
 contextBridge.exposeInMainWorld('__initialLanguage', initialLanguage ?? null);

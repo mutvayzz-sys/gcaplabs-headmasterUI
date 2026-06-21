@@ -8,9 +8,17 @@
  * NOTE (Phase 1): this module reads `window.__backendPort` (the backend port).
  * The new Hermes dashboard port is exposed as `window.__hermesPort` via the
  * `useDashboardStatus` hook and consumed by Phase 2 code paths that migrate
- * endpoints to the Hermes REST surface. During Phase 1, `httpBridge.ts` must NOT
- * read `__hermesPort` — that would silently redirect backend calls to Hermes.
+ * endpoints to the Hermes REST surface. AionCore (Council / ACP) uses
+ * `window.__aioncorePort` via `aioncoreBridge.ts`.
  */
+
+import {
+  bindAioncoreWsListeners,
+  ensureAioncoreWs,
+  isAioncoreAvailable,
+  isAioncoreWsEvent,
+  resetAioncoreWsConnection,
+} from './aioncoreBridge';
 
 // ---------------------------------------------------------------------------
 // Base URL
@@ -23,6 +31,7 @@ declare global {
     __hermesPort?: number;
     __hermesSessionToken?: string;
     __hermesHome?: string;
+    __aioncorePort?: number;
   }
 }
 
@@ -387,12 +396,35 @@ export function stubProvider<Data, Params = undefined>(name: string, defaultValu
   };
 }
 
+/** In-process provider registry (renderer event bus). Used where upstream used IPC .provider() hooks. */
+export function callbackProvider<Data, Params = undefined>(
+  _name: string,
+  defaultValue: Data
+): ProviderLike<Data, Params> {
+  const handlers = new Set<(params: Params) => Promise<Data>>();
+  return {
+    provider: (handler: (params: Params) => Promise<Data>) => {
+      handlers.add(handler);
+      return () => {
+        handlers.delete(handler);
+      };
+    },
+    invoke: (async (params?: Params) => {
+      for (const handler of handlers) {
+        await handler(params as Params);
+      }
+      return defaultValue;
+    }) as ProviderLike<Data, Params>['invoke'],
+  };
+}
+
 // ---------------------------------------------------------------------------
 // WebSocket singleton
 // ---------------------------------------------------------------------------
 
 type WsCallback = (data: unknown) => void;
 const wsListeners = new Map<string, Set<WsCallback>>();
+bindAioncoreWsListeners(wsListeners);
 type GatewayEventCallback = (event: { type: string; session_id?: string; payload?: unknown }) => void;
 const gatewayEventListeners = new Set<GatewayEventCallback>();
 let ws: WebSocket | null = null;
@@ -410,6 +442,16 @@ let rpcWs: WebSocket | null = null;
 let rpcConnectPromise: Promise<void> | null = null;
 let rpcNextId = 0;
 const rpcPending = new Map<RpcId, PendingRpc>();
+
+function emitGatewayEvent(event: { type: string; session_id?: string; payload?: unknown }): void {
+  for (const listener of gatewayEventListeners) {
+    try {
+      listener(event);
+    } catch {
+      // A renderer listener must never break the shared RPC transport.
+    }
+  }
+}
 
 function rejectAllRpc(error: Error): void {
   for (const [id, pending] of rpcPending) {
@@ -435,6 +477,7 @@ function connectRpcWs(): Promise<void> {
     const onOpen = () => {
       cleanup();
       rpcConnectPromise = null;
+      emitGatewayEvent({ type: 'gateway.connected' });
       resolve();
     };
 
@@ -450,6 +493,10 @@ function connectRpcWs(): Promise<void> {
     socket.addEventListener('close', () => {
       if (rpcWs === socket) rpcWs = null;
       rejectAllRpc(new Error('Headmaster runtime connection closed'));
+      emitGatewayEvent({
+        type: 'gateway.disconnected',
+        payload: { message: 'Headmaster runtime connection closed' },
+      });
     });
     socket.addEventListener('message', (event) => {
       let frame: {
@@ -474,13 +521,7 @@ function connectRpcWs(): Promise<void> {
           session_id: frame.params.session_id,
           payload: frame.params.payload,
         };
-        for (const listener of gatewayEventListeners) {
-          try {
-            listener(gatewayEvent);
-          } catch {
-            // A renderer listener must never break the shared RPC transport.
-          }
-        }
+        emitGatewayEvent(gatewayEvent);
         return;
       }
       if (frame.id === undefined || frame.id === null) return;
@@ -559,6 +600,7 @@ export function resetHttpBridgeConnections(): void {
   rpcWs = null;
   rpcConnectPromise = null;
   rejectAllRpc(new Error('Headmaster runtime connection reset'));
+  resetAioncoreWsConnection();
 }
 
 function ensureWs(): void {
@@ -653,9 +695,11 @@ type EmitterLike<Params> = {
 export function wsEmitter<Params = undefined>(eventName: string): EmitterLike<Params> {
   return {
     on: (callback: (params: Params) => void) => {
-      // Native Hermes chat events arrive on the JSON-RPC socket and are
-      // translated locally into the inherited renderer event names.
-      if (!['message.stream', 'message.userCreated', 'turn.completed'].includes(eventName)) {
+      // Hermes chat events arrive on the JSON-RPC socket and are translated locally.
+      const hermesRpcEvents = ['message.stream', 'message.userCreated', 'turn.completed'];
+      if (isAioncoreAvailable() && isAioncoreWsEvent(eventName)) {
+        ensureAioncoreWs();
+      } else if (!hermesRpcEvents.includes(eventName)) {
         ensureWs();
       }
       if (!wsListeners.has(eventName)) {

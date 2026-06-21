@@ -60,6 +60,18 @@ const getApiKeyCount = (api_key: string): number => {
   return api_key.split(/[,\n]/).filter((k) => k.trim().length > 0).length;
 };
 
+const getAuthenticationLabel = (provider: IProvider, t: ReturnType<typeof useTranslation>['t']): string => {
+  if (provider.authentication_label) return provider.authentication_label;
+  const keyCount = getApiKeyCount(provider.api_key);
+  if (keyCount > 0) {
+    return t('settings.apiKeyCountValue', {
+      count: keyCount,
+      defaultValue: `${keyCount} API ${keyCount === 1 ? 'key' : 'keys'}`,
+    });
+  }
+  return t('settings.runtimeManagedCredentials', { defaultValue: 'Runtime-managed credentials' });
+};
+
 /**
  * 获取供应商的启用状态（全选/半选/全不选）
  * Get provider enable state (all/partial/none)
@@ -335,15 +347,17 @@ const ModelModalContent: React.FC = () => {
         <div className='flex items-center justify-between gap-8px flex-wrap'>
           <div className='text-20px font-600 text-t-primary leading-34px'>{t('settings.model')}</div>
           <div className='flex items-center gap-8px flex-wrap'>
-            <Button
-              type='outline'
-              shape='round'
-              size='small'
-              onClick={clearAllHealthData}
-              className='rd-100px border-1 border-solid border-[var(--color-border-2)] h-34px px-14px text-t-secondary hover:text-t-primary'
-            >
-              {t('settings.clearStatus')}
-            </Button>
+            {(data ?? []).some((provider) => !provider.managed_by_runtime) && (
+              <Button
+                type='outline'
+                shape='round'
+                size='small'
+                onClick={clearAllHealthData}
+                className='rd-100px border-1 border-solid border-[var(--color-border-2)] h-34px px-14px text-t-secondary hover:text-t-primary'
+              >
+                {t('settings.clearStatus')}
+              </Button>
+            )}
             <Button
               type='outline'
               shape='round'
@@ -438,19 +452,20 @@ const ModelModalContent: React.FC = () => {
                               className='cursor-pointer hover:text-t-primary transition-colors'
                               onClick={() => editModalCtrl.open({ data: platform })}
                             >
-                              {t('settings.apiKeyCount')}（{getApiKeyCount(platform.api_key)}）
+                              {getAuthenticationLabel(platform, t)}
                             </span>
                           </span>
                           <span className='text-12px text-t-secondary whitespace-nowrap md:hidden'>
-                            {(platform.models ?? []).length} / {getApiKeyCount(platform.api_key)}
+                            {(platform.models ?? []).length} · {getAuthenticationLabel(platform, t)}
                           </span>
                           {/* 供应商启用开关 / Provider enable switch */}
                           <Switch
                             size='small'
                             checked={getProviderState(platform).checked}
+                            disabled={platform.managed_by_runtime}
                             onChange={() => toggleProviderEnabled(platform)}
                           />
-                          <div className='flex items-center gap-4px'>
+                          {!platform.managed_by_runtime && <div className='flex items-center gap-4px'>
                             <Button
                               size='mini'
                               className='model-provider-action-btn !w-28px !h-28px !min-w-28px text-t-secondary hover:text-t-primary'
@@ -473,7 +488,7 @@ const ModelModalContent: React.FC = () => {
                               icon={<Write size='14' />}
                               onClick={() => editModalCtrl.open({ data: platform })}
                             />
-                          </div>
+                          </div>}
                         </div>
                       </div>
                     }
@@ -544,6 +559,7 @@ const ModelModalContent: React.FC = () => {
                               <Switch
                                 size='small'
                                 checked={isModelEnabled(platform, model)}
+                                disabled={platform.managed_by_runtime}
                                 onChange={(checked) => toggleModelEnabled(platform, model, checked)}
                               />
                             </div>
@@ -560,7 +576,7 @@ const ModelModalContent: React.FC = () => {
                                 />
                               </Tooltip>
 
-                              <Popconfirm
+                              {!platform.managed_by_runtime && <Popconfirm
                                 title={t('settings.deleteModelConfirm')}
                                 onOk={() => {
                                   const newModels = platform.models.filter((item: string) => item !== model);
@@ -591,7 +607,7 @@ const ModelModalContent: React.FC = () => {
                                   className='!w-28px !h-28px !min-w-28px !bg-[var(--color-bg-1)] text-t-secondary hover:text-t-primary hover:!bg-[var(--fill-0)]'
                                   icon={<DeleteFour theme='outline' size='18' strokeWidth={2} />}
                                 />
-                              </Popconfirm>
+                              </Popconfirm>}
                             </div>
                           </div>
                           {index < arr.length - 1 && <Divider className='!my-0 !border-[var(--color-border-2)]/70' />}

@@ -22,6 +22,9 @@ import {
 } from './agentSelectUtils';
 import type { TeamAgentOption } from './agentSelectUtils';
 import { resolveDefaultTeamAgentModel } from './teamCreateModelResolver';
+import { useCouncilSidecar } from '../hooks/useCouncilSidecar';
+import CouncilSidecarBanner from './CouncilSidecarBanner';
+import { isCouncilSidecarUnavailableError } from '@/common/errors/councilSidecar';
 
 // [E2E SYNC] 修改此组件的 DOM 结构（class、标题、关闭按钮等）时，
 // 必须同步更新 tests/e2e/cases/teams/team-create.e2e.ts 和 team-whitelist.e2e.ts 中的 selector，
@@ -72,6 +75,7 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
   const [searchExpanded, setSearchExpanded] = useState(false);
   const nameInputRef = useRef<RefInputType | null>(null);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
+  const { available: sidecarAvailable } = useCouncilSidecar();
 
   const handleToggleSearch = () => {
     if (searchExpanded) {
@@ -167,7 +171,8 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
         role: 'leader',
         status: 'pending',
         agent_type: dispatchAgentType,
-        agent_name: 'Leader',
+        agent_name: dispatchAgent?.name ?? 'Leader',
+        icon: dispatchAgent?.icon,
         conversation_type: dispatchConversationType,
         custom_agent_id: dispatchAgent?.id,
         model: resolvedModel,
@@ -191,6 +196,15 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
       onCreated(team);
       handleClose();
     } catch (error) {
+      if (isCouncilSidecarUnavailableError(error)) {
+        Message.error(
+          t('team.sidecar.required', {
+            defaultValue:
+              'Council requires the local runtime sidecar. Restart Headmaster or check logs in AppData.',
+          })
+        );
+        return;
+      }
       Message.error(getConversationCreateErrorMessage(error, t));
     } finally {
       setLoading(false);
@@ -235,7 +249,7 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
             type='primary'
             onClick={handleCreate}
             loading={loading}
-            disabled={!name.trim() || !dispatchAgentKey}
+            disabled={!name.trim() || !dispatchAgentKey || !sidecarAvailable}
             className='min-w-80px'
             style={{ borderRadius: 8 }}
           >
@@ -245,6 +259,7 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
       }
     >
       <div className='px-24px py-20px' style={{ maxHeight: 'min(72vh, 640px)', overflowY: 'auto' }}>
+        <CouncilSidecarBanner className='mb-16px' />
         <Form layout='vertical'>
           {/* Team name */}
           <FormItem

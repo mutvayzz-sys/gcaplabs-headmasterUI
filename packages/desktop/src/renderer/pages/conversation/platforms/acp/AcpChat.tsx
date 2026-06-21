@@ -35,6 +35,8 @@ const AcpChat: React.FC<{
   loadedMcpServers?: string[];
   loadedMcpStatuses?: IConversationMcpStatus[];
   assistantId?: string;
+  teamSendMessage?: (payload: { input: string; files: string[] }) => Promise<void>;
+  teamRuntime?: import('@/renderer/pages/team/components/teamSendRuntime').TeamSendBoxRuntime;
 }> = ({
   conversation_id,
   workspace,
@@ -48,6 +50,8 @@ const AcpChat: React.FC<{
   loadedMcpServers,
   loadedMcpStatuses,
   assistantId,
+  teamSendMessage,
+  teamRuntime,
 }) => {
   useMessageLstCache(conversation_id);
   usePendingConfirmationsRecovery(conversation_id);
@@ -82,6 +86,8 @@ const AcpChat: React.FC<{
               agent_name={agent_name}
               workspacePath={workspace}
               messageState={messageState}
+              teamSendMessage={teamSendMessage}
+              teamRuntime={teamRuntime}
             ></AcpSendBox>
           )}
         </div>

@@ -4,60 +4,32 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Alert, Avatar, Button, Card, Form, Input, Space, Tag, Tooltip, Typography } from '@arco-design/web-react';
-import { BookOne, Link as LinkIcon, Refresh, Right } from '@icon-park/react';
-import React, { useEffect, useState } from 'react';
+import { Alert, Button, Card, Form, Input, Modal, Radio, Space, Spin, Tag, Typography } from '@arco-design/web-react';
+import { Link as LinkIcon, Refresh } from '@icon-park/react';
+import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { configService } from '@/common/config/configService';
 import { openExternalUrl } from '@/renderer/utils/platform';
+import { DEFAULT_OPENCONCHO_URL, MEMORY_URL_KEY, useMemory } from '@/renderer/pages/memory/useMemory';
 
 const { Text, Title } = Typography;
-
-/**
- * Where the Memory tab points by default. Matches the published openconcho
- * Docker / prod container which serves the SPA on 8080. The user can change
- * this to any URL where they host openconcho.
- */
-const DEFAULT_MEMORY_URL = 'http://localhost:8080';
 const HONCHO_DEFAULT_URL = 'https://honcho.gcaplabs.com';
-
-const MEMORY_URL_KEY = 'memory.openconchoUrl' as const;
 const HONCHO_URL_KEY = 'memory.honchoUrl' as const;
 
-/**
- * Shared content used by both:
- *  - `pages/settings/MemorySettings.tsx` (the routed page in the sider)
- *  - `SettingsModal` when the user opens the Memory tab
- *
- * Renders two large "Open" cards: one for the openconcho Memory screen
- * (configurable URL, defaults to localhost:8080), one for the upstream
- * Honcho dashboard. Both use the existing openExternalUrl helper so they
- * open in the OS browser from a packaged build, and in a new tab from the
- * WebUI build.
- */
 const MemoryModalContent: React.FC = () => {
   const { t } = useTranslation();
-
-  const [memoryUrl, setMemoryUrl] = useState<string>(() => {
+  const { providers, provider, loading, error, refresh, updateProvider, resetMemory } = useMemory();
+  const [memoryUrl, setMemoryUrl] = useState(() => {
     const stored = configService.get(MEMORY_URL_KEY);
-    return typeof stored === 'string' && stored.trim() ? stored : DEFAULT_MEMORY_URL;
+    return typeof stored === 'string' && stored.trim() ? stored : DEFAULT_OPENCONCHO_URL;
   });
-  const [honchoUrl, setHonchoUrl] = useState<string>(() => {
+  const [honchoUrl, setHonchoUrl] = useState(() => {
     const stored = configService.get(HONCHO_URL_KEY);
     return typeof stored === 'string' && stored.trim() ? stored : HONCHO_DEFAULT_URL;
   });
-  const [savedMemory, setSavedMemory] = useState<string>(memoryUrl);
-  const [savedHoncho, setSavedHoncho] = useState<string>(honchoUrl);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  // Pick up any later changes to the cached values (e.g. from another tab).
-  useEffect(() => {
-    setSavedMemory(memoryUrl);
-  }, [memoryUrl]);
-  useEffect(() => {
-    setSavedHoncho(honchoUrl);
-  }, [honchoUrl]);
+  const [savingUrls, setSavingUrls] = useState(false);
+  const [urlError, setUrlError] = useState<string | null>(null);
+  const [resetting, setResetting] = useState(false);
 
   const isValidUrl = (s: string): boolean => {
     try {
@@ -68,170 +40,161 @@ const MemoryModalContent: React.FC = () => {
     }
   };
 
-  const handleSave = async () => {
-    setError(null);
-    if (!isValidUrl(memoryUrl)) {
-      setError(t('settings.memory.invalidUrl', { defaultValue: 'Enter a valid http(s) URL.' }));
+  const handleSaveUrls = async () => {
+    setUrlError(null);
+    if (!isValidUrl(memoryUrl) || !isValidUrl(honchoUrl)) {
+      setUrlError(t('settings.memory.invalidUrl', { defaultValue: 'Enter a valid http(s) URL.' }));
       return;
     }
-    if (!isValidUrl(honchoUrl)) {
-      setError(t('settings.memory.invalidUrl', { defaultValue: 'Enter a valid http(s) URL.' }));
-      return;
-    }
-    setSaving(true);
+    setSavingUrls(true);
     try {
       await Promise.all([
         configService.set(MEMORY_URL_KEY, memoryUrl.trim()),
         configService.set(HONCHO_URL_KEY, honchoUrl.trim()),
       ]);
-      setSavedMemory(memoryUrl.trim());
-      setSavedHoncho(honchoUrl.trim());
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      setError(msg);
+      setUrlError(err instanceof Error ? err.message : String(err));
     } finally {
-      setSaving(false);
+      setSavingUrls(false);
     }
   };
 
-  const handleReset = () => {
-    setMemoryUrl(DEFAULT_MEMORY_URL);
-    setHonchoUrl(HONCHO_DEFAULT_URL);
+  const handleResetMemory = () => {
+    Modal.confirm({
+      title: t('settings.memory.resetConfirmTitle', { defaultValue: 'Reset memory?' }),
+      content: t('settings.memory.resetConfirmBody', {
+        defaultValue: 'This clears persisted runtime memory. This cannot be undone.',
+      }),
+      okButtonProps: { status: 'danger' },
+      onOk: async () => {
+        setResetting(true);
+        try {
+          await resetMemory();
+          refresh();
+        } finally {
+          setResetting(false);
+        }
+      },
+    });
   };
 
-  const openMemory = () => {
-    void openExternalUrl(savedMemory);
-  };
-  const openHoncho = () => {
-    void openExternalUrl(savedHoncho);
-  };
-
-  const dirty = memoryUrl.trim() !== savedMemory || honchoUrl.trim() !== savedHoncho;
+  const builtinFiles = (provider?.config?.files as Record<string, number> | undefined) ?? {};
 
   return (
     <div className='flex flex-col gap-16px pb-16px max-w-960px'>
       <header className='flex flex-col gap-4px'>
         <Title heading={4} style={{ margin: 0 }}>
-          {t('settings.memory.title', { defaultValue: 'Memory' })}
+          {t('settings.memory.title', { defaultValue: 'Memory & Context' })}
         </Title>
         <Text type='secondary'>
-          {t('settings.memory.subtitle', {
-            defaultValue:
-              'Open the Memory screen to browse peer memory, sessions, conclusions, and dream history for this workspace.',
+          {t('settings.memory.runtimeSubtitle', {
+            defaultValue: 'Configure how the runtime stores and retrieves persistent memory.',
           })}
         </Text>
       </header>
 
-      {error ? <Alert type='error' content={error} /> : null}
+      {(error || urlError) && <Alert type='error' content={error || urlError} />}
 
-      <Card bordered>
-        <div className='flex items-center gap-12px'>
-          <Avatar size={40} style={{ background: 'var(--color-primary-light-3, #e8f3ff)' }}>
-            <BookOne theme='outline' size='20' />
-          </Avatar>
-          <div className='flex-1 min-w-0'>
-            <div className='flex items-center gap-8px'>
-              <Text bold style={{ fontSize: 15 }}>
-                {t('settings.memory.openconchoTitle', { defaultValue: 'OpenConcho Memory screen' })}
-              </Text>
-              <Tag size='small' color='gray'>
-                {t('settings.memory.beta', { defaultValue: 'External' })}
-              </Tag>
-            </div>
-            <Text type='secondary' style={{ fontSize: 12 }} ellipsis>
-              {t('settings.memory.openconchoSubtitle', {
-                defaultValue: 'Browse memories, peers, sessions, and conclusions for the active Honcho instance.',
-              })}
-            </Text>
+      <Card
+        title={t('settings.memory.providerTitle', { defaultValue: 'Active memory provider' })}
+        extra={
+          <Button type='text' size='small' icon={<Refresh theme='outline' size={14} />} onClick={refresh} disabled={loading}>
+            {t('common.refresh', { defaultValue: 'Refresh' })}
+          </Button>
+        }
+        bordered
+      >
+        {loading ? (
+          <div className='flex justify-center py-24px'>
+            <Spin />
           </div>
-          <Tooltip content={t('settings.memory.openTooltip', { defaultValue: 'Open in browser' })}>
-            <Button type='primary' icon={<LinkIcon />} onClick={openMemory}>
-              {t('settings.memory.open', { defaultValue: 'Open' })}
-            </Button>
-          </Tooltip>
+        ) : (
+          <Radio.Group
+            value={provider?.id}
+            onChange={(value) => void updateProvider(String(value), { enabled: true })}
+            direction='vertical'
+            className='flex flex-col gap-8px'
+          >
+            {providers.map((p) => (
+              <div key={p.id} className='flex min-h-32px items-center'>
+                <Radio value={p.id} className='!m-0 !leading-normal'>
+                  <span className='text-14px text-t-primary'>{p.name}</span>
+                  {p.enabled && (
+                    <Tag size='small' color='green' className='ml-8px'>
+                      {t('settings.memory.active', { defaultValue: 'Active' })}
+                    </Tag>
+                  )}
+                </Radio>
+              </div>
+            ))}
+          </Radio.Group>
+        )}
+
+        {Object.keys(builtinFiles).length > 0 && (
+          <div className='mt-16px pt-12px border-t border-border-2'>
+            <Text bold className='text-13px'>
+              {t('settings.memory.builtinFiles', { defaultValue: 'Built-in markdown files' })}
+            </Text>
+            <div className='mt-8px flex flex-col gap-4px'>
+              {Object.entries(builtinFiles).map(([name, count]) => (
+                <div key={name} className='flex justify-between text-12px text-t-secondary'>
+                  <span>{name}</span>
+                  <span>{count}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div className='mt-16px'>
+          <Button status='danger' type='outline' loading={resetting} onClick={handleResetMemory}>
+            {t('settings.memory.resetRuntime', { defaultValue: 'Reset runtime memory' })}
+          </Button>
         </div>
       </Card>
 
-      <Card bordered>
-        <div className='flex items-center gap-12px'>
-          <Avatar size={40} style={{ background: 'var(--color-primary-light-3, #e8f3ff)' }}>
-            <Right theme='outline' size='20' />
-          </Avatar>
-          <div className='flex-1 min-w-0'>
-            <Text bold style={{ fontSize: 15 }}>
-              {t('settings.memory.honchoTitle', { defaultValue: 'Honcho dashboard' })}
-            </Text>
+      <Card title={t('settings.memory.externalTitle', { defaultValue: 'External memory dashboards' })} bordered>
+        <Space direction='vertical' size={12} className='w-full'>
+          <div className='flex items-center justify-between gap-12px'>
             <div>
-              <Text type='secondary' style={{ fontSize: 12 }}>
-                {t('settings.memory.honchoSubtitle', {
-                  defaultValue: 'The raw Honcho API surface, used by the Memory screen above.',
-                })}
-              </Text>
+              <Text bold>{t('settings.memory.openconchoTitle', { defaultValue: 'OpenConcho Memory screen' })}</Text>
+              <div>
+                <Text type='secondary' style={{ fontSize: 12 }}>
+                  {t('settings.memory.openconchoEmbedHint', {
+                    defaultValue: 'Shown in the sidebar Memory tab.',
+                  })}
+                </Text>
+              </div>
             </div>
-          </div>
-          <Tooltip content={t('settings.memory.openTooltip', { defaultValue: 'Open in browser' })}>
-            <Button icon={<LinkIcon />} onClick={openHoncho}>
+            <Button icon={<LinkIcon />} onClick={() => void openExternalUrl(memoryUrl)}>
               {t('settings.memory.open', { defaultValue: 'Open' })}
             </Button>
-          </Tooltip>
-        </div>
+          </div>
+          <div className='flex items-center justify-between gap-12px'>
+            <div>
+              <Text bold>{t('settings.memory.honchoTitle', { defaultValue: 'Honcho dashboard' })}</Text>
+            </div>
+            <Button icon={<LinkIcon />} onClick={() => void openExternalUrl(honchoUrl)}>
+              {t('settings.memory.open', { defaultValue: 'Open' })}
+            </Button>
+          </div>
+        </Space>
       </Card>
 
       <Card title={t('settings.memory.connectionsTitle', { defaultValue: 'Connection URLs' })} bordered>
         <Form layout='vertical'>
-          <Form.Item
-            label={t('settings.memory.memoryUrlLabel', { defaultValue: 'Memory screen URL' })}
-            extra={t('settings.memory.memoryUrlHelp', {
-              defaultValue:
-                'The web URL where openconcho is hosted. Defaults to the published container on localhost:8080.',
-            })}
-          >
-            <Input
-              value={memoryUrl}
-              onChange={setMemoryUrl}
-              placeholder={DEFAULT_MEMORY_URL}
-              allowClear
-              disabled={saving}
-            />
+          <Form.Item label={t('settings.memory.memoryUrlLabel', { defaultValue: 'OpenConcho URL' })}>
+            <Input value={memoryUrl} onChange={setMemoryUrl} placeholder={DEFAULT_OPENCONCHO_URL} disabled={savingUrls} />
           </Form.Item>
-          <Form.Item
-            label={t('settings.memory.honchoUrlLabel', { defaultValue: 'Honcho dashboard URL' })}
-            extra={t('settings.memory.honchoUrlHelp', {
-              defaultValue: 'Upstream Honcho base URL. Used by the Memory screen.',
-            })}
-          >
-            <Input
-              value={honchoUrl}
-              onChange={setHonchoUrl}
-              placeholder={HONCHO_DEFAULT_URL}
-              allowClear
-              disabled={saving}
-            />
+          <Form.Item label={t('settings.memory.honchoUrlLabel', { defaultValue: 'Honcho dashboard URL' })}>
+            <Input value={honchoUrl} onChange={setHonchoUrl} placeholder={HONCHO_DEFAULT_URL} disabled={savingUrls} />
           </Form.Item>
         </Form>
-
-        <div className='flex items-center justify-end gap-8px mt-8px'>
-          <Button icon={<Refresh theme='outline' size='14' />} onClick={handleReset} disabled={saving}>
-            {t('settings.memory.reset', { defaultValue: 'Reset to defaults' })}
-          </Button>
-          <Button type='primary' onClick={handleSave} disabled={saving || !dirty}>
-            {saving
-              ? t('settings.memory.saving', { defaultValue: 'Saving…' })
-              : t('settings.memory.save', { defaultValue: 'Save' })}
+        <div className='flex justify-end'>
+          <Button type='primary' onClick={() => void handleSaveUrls()} loading={savingUrls}>
+            {t('settings.memory.save', { defaultValue: 'Save' })}
           </Button>
         </div>
-      </Card>
-
-      <Card bordered>
-        <Space direction='vertical' size={4}>
-          <Text bold>{t('settings.memory.footerTitle', { defaultValue: 'About this screen' })}</Text>
-          <Text type='secondary'>
-            {t('settings.memory.footerBody', {
-              defaultValue:
-                'The Memory screen is a separate web app. The links above open it in your system browser with the connection details it needs to talk to the upstream Honcho instance. URL changes here only affect which address the Open buttons point to — they do not change how Headmaster talks to the runtime.',
-            })}
-          </Text>
-        </Space>
       </Card>
     </div>
   );

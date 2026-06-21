@@ -5,6 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
+import { sanitizeAgentMetadata } from '@/common/agent/agentDisplayNames';
 
 /** SWR key for agent metadata rows (from `/api/agents`). */
 export const DETECTED_AGENTS_SWR_KEY = 'agents.detected';
@@ -106,7 +107,7 @@ export async function fetchDetectedAgents(): Promise<AgentMetadata[]> {
   try {
     const agents = await ipcBridge.acpConversation.getAvailableAgents.invoke();
     if (Array.isArray(agents)) {
-      return agents as AgentMetadata[];
+      return (agents as AgentMetadata[]).map((agent) => sanitizeAgentMetadata(agent));
     }
   } catch {
     // fallback to empty

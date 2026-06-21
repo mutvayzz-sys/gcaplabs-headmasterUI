@@ -21,39 +21,52 @@ export const resolveGuidAssistantDefaults = (
     };
   }
 
+  const defaults = detail.defaults;
+  const preferences = detail.preferences;
+  const capabilities = detail.capabilities;
+  if (!defaults || !preferences || !capabilities) {
+    return {
+      modelId: undefined,
+      permissionMode: undefined,
+      skillIds: [],
+      disabledBuiltinSkillIds: [],
+      mcpIds: [],
+    };
+  }
+
   const modelId =
-    detail.defaults.model.mode === 'fixed'
-      ? detail.defaults.model.value
-      : detail.defaults.model.mode === 'auto'
-        ? detail.preferences.last_model_id
+    defaults.model?.mode === 'fixed'
+      ? defaults.model.value
+      : defaults.model?.mode === 'auto'
+        ? preferences.last_model_id
         : undefined;
 
   const permissionMode =
-    detail.defaults.permission.mode === 'fixed'
-      ? detail.defaults.permission.value
-      : detail.defaults.permission.mode === 'auto'
-        ? detail.preferences.last_permission_value
+    defaults.permission?.mode === 'fixed'
+      ? defaults.permission.value
+      : defaults.permission?.mode === 'auto'
+        ? preferences.last_permission_value
         : undefined;
 
   const skillIds =
-    detail.defaults.skills.mode === 'fixed'
-      ? (detail.defaults.skills.value ?? [])
-      : detail.defaults.skills.mode === 'auto'
-        ? (detail.preferences.last_skill_ids ?? [])
+    defaults.skills?.mode === 'fixed'
+      ? (defaults.skills.value ?? [])
+      : defaults.skills?.mode === 'auto'
+        ? (preferences.last_skill_ids ?? [])
         : [];
 
   const disabledBuiltinSkillIds =
-    detail.defaults.skills.mode === 'fixed'
-      ? (detail.capabilities.default_disabled_builtin_skill_ids ?? [])
-      : detail.defaults.skills.mode === 'auto'
-        ? (detail.preferences.last_disabled_builtin_skill_ids ?? [])
+    defaults.skills?.mode === 'fixed'
+      ? (capabilities.default_disabled_builtin_skill_ids ?? [])
+      : defaults.skills?.mode === 'auto'
+        ? (preferences.last_disabled_builtin_skill_ids ?? [])
         : [];
 
   const mcpIds =
-    detail.defaults.mcps.mode === 'fixed'
-      ? (detail.defaults.mcps.value ?? [])
-      : detail.defaults.mcps.mode === 'auto'
-        ? (detail.preferences.last_mcp_ids ?? [])
+    defaults.mcps?.mode === 'fixed'
+      ? (defaults.mcps.value ?? [])
+      : defaults.mcps?.mode === 'auto'
+        ? (preferences.last_mcp_ids ?? [])
         : [];
 
   return {

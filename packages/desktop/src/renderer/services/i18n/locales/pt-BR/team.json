@@ -48,12 +48,16 @@
     "confirmTitle": "Remover Membro da Equipe",
     "confirmContent": "Este membro está ativo no momento. Forçar remoção?"
   },
+  "sidecar": {
+    "required": "O Conselho exige o sidecar local do runtime. Reinicie o Headmaster ou verifique os logs em AppData antes de criar ou enviar mensagens.",
+    "requiredShort": "O sidecar do Conselho não está em execução. Reinicie o Headmaster para criar um Conselho."
+  },
   "emptyState": {
     "subtitle": "Descreva seu objetivo e farei a equipe trabalhar nisso",
     "suggestions": {
-      "debate": "Organizar um debate com agentes tomando lados diferentes",
-      "interview": "Planejar uma entrevista aprofundada entre os agentes",
-      "expert_review": "Ter vários especialistas analisando o mesmo problema"
+      "debate": "Crie Specialists para um debate estruturado: moderador, defensor, contestador e sintetizador. Dê a cada um uma posição distinta, conduza o debate e resuma.",
+      "interview": "Crie Specialists entrevistador e especialistas, depois conduza um Q&A estruturado sobre o tema que eu descrever.",
+      "expert_review": "Crie vários Specialists especialistas com áreas diferentes, peça que cada um revise o problema e depois sintetize as conclusões."
     }
   }
 }

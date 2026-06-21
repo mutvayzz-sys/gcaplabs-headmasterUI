@@ -7,7 +7,7 @@
     "title": "Hi, what's your plan for today?",
     "placeholder": "Send a message, upload files, open a folder, or create a scheduled task...",
     "linkFolder": "Open Folder",
-    "newConversation": "New Mission",
+    "newConversation": "New Chat",
     "selectModel": "Select Model",
     "useCliModel": "Select Model",
     "modelSwitchNotSupported": "Model list will be available after first connection. Send a message to connect and load available models.",
@@ -75,7 +75,7 @@
     "removeProjectTitle": "Remove project",
     "removeProject": "Remove project",
     "removeProjectConfirm": "Remove project \"{{name}}\"? Its {{count}} conversation(s) will be removed too.",
-    "newConversationInProject": "New Mission in this project"
+    "newConversationInProject": "New Chat in this project"
   },
   "historySearch": {
     "tooltip": "Search messages",
@@ -289,7 +289,7 @@
     "empty": "It's empty",
     "emptyDescription": "Files will appear here after uploading files or opening a folder",
     "searchPlaceholder": "Search files...",
-    "createNewConversation": "Start new Mission in current project",
+    "createNewConversation": "Start a new Chat in the current project",
     "search.empty": "The search result is empty",
     "addFile": "Add File",
     "refresh": "Refresh",

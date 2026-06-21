@@ -6,6 +6,7 @@
 
 import { ipcBridge } from '@/common';
 import type { IMessageToolGroup } from '@/common/chat/chatLib';
+import { sanitizeMcpServerDisplayName, sanitizeToolDisplayName } from '@/common/agent/agentDisplayNames';
 import { iconColors } from '@/renderer/styles/colors';
 import { Alert, Button, Image, Message, Radio, Tag, Tooltip } from '@arco-design/web-react';
 import { Copy, Download, LoadingOne } from '@icon-park/react';
@@ -97,9 +98,11 @@ const useConfirmationButtons = (
         break;
       default: {
         const mcpProps = confirmationDetails;
+        const toolName = sanitizeToolDisplayName(mcpProps.tool_name);
+        const serverName = sanitizeMcpServerDisplayName(mcpProps.server_name);
         question = t('messages.confirmation.allowMCPTool', {
-          toolName: mcpProps.tool_name,
-          serverName: mcpProps.server_name,
+          toolName,
+          serverName,
         });
         options.push(
           {
@@ -108,14 +111,14 @@ const useConfirmationButtons = (
           },
           {
             label: t('messages.confirmation.yesAlwaysAllowTool', {
-              toolName: mcpProps.tool_name,
-              serverName: mcpProps.server_name,
+              toolName,
+              serverName,
             }),
             value: ToolConfirmationOutcome.ProceedAlwaysTool,
           },
           {
             label: t('messages.confirmation.yesAlwaysAllowServer', {
-              serverName: mcpProps.server_name,
+              serverName,
             }),
             value: ToolConfirmationOutcome.ProceedAlwaysServer,
           },
@@ -178,7 +181,7 @@ const ConfirmationDetails: React.FC<{
       case 'info':
         return <span className='text-t-primary'>{confirmationDetails.prompt}</span>;
       case 'mcp':
-        return <span className='text-t-primary'>{confirmationDetails.tool_display_name}</span>;
+        return <span className='text-t-primary'>{sanitizeToolDisplayName(confirmationDetails.tool_display_name)}</span>;
     }
   }, [confirmationDetails]);
 
@@ -483,6 +486,7 @@ const MessageToolGroup: React.FC<IMessageToolGroupProps> = ({ message }) => {
     <div>
       {message.content.map((content, index) => {
         const { status, call_id, name, description, result_display, confirmationDetails } = content;
+        const displayName = sanitizeToolDisplayName(name);
         const isLoading = status !== 'Success' && status !== 'Error' && status !== 'Canceled';
         // status === "Confirming" &&
         if (confirmationDetails) {
@@ -556,7 +560,7 @@ const MessageToolGroup: React.FC<IMessageToolGroupProps> = ({ message }) => {
               content={
                 <div>
                   <Tag className={'mr-4px'}>
-                    {name}
+                    {displayName}
                     {status === 'Canceled' ? `(${t('messages.canceledExecution')})` : ''}
                   </Tag>
                 </div>

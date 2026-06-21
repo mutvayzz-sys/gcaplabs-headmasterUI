@@ -18,8 +18,8 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 
-const GITHUB_OWNER = 'mutvayzz-sys';
-const GITHUB_REPO = 'Adonis Core';
+const GITHUB_OWNER = 'iOfficeAI';
+const GITHUB_REPO = 'AionCore';
 
 const ACTIONS_ARTIFACT_TARGETS = {
   'darwin-arm64': {

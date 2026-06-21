@@ -6,7 +6,7 @@
 
 import React from 'react';
 
-type Props = { children: React.ReactNode };
+type Props = { children: React.ReactNode; resetKey?: string };
 type State = { error: Error | null };
 
 /**
@@ -25,6 +25,12 @@ export class AppErrorBoundary extends React.Component<Props, State> {
 
   override componentDidCatch(error: Error, info: React.ErrorInfo) {
     console.error('[AppErrorBoundary] Render error:', error, info.componentStack);
+  }
+
+  override componentDidUpdate(previousProps: Props) {
+    if (this.state.error && previousProps.resetKey !== this.props.resetKey) {
+      this.setState({ error: null });
+    }
   }
 
   override render() {

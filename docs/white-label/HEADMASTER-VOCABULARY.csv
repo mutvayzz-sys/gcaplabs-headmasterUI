@@ -5,7 +5,7 @@ aionui.com,gcaplabs.com/headmaster,Marketing URL,Or headmaster.app — pick late
 aionrs (Rust backend),Adonis,Backend engine,The backend becomes 'Adonis Core' in marketing. Same root as the model name.,LOCKED
 Cowork,Work Along,Verb / mode,"Agents on your side, asking as it goes. Lina-coded. NOT 'Ops' (too techie).",LOCKED
 Cowork Mode,Work Along,Mode,Set to Work Along.,LOCKED
-New Chat,New Mission,Action button,Matches the 'ask once' framing.,LOCKED
+New Chat,New Chat,Action button,Starts or continues a durable chat.,LOCKED
 Run (autonomous solo),Run It Yourself,Mode,Lina-coded — let them handle it.,LOCKED
 YOLO Mode (auto-approve),Hands-Off,Mode,Don't ping me for every step.,LOCKED
 Full-Auto Mode,Autopilot,Mode,Set to Autopilot for 24/7 scheduled work.,LOCKED

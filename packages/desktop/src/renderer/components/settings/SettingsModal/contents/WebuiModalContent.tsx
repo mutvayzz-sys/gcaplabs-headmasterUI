@@ -61,7 +61,7 @@ const DESKTOP_WEBUI_ALLOW_REMOTE_KEY = 'webui.desktop.allowRemote';
  * WebUI 设置内容组件
  * WebUI settings content component
  */
-const WebuiModalContent: React.FC = () => {
+const WebuiModalContent: React.FC<{ webuiOnly?: boolean }> = ({ webuiOnly = false }) => {
   const { t } = useTranslation();
   const viewMode = useSettingsViewMode();
   const isPageMode = viewMode === 'page';
@@ -782,6 +782,10 @@ const WebuiModalContent: React.FC = () => {
       </div>
     </AionScrollArea>
   );
+
+  if (webuiOnly) {
+    return <div className='flex flex-col w-full'>{webuiPanel}</div>;
+  }
 
   return (
     <div className='flex flex-col h-full w-full'>

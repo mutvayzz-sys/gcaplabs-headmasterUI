@@ -379,7 +379,7 @@ const Layout: React.FC<{
                 {/* 侧栏折叠改由标题栏统一控制 / Sidebar folding handled by Titlebar toggle */}
               </ArcoLayout.Header>
               <ArcoLayout.Content className='pt-0 px-8px pb-0 layout-sider-content'>
-                <AppErrorBoundary>
+                <AppErrorBoundary resetKey={`sider:${location.pathname}`}>
                   {React.isValidElement(sider)
                     ? React.cloneElement(sider, {
                         onSessionClick: () => {
@@ -416,7 +416,7 @@ const Layout: React.FC<{
                   : undefined
               }
             >
-              <AppErrorBoundary>
+              <AppErrorBoundary resetKey={`${location.pathname}${location.search}${location.hash}`}>
                 <Outlet />
               </AppErrorBoundary>
               {directorySelectionContextHolder}

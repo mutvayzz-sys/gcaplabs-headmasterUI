@@ -1,6 +1,16 @@
 import { ipcBridge } from '@/common';
-import { Button, Message, Modal, Typography } from '@arco-design/web-react';
-import { Delete, FolderOpen, Info, Lightning, Puzzle, Search, Refresh } from '@icon-park/react';
+import { httpPut } from '@/common/adapter/httpBridge';
+import { Message, Switch } from '@arco-design/web-react';
+import { Info, Puzzle, Search, Refresh } from '@icon-park/react';
+import {
+  Clock,
+  Code,
+  Globe,
+  GraduationCap,
+  PuzzlePiece,
+  Terminal,
+  Wrench,
+} from '@phosphor-icons/react';
 import React, { useCallback, useEffect, useRef, useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router-dom';
@@ -19,6 +29,8 @@ interface SkillInfo {
   relative_location?: string;
   is_custom: boolean;
   source?: 'builtin' | 'custom' | 'extension';
+  category?: string;
+  enabled?: boolean;
 }
 
 // Normalize skill name for data-testid usage
@@ -26,22 +38,40 @@ const normalizeTestId = (name: string): string => {
   return name.replace(/[:/\s<>"'|?*]/g, '-');
 };
 
-const getAvatarColorClass = (name: string) => {
-  if (!name) return 'bg-[#165DFF] text-white';
-  const colors = [
-    'bg-[#165DFF] text-white', // Blue
-    'bg-[#00B42A] text-white', // Green
-    'bg-[#722ED1] text-white', // Purple
-    'bg-[#F5319D] text-white', // Pink
-    'bg-[#F77234] text-white', // Orange
-    'bg-[#14C9C9] text-white', // Cyan
-  ];
-  let hash = 0;
-  for (let i = 0; i < name.length; i++) {
-    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+function skillCategory(skill: SkillInfo): string {
+  const cat = skill.category?.trim();
+  if (cat) return cat.toLowerCase();
+  const rel = skill.relative_location?.split('/')[0]?.toLowerCase();
+  if (rel) return rel;
+  const name = skill.name.toLowerCase();
+  if (name.includes('cron') || name.includes('schedule')) return 'automation';
+  if (name.includes('web') || name.includes('browser')) return 'web';
+  if (name.includes('code') || name.includes('git')) return 'coding';
+  return 'general';
+}
+
+function SkillIcon({ category, name }: { category: string; name: string }) {
+  const props = { size: 20, weight: 'duotone' as const, className: 'text-t-primary' };
+  switch (category) {
+    case 'coding':
+    case 'code':
+      return <Code {...props} />;
+    case 'automation':
+    case 'cron':
+      return <Clock {...props} />;
+    case 'web':
+      return <Globe {...props} />;
+    case 'terminal':
+    case 'cli':
+      return <Terminal {...props} />;
+    case 'tools':
+      return <Wrench {...props} />;
+    case 'extension':
+      return <PuzzlePiece {...props} />;
+    default:
+      return name.toLowerCase().includes('skill') ? <GraduationCap {...props} /> : <GraduationCap {...props} />;
   }
-  return colors[Math.abs(hash) % colors.length];
-};
+}
 
 interface SkillsHubSettingsProps {
   /** When false, renders without SettingsPageWrapper — useful for embedding in a tab */
@@ -56,33 +86,48 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
   const skillRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const [loading, setLoading] = useState(false);
   const [availableSkills, setAvailableSkills] = useState<SkillInfo[]>([]);
-  const [skillPaths, setSkillPaths] = useState<{ user_skills_dir: string; builtin_skills_dir: string } | null>(null);
   const [search_query, setSearchQuery] = useState('');
-  const [builtinAutoSkills, setBuiltinAutoSkills] = useState<Array<{ name: string; description: string }>>([]);
+  const [activeCategory, setActiveCategory] = useState<string>('all');
 
   const mySkills = useMemo(() => availableSkills.filter((s) => s.source !== 'extension'), [availableSkills]);
   const extensionSkills = useMemo(() => availableSkills.filter((s) => s.source === 'extension'), [availableSkills]);
 
+  const categories = useMemo(() => {
+    const set = new Set<string>();
+    mySkills.forEach((s) => set.add(skillCategory(s)));
+    return ['all', ...Array.from(set).sort()];
+  }, [mySkills]);
+
   const filteredSkills = useMemo(() => {
-    if (!search_query.trim()) return mySkills;
-    const lowerQuery = search_query.toLowerCase();
-    return mySkills.filter(
-      (s) =>
-        s.name.toLowerCase().includes(lowerQuery) || (s.description && s.description.toLowerCase().includes(lowerQuery))
-    );
-  }, [mySkills, search_query]);
+    const lowerQuery = search_query.trim().toLowerCase();
+    return mySkills.filter((s) => {
+      if (activeCategory !== 'all' && skillCategory(s) !== activeCategory) return false;
+      if (!lowerQuery) return true;
+      return (
+        s.name.toLowerCase().includes(lowerQuery) ||
+        (s.description && s.description.toLowerCase().includes(lowerQuery)) ||
+        skillCategory(s).includes(lowerQuery)
+      );
+    });
+  }, [mySkills, search_query, activeCategory]);
+
+  const toggleSkill = useCallback(async (name: string, enabled: boolean) => {
+    try {
+      await httpPut<{ ok: boolean }, { name: string; enabled: boolean }>('/api/skills/toggle').invoke({
+        name,
+        enabled,
+      });
+      setAvailableSkills((prev) => prev.map((s) => (s.name === name ? { ...s, enabled } : s)));
+    } catch (error) {
+      Message.error(String(error));
+    }
+  }, []);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
       const skills = await ipcBridge.fs.listAvailableSkills.invoke();
       setAvailableSkills(skills);
-
-      const paths = await ipcBridge.fs.getSkillPaths.invoke();
-      setSkillPaths(paths);
-
-      const autoSkills = await ipcBridge.fs.listBuiltinAutoSkills.invoke();
-      setBuiltinAutoSkills(autoSkills);
     } catch (error) {
       console.error('Failed to fetch skills:', error);
       Message.error(t('settings.skillsHub.fetchError', { defaultValue: 'Failed to fetch skills' }));
@@ -112,56 +157,6 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
       });
     }
   }, [highlightName, loading, availableSkills, setSearchParams]);
-
-  const handleImport = async (skillPath: string) => {
-    try {
-      const result = await ipcBridge.fs.importSkillWithSymlink.invoke({ skill_path: skillPath });
-      const importedNames = result.skill_names?.length
-        ? result.skill_names
-        : result.skill_name
-          ? [result.skill_name]
-          : [];
-      const count = importedNames.length;
-      const names = importedNames.join(', ');
-      Message.success(
-        t('settings.skillsHub.importSuccessDetailed', {
-          count,
-          names,
-          defaultValue: count > 1 ? `Imported ${count} skills: ${names}` : `Imported skill: ${names}`,
-        })
-      );
-      setSearchQuery('');
-      void fetchData();
-    } catch (error) {
-      console.error('Failed to import skill:', error);
-      Message.error(t('settings.skillsHub.importError', { defaultValue: 'Error importing skill' }));
-    }
-  };
-
-  const handleDelete = async (skillName: string) => {
-    try {
-      await ipcBridge.fs.deleteSkill.invoke({ skill_name: skillName });
-      Message.success(t('settings.skillsHub.deleteSuccess', { defaultValue: 'Skill deleted' }));
-      void fetchData();
-    } catch (error) {
-      console.error('Failed to delete skill:', error);
-      Message.error(t('settings.skillsHub.deleteError', { defaultValue: 'Error deleting skill' }));
-    }
-  };
-
-  const handleManualImport = async () => {
-    try {
-      const result = await ipcBridge.dialog.showOpen.invoke({
-        properties: ['openFile', 'openDirectory'],
-        filters: [{ name: 'Skill folders or zip archives', extensions: ['zip'] }],
-      });
-      if (result && result.length > 0) {
-        await handleImport(result[0]);
-      }
-    } catch (error) {
-      console.error('Failed to open directory dialog:', error);
-    }
-  };
 
   const mainContent = (
     <div className='flex flex-col h-full w-full'>
@@ -193,7 +188,7 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
               </button>
             </div>
 
-            <div className='flex flex-col sm:flex-row items-stretch sm:items-center gap-12px w-full lg:w-auto shrink-0'>
+            <div className='flex items-center gap-12px w-full lg:w-auto shrink-0'>
               <div className='relative group shrink-0 w-full sm:w-[200px] lg:w-[240px]'>
                 <div className='absolute left-12px top-1/2 -translate-y-1/2 text-t-tertiary group-focus-within:text-primary-6 flex pointer-events-none transition-colors'>
                   <Search size={15} />
@@ -208,28 +203,25 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
                 />
               </div>
 
-              <button
-                data-testid='btn-manual-import'
-                className='flex items-center justify-center gap-6px px-16px py-6px bg-base border border-border-1 hover:border-border-2 hover:bg-fill-1 text-t-primary rd-8px shadow-sm transition-all focus:outline-none shrink-0 cursor-pointer whitespace-nowrap'
-                onClick={handleManualImport}
-              >
-                <FolderOpen size={15} className='text-t-secondary' />
-                <span className='text-13px font-medium'>
-                  {t('settings.skillsHub.manualImport', { defaultValue: 'Import Skills' })}
-                </span>
-              </button>
             </div>
           </div>
 
-          {/* Path Display moved below the toolbar */}
-          {skillPaths && (
-            <div className='flex items-center gap-8px text-12px text-t-tertiary font-mono bg-transparent py-4px mb-16px relative z-10 pt-4px border-t border-t-transparent'>
-              <FolderOpen size={16} className='shrink-0' />
-              <span className='truncate' title={skillPaths.user_skills_dir}>
-                {skillPaths.user_skills_dir}
-              </span>
-            </div>
-          )}
+          <div className='flex flex-wrap gap-8px mb-16px relative z-10'>
+            {categories.map((cat) => (
+              <button
+                key={cat}
+                type='button'
+                onClick={() => setActiveCategory(cat)}
+                className={`px-10px py-4px rd-100px text-12px font-medium border transition-colors ${
+                  activeCategory === cat
+                    ? 'bg-[rgba(var(--primary-6),0.12)] border-primary-5 text-primary-6'
+                    : 'bg-fill-1 border-border-2 text-t-secondary hover:text-t-primary'
+                }`}
+              >
+                {cat === 'all' ? t('common.all', { defaultValue: 'All' }) : cat}
+              </button>
+            ))}
+          </div>
 
           {mySkills.length > 0 ? (
             <div className='w-full flex flex-col gap-6px relative z-10'>
@@ -240,19 +232,20 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
                   ref={(el) => {
                     skillRefs.current[skill.name] = el;
                   }}
-                  className={`group flex flex-col sm:flex-row gap-16px p-16px bg-base border hover:border-border-1 hover:bg-fill-1 hover:shadow-sm rd-12px transition-all duration-200 ${highlightedSkill === skill.name ? 'border-primary-5 bg-primary-1' : 'border-transparent'}`}
+                  className={`group flex flex-col sm:flex-row gap-16px p-16px bg-base border hover:border-border-1 hover:bg-fill-1 hover:shadow-sm rd-12px transition-all duration-200 items-center ${highlightedSkill === skill.name ? 'border-primary-5 bg-primary-1' : 'border-transparent'}`}
                 >
                   <div className='shrink-0 flex items-start sm:mt-2px'>
-                    <div
-                      className={`w-40px h-40px rd-10px flex items-center justify-center font-bold text-16px shadow-sm text-transform-uppercase ${getAvatarColorClass(skill.name)}`}
-                    >
-                      {skill.name.charAt(0).toUpperCase()}
+                    <div className='w-40px h-40px rd-10px bg-fill-2 border border-border-2 flex items-center justify-center shadow-sm'>
+                      <SkillIcon category={skillCategory(skill)} name={skill.name} />
                     </div>
                   </div>
 
                   <div className='flex-1 min-w-0 flex flex-col justify-center gap-6px'>
                     <div className='flex items-center gap-10px flex-wrap'>
                       <h3 className='text-14px font-semibold text-t-primary/90 truncate m-0'>{skill.name}</h3>
+                      <span className='bg-slate-500/10 text-slate-300 text-11px px-6px py-1px rd-4px font-medium capitalize'>
+                        {skillCategory(skill)}
+                      </span>
                       {skill.source === 'custom' ? (
                         <span className='bg-[rgba(var(--orange-6),0.08)] text-orange-6 border border-[rgba(var(--orange-6),0.2)] text-11px px-6px py-1px rd-4px font-medium'>
                           {t('settings.skillsHub.custom', { defaultValue: 'Custom' })}
@@ -273,29 +266,12 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
                     )}
                   </div>
 
-                  <div className='shrink-0 sm:self-center flex items-center justify-end gap-6px mt-12px sm:mt-0 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity pl-4px'>
-                    {skill.source === 'custom' && (
-                      <button
-                        data-testid={`btn-delete-${normalizeTestId(skill.name)}`}
-                        className='p-8px hover:bg-danger-1 hover:text-danger-6 text-t-tertiary rd-6px outline-none flex items-center justify-center border border-transparent cursor-pointer transition-colors shadow-sm bg-base sm:bg-transparent sm:shadow-none'
-                        onClick={() => {
-                          Modal.confirm({
-                            title: t('settings.skillsHub.deleteConfirmTitle', { defaultValue: 'Delete Skill' }),
-                            content: t('settings.skillsHub.deleteConfirmContent', {
-                              name: skill.name,
-                              defaultValue: `Are you sure you want to delete "${skill.name}"?`,
-                            }),
-                            okButtonProps: { status: 'danger' },
-                            okText: t('common.delete', { defaultValue: 'Delete' }),
-                            onOk: () => void handleDelete(skill.name),
-                            wrapClassName: 'modal-delete-skill',
-                          });
-                        }}
-                        title={t('common.delete', { defaultValue: 'Delete' })}
-                      >
-                        <Delete size={16} />
-                      </button>
-                    )}
+                  <div className='shrink-0 flex items-center' onClick={(e) => e.stopPropagation()}>
+                    <Switch
+                      size='small'
+                      checked={skill.enabled !== false}
+                      onChange={(checked) => void toggleSkill(skill.name, checked)}
+                    />
                   </div>
                 </div>
               ))}
@@ -345,52 +321,6 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
                       <h3 className='text-14px font-semibold text-t-primary/90 truncate m-0'>{skill.name}</h3>
                       <span className='bg-[rgba(var(--primary-6),0.08)] text-primary-6 border border-[rgba(var(--primary-6),0.2)] text-10px px-6px py-1px rd-4px font-medium uppercase'>
                         {t('settings.extensionSkillsBadge', { defaultValue: 'Extension' })}
-                      </span>
-                    </div>
-                    {skill.description && (
-                      <p className='text-13px text-t-secondary leading-relaxed line-clamp-2 m-0'>{skill.description}</p>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* ======== Builtin Auto-injected Skills ======== */}
-        {builtinAutoSkills.length > 0 && (
-          <div
-            data-testid='auto-skills-section'
-            className='px-[16px] md:px-[32px] py-32px bg-base rd-16px md:rd-24px shadow-sm border border-b-base relative overflow-hidden transition-all'
-          >
-            <div className='flex items-center gap-10px mb-24px'>
-              <Lightning theme='filled' size={20} fill='var(--color-primary-6)' />
-              <span className='text-16px md:text-18px text-t-primary font-bold tracking-tight'>
-                {t('settings.autoInjectedSkills')}
-              </span>
-              <span className='bg-[rgba(var(--success-6),0.08)] text-[rgb(var(--success-6))] text-12px px-10px py-2px rd-[100px] font-medium ml-4px'>
-                {builtinAutoSkills.length}
-              </span>
-            </div>
-            <div className='w-full flex flex-col gap-6px'>
-              {builtinAutoSkills.map((skill) => (
-                <div
-                  key={skill.name}
-                  ref={(el) => {
-                    skillRefs.current[skill.name] = el;
-                  }}
-                  className={`flex flex-col sm:flex-row gap-16px p-16px bg-base border hover:border-border-1 hover:bg-fill-1 rd-12px transition-all duration-200 ${highlightedSkill === skill.name ? 'border-primary-5 bg-primary-1' : 'border-transparent'}`}
-                >
-                  <div className='shrink-0 flex items-start sm:mt-2px'>
-                    <div className='w-40px h-40px rd-10px bg-[rgba(var(--success-6),0.08)] flex items-center justify-center shadow-sm'>
-                      <Lightning theme='filled' size={20} fill='rgb(var(--success-6))' />
-                    </div>
-                  </div>
-                  <div className='flex-1 min-w-0 flex flex-col justify-center gap-4px'>
-                    <div className='flex items-center gap-10px'>
-                      <h3 className='text-14px font-semibold text-t-primary/90 truncate m-0'>{skill.name}</h3>
-                      <span className='bg-[rgba(var(--success-6),0.08)] text-[rgb(var(--success-6))] border border-[rgba(var(--success-6),0.2)] text-10px px-6px py-1px rd-4px font-medium uppercase'>
-                        {t('settings.autoInjectedSkillsBadge')}
                       </span>
                     </div>
                     {skill.description && (

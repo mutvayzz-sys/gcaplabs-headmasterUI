@@ -21,6 +21,7 @@ import {
   sendHermesMessage,
   stopHermesConversation,
 } from '../../../../packages/desktop/src/common/adapter/hermesChatAdapter';
+import { rememberOpenHermesConversation } from '../../../../packages/desktop/src/common/adapter/hermesSessionAdapter';
 
 describe('Hermes chat adapter', () => {
   beforeEach(() => {
@@ -56,6 +57,36 @@ describe('Hermes chat adapter', () => {
       title: 'Mission',
     });
     expect(result.id).toBe('stored-1');
+  });
+
+  it('creates profile chats in the selected Hermes profile', async () => {
+    mocks.request.mockResolvedValue({
+      session_id: 'live-recruiter',
+      stored_session_id: 'stored-recruiter',
+      info: {},
+    });
+
+    await createHermesChatConversation({
+      type: 'aionrs',
+      assistant: {
+        id: 'recruiter',
+        conversation_overrides: {},
+      },
+      model: {
+        id: 'openai',
+        name: 'OpenAI',
+        platform: 'openai',
+        api_key: '',
+        base_url: '',
+        use_model: 'openai/gpt-5',
+      },
+      extra: {},
+    });
+
+    expect(mocks.request).toHaveBeenCalledWith('session.create', {
+      cols: 96,
+      profile: 'recruiter',
+    });
   });
 
   it('submits over JSON-RPC and translates streaming events', async () => {
@@ -98,6 +129,7 @@ describe('Hermes chat adapter', () => {
         conversation_id: 'stored-1',
         type: 'content',
         data: { content: 'Hi' },
+        msg_id: expect.not.stringMatching(sent.msg_id),
       })
     );
     expect(mocks.broadcast).toHaveBeenCalledWith(
@@ -126,6 +158,74 @@ describe('Hermes chat adapter', () => {
       ['session.interrupt', { session_id: 'live-resumed' }],
     ]);
     expect(result.runtime.state).toBe('idle');
+  });
+
+  it('resumes a profile chat, submits a follow-up, and persists streamed events to the stored id', async () => {
+    rememberOpenHermesConversation('stored-recruiter', 'recruiter');
+    mocks.request
+      .mockResolvedValueOnce({
+        session_id: 'live-recruiter',
+        resumed: 'stored-recruiter',
+        message_count: 2,
+        messages: [],
+      })
+      .mockResolvedValueOnce({ status: 'streaming' });
+
+    const sent = await sendHermesMessage({
+      conversation_id: 'stored-recruiter',
+      input: 'Continue the search',
+    });
+
+    expect(mocks.request.mock.calls).toEqual([
+      [
+        'session.resume',
+        {
+          session_id: 'stored-recruiter',
+          cols: 96,
+          profile: 'recruiter',
+        },
+      ],
+      [
+        'prompt.submit',
+        {
+          session_id: 'live-recruiter',
+          text: 'Continue the search',
+        },
+      ],
+    ]);
+
+    mocks.gatewayListener?.({
+      type: 'message.delta',
+      session_id: 'live-recruiter',
+      payload: { text: 'Candidate found' },
+    });
+    mocks.gatewayListener?.({
+      type: 'message.complete',
+      session_id: 'live-recruiter',
+      payload: { text: 'Candidate found' },
+    });
+
+    expect(mocks.broadcast).toHaveBeenCalledWith(
+      'message.userCreated',
+      expect.objectContaining({
+        conversation_id: 'stored-recruiter',
+        content: 'Continue the search',
+      })
+    );
+    expect(mocks.broadcast).toHaveBeenCalledWith(
+      'message.stream',
+      expect.objectContaining({
+        conversation_id: 'stored-recruiter',
+        data: { content: 'Candidate found' },
+      })
+    );
+    expect(mocks.broadcast).toHaveBeenCalledWith(
+      'turn.completed',
+      expect.objectContaining({
+        session_id: 'stored-recruiter',
+        turn_id: sent.turn_id,
+      })
+    );
   });
 });
 
@@ -303,5 +403,129 @@ describe('gateway edge cases', () => {
     });
 
     expect(mocks.broadcast).not.toHaveBeenCalled();
+  });
+
+  it('finalizes an active turn once when the gateway disconnects', async () => {
+    mocks.request
+      .mockResolvedValueOnce({ session_id: 'live-1', stored_session_id: 'stored-1' })
+      .mockResolvedValueOnce({ status: 'streaming' });
+
+    await createHermesChatConversation({
+      type: 'aionrs',
+      model: {
+        id: 'openai',
+        name: 'OpenAI',
+        platform: 'openai',
+        api_key: '',
+        base_url: '',
+        use_model: 'openai/gpt-5',
+      },
+      extra: {},
+    });
+    await sendHermesMessage({ conversation_id: 'stored-1', input: 'hello' });
+    mocks.broadcast.mockClear();
+
+    mocks.gatewayListener?.({ type: 'gateway.disconnected' });
+    mocks.gatewayListener?.({ type: 'gateway.disconnected' });
+
+    const completedCalls = mocks.broadcast.mock.calls.filter((call) => call[0] === 'turn.completed');
+    expect(completedCalls).toHaveLength(1);
+    expect(mocks.broadcast).toHaveBeenCalledWith(
+      'message.stream',
+      expect.objectContaining({
+        type: 'tips',
+        data: expect.objectContaining({ type: 'error' }),
+      })
+    );
+  });
+
+  it('resumes the durable session before the next prompt after reconnecting', async () => {
+    mocks.request
+      .mockResolvedValueOnce({ session_id: 'live-old', stored_session_id: 'stored-1' })
+      .mockResolvedValueOnce({ status: 'streaming' })
+      .mockResolvedValueOnce({ session_id: 'live-new', resumed: 'stored-1', messages: [] })
+      .mockResolvedValueOnce({ status: 'streaming' });
+
+    await createHermesChatConversation({
+      type: 'aionrs',
+      model: {
+        id: 'openai',
+        name: 'OpenAI',
+        platform: 'openai',
+        api_key: '',
+        base_url: '',
+        use_model: 'openai/gpt-5',
+      },
+      extra: {},
+    });
+    await sendHermesMessage({ conversation_id: 'stored-1', input: 'first' });
+    mocks.gatewayListener?.({ type: 'gateway.disconnected' });
+
+    await sendHermesMessage({ conversation_id: 'stored-1', input: 'second' });
+
+    expect(mocks.request.mock.calls.slice(-2)).toEqual([
+      ['session.resume', { session_id: 'stored-1', cols: 96 }],
+      ['prompt.submit', { session_id: 'live-new', text: 'second' }],
+    ]);
+  });
+
+  it('sanitizes RPC failures and leaves the chat reusable', async () => {
+    mocks.request
+      .mockResolvedValueOnce({ session_id: 'live-1', stored_session_id: 'stored-1' })
+      .mockRejectedValueOnce(new Error('Bearer super-secret-token at http://127.0.0.1/private'))
+      .mockResolvedValueOnce({ status: 'streaming' });
+
+    await createHermesChatConversation({
+      type: 'aionrs',
+      model: {
+        id: 'openai',
+        name: 'OpenAI',
+        platform: 'openai',
+        api_key: '',
+        base_url: '',
+        use_model: 'openai/gpt-5',
+      },
+      extra: {},
+    });
+
+    await expect(sendHermesMessage({ conversation_id: 'stored-1', input: 'first' })).rejects.toThrow(
+      'The runtime could not start this response.'
+    );
+    await expect(sendHermesMessage({ conversation_id: 'stored-1', input: 'retry' })).resolves.toMatchObject({
+      runtime: { state: 'running' },
+    });
+    expect(JSON.stringify(mocks.broadcast.mock.calls)).not.toContain('super-secret-token');
+  });
+
+  it('ignores duplicate and out-of-order terminal events', async () => {
+    mocks.request
+      .mockResolvedValueOnce({ session_id: 'live-1', stored_session_id: 'stored-1' })
+      .mockResolvedValueOnce({ status: 'streaming' });
+
+    await createHermesChatConversation({
+      type: 'aionrs',
+      model: {
+        id: 'openai',
+        name: 'OpenAI',
+        platform: 'openai',
+        api_key: '',
+        base_url: '',
+        use_model: 'openai/gpt-5',
+      },
+      extra: {},
+    });
+    await sendHermesMessage({ conversation_id: 'stored-1', input: 'hello' });
+    mocks.broadcast.mockClear();
+
+    mocks.gatewayListener?.({ type: 'message.complete', session_id: 'live-1', payload: { text: 'done' } });
+    mocks.gatewayListener?.({ type: 'message.delta', session_id: 'live-1', payload: { text: 'late' } });
+    mocks.gatewayListener?.({ type: 'message.complete', session_id: 'live-1', payload: { text: 'done again' } });
+
+    const completedCalls = mocks.broadcast.mock.calls.filter((call) => call[0] === 'turn.completed');
+    expect(completedCalls).toHaveLength(1);
+    expect(mocks.broadcast).not.toHaveBeenCalledWith(
+      'message.stream',
+      expect.objectContaining({ data: { content: 'late' } })
+    );
   });
 });

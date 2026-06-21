@@ -48,12 +48,16 @@
     "confirmTitle": "移除团队成员",
     "confirmContent": "该成员正在工作中，确定要强制移除吗？"
   },
+  "sidecar": {
+    "required": "议会需要本地运行时边车。创建或发送议会消息前，请重启 Headmaster 或查看 AppData 中的日志。",
+    "requiredShort": "议会边车未运行。请重启 Headmaster 以创建议会。"
+  },
   "emptyState": {
     "subtitle": "描述你的目标，我来协调团队搞定它",
     "suggestions": {
-      "debate": "组织一场辩论赛，让 Agent 各持立场",
-      "interview": "策划一场深度访谈",
-      "expert_review": "多位专家会诊同一个问题"
+      "debate": "创建多位 Specialist 进行结构化辩论：主持人、正方、反方与总结者，各自明确立场后开展辩论并汇总。",
+      "interview": "创建主持人和专家 Specialist，就我描述的主题进行结构化问答访谈。",
+      "expert_review": "创建多位不同专长的专家 Specialist，分别评审同一问题，然后综合结论。"
     }
   }
 }

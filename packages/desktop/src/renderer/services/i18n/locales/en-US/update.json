@@ -1,5 +1,5 @@
 {
-  "modalTitle": "Software update",
+  "modalTitle": "Headmaster Desktop update",
   "checking": "Checking for updates...",
   "checkFailed": "Failed to check for updates",
   "upToDateTitle": "You're up to date",
@@ -24,6 +24,6 @@
   "openFile": "Open file",
   "errorTitle": "Update failed",
   "errors": {
-    "githubApiFailed": "Could not reach GitHub to check for updates ({{status}}). The repository may require authentication."
+    "githubApiFailed": "Could not reach the Headmaster release service ({{status}})."
   }
 }

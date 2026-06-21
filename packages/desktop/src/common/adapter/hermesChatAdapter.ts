@@ -14,6 +14,7 @@ import type {
   ISendMessageResult,
 } from './ipcBridge';
 import { broadcastWsEvent, gatewayRpcRequest, onGatewayEvent } from './httpBridge';
+import { getHermesConversationProfile, rememberOpenHermesConversation } from './hermesSessionAdapter';
 
 export interface HermesSessionCreateResponse {
   info?: {
@@ -45,10 +46,16 @@ export interface HermesGatewayEvent {
 type ActiveTurn = {
   conversationId: string;
   liveSessionId: string;
+  userMsgId: string;
   msgId: string;
   turnId: string;
   sawContent: boolean;
+  pendingContent: string;
+  flushHandle: ReturnType<typeof setTimeout> | null;
+  timeout: ReturnType<typeof setTimeout>;
 };
+
+const STREAM_DELTA_FLUSH_MS = 32;
 
 type PendingInteractiveRequestKind = 'approval' | 'clarify' | 'sudo' | 'secret';
 
@@ -73,7 +80,9 @@ const storedByLive = new Map<string, string>();
 const turnsByLive = new Map<string, ActiveTurn>();
 const toolsByLive = new Map<string, Map<string, Record<string, unknown>>>();
 const pendingRequestsByConversation = new Map<string, Map<string, PendingInteractiveRequest>>();
+const profilesByStored = new Map<string, string>();
 let subscribed = false;
+const TURN_TIMEOUT_MS = 180_000;
 
 const runningRuntime = (turnId: string): TConversationRuntimeSummary => ({
   state: 'running',
@@ -137,6 +146,29 @@ const emitCompleted = (turn: ActiveTurn, detail = ''): void => {
     },
   };
   broadcastWsEvent('turn.completed', completed);
+};
+
+const finishTurn = (liveSessionId: string, detail = '', errorMessage?: string): void => {
+  const turn = turnsByLive.get(liveSessionId);
+  if (!turn) return;
+  if (turn.flushHandle) {
+    clearTimeout(turn.flushHandle);
+    turn.flushHandle = null;
+  }
+  if (turn.pendingContent) {
+    turn.sawContent = true;
+    emitResponse(turn, 'content', { content: turn.pendingContent });
+    turn.pendingContent = '';
+  }
+  clearTimeout(turn.timeout);
+  if (errorMessage) {
+    emitResponse(turn, 'tips', { content: errorMessage, type: 'error' });
+  }
+  emitResponse(turn, 'finish', {});
+  emitCompleted(turn, detail || errorMessage || '');
+  turnsByLive.delete(liveSessionId);
+  toolsByLive.delete(liveSessionId);
+  clearPendingRequests(turn.conversationId);
 };
 
 const pendingConfirmationBucket = (conversationId: string): Map<string, PendingInteractiveRequest> => {
@@ -378,7 +410,35 @@ async function confirmPendingRequest(params: IConfirmMessageParams): Promise<voi
   removePendingRequest(params.conversation_id, request.requestId);
 }
 
+const flushContentDelta = (turn: ActiveTurn): void => {
+  if (!turn.pendingContent) return;
+  const chunk = turn.pendingContent;
+  turn.pendingContent = '';
+  turn.sawContent = true;
+  emitResponse(turn, 'content', { content: chunk });
+};
+
+const scheduleContentFlush = (turn: ActiveTurn): void => {
+  if (turn.flushHandle !== null) return;
+  turn.flushHandle = setTimeout(() => {
+    turn.flushHandle = null;
+    flushContentDelta(turn);
+  }, STREAM_DELTA_FLUSH_MS);
+};
+
 export function handleHermesGatewayEvent(event: HermesGatewayEvent): void {
+  if (event.type === 'gateway.disconnected') {
+    for (const liveSessionId of [...turnsByLive.keys()]) {
+      finishTurn(
+        liveSessionId,
+        'The runtime connection was interrupted.',
+        'The runtime connection was interrupted. Reconnect and send your message again.'
+      );
+    }
+    liveByStored.clear();
+    storedByLive.clear();
+    return;
+  }
   const liveSessionId = event.session_id;
   if (!liveSessionId) return;
   const turn = turnsByLive.get(liveSessionId);
@@ -392,17 +452,16 @@ export function handleHermesGatewayEvent(event: HermesGatewayEvent): void {
     case 'message.delta': {
       const text = textFromPayload(payload);
       if (text) {
-        turn.sawContent = true;
-        emitResponse(turn, 'content', { content: text });
+        turn.pendingContent += text;
+        scheduleContentFlush(turn);
       }
       break;
     }
     case 'reasoning.delta':
-    case 'reasoning.available': {
-      const text = textFromPayload(payload);
-      if (text) emitResponse(turn, 'thought', { subject: 'Reasoning', description: text });
+    case 'reasoning.available':
+      // Hermes desktop ignores thinking.delta; reasoning is optional and
+      // expensive to render on every token in the legacy message list UI.
       break;
-    }
     case 'tool.start':
     case 'tool.progress':
     case 'tool.generating':
@@ -458,10 +517,20 @@ export function handleHermesGatewayEvent(event: HermesGatewayEvent): void {
       break;
     }
     case 'message.complete': {
+      if (turn.flushHandle) {
+        clearTimeout(turn.flushHandle);
+        turn.flushHandle = null;
+      }
+      if (turn.pendingContent) {
+        turn.sawContent = true;
+        emitResponse(turn, 'content', { content: turn.pendingContent });
+        turn.pendingContent = '';
+      }
       const finalText = textFromPayload(payload);
       if (!turn.sawContent && finalText) {
         emitResponse(turn, 'content', { content: finalText });
       }
+      clearTimeout(turn.timeout);
       emitResponse(turn, 'finish', payload.usage ?? {});
       emitCompleted(turn);
       turnsByLive.delete(liveSessionId);
@@ -471,12 +540,7 @@ export function handleHermesGatewayEvent(event: HermesGatewayEvent): void {
     }
     case 'error': {
       const message = String(payload.message ?? 'The runtime could not complete this response.');
-      emitResponse(turn, 'tips', { content: message, type: 'error' });
-      emitResponse(turn, 'finish', {});
-      emitCompleted(turn, message);
-      turnsByLive.delete(liveSessionId);
-      toolsByLive.delete(liveSessionId);
-      clearPendingRequests(turn.conversationId);
+      finishTurn(liveSessionId, message, message);
       break;
     }
   }
@@ -496,10 +560,16 @@ const rememberSession = (storedId: string, liveId: string): void => {
 const isSessionNotFound = (error: unknown): boolean =>
   error instanceof Error && /session not found/i.test(error.message);
 
+const runtimeSubmissionError = (): Error =>
+  new Error('The runtime could not start this response. Reconnect if needed, then try again.');
+
 async function resumeSession(storedId: string): Promise<string> {
+  const profile = profilesByStored.get(storedId) ?? getHermesConversationProfile(storedId);
+  if (profile) profilesByStored.set(storedId, profile);
   const resumed = await gatewayRpcRequest<HermesSessionResumeResponse>('session.resume', {
     session_id: storedId,
     cols: 96,
+    ...(profile ? { profile } : {}),
   });
   rememberSession(storedId, resumed.session_id);
   return resumed.session_id;
@@ -512,17 +582,21 @@ async function ensureLiveSession(storedId: string): Promise<string> {
 export async function createHermesChatConversation(params: ICreateConversationParams): Promise<TChatConversation> {
   ensureSubscribed();
   const workspace = params.extra.workspace?.trim();
+  const profile = params.assistant?.id?.trim();
+  const sessionMode = params.extra?.session_mode;
   const created = await gatewayRpcRequest<HermesSessionCreateResponse>('session.create', {
     cols: 96,
     ...(workspace ? { cwd: workspace } : {}),
     ...(params.name ? { title: params.name } : {}),
+    ...(profile ? { profile } : {}),
   });
   const storedId = created.stored_session_id || created.session_id;
   rememberSession(storedId, created.session_id);
+  if (profile) profilesByStored.set(storedId, profile);
   const now = Date.now();
-  return {
+  const conversation = {
     id: storedId,
-    name: params.name?.trim() || 'New Mission',
+    name: params.name?.trim() || 'New Chat',
     type: 'aionrs',
     created_at: now,
     modified_at: now,
@@ -536,6 +610,8 @@ export async function createHermesChatConversation(params: ICreateConversationPa
       custom_workspace: Boolean(created.info?.cwd || workspace),
     },
   } as TChatConversation;
+  rememberOpenHermesConversation(storedId, profile, conversation);
+  return conversation;
 }
 
 export async function sendHermesMessage(params: {
@@ -544,20 +620,37 @@ export async function sendHermesMessage(params: {
   files?: string[];
 }): Promise<ISendMessageResult> {
   ensureSubscribed();
-  let liveSessionId = await ensureLiveSession(params.conversation_id);
-  const msgId = uuid();
+  let liveSessionId: string;
+  try {
+    liveSessionId = await ensureLiveSession(params.conversation_id);
+  } catch {
+    throw runtimeSubmissionError();
+  }
+  const userMsgId = uuid();
+  const assistantMsgId = uuid();
   const turnId = uuid();
+  const timeout = setTimeout(() => {
+    finishTurn(
+      liveSessionId,
+      'The runtime did not finish this response in time.',
+      'The runtime did not finish this response in time. You can retry without restarting Headmaster.'
+    );
+  }, TURN_TIMEOUT_MS);
   const turn: ActiveTurn = {
     conversationId: params.conversation_id,
     liveSessionId,
-    msgId,
+    userMsgId,
+    msgId: assistantMsgId,
     turnId,
     sawContent: false,
+    pendingContent: '',
+    flushHandle: null,
+    timeout,
   };
   turnsByLive.set(liveSessionId, turn);
   broadcastWsEvent('message.userCreated', {
     conversation_id: params.conversation_id,
-    msg_id: msgId,
+    msg_id: userMsgId,
     content: params.input,
     position: 'right',
     status: 'finish',
@@ -570,17 +663,24 @@ export async function sendHermesMessage(params: {
     await gatewayRpcRequest('prompt.submit', { session_id: liveSessionId, text });
   } catch (error) {
     if (!isSessionNotFound(error)) {
+      clearTimeout(turn.timeout);
       turnsByLive.delete(liveSessionId);
-      throw error;
+      throw runtimeSubmissionError();
     }
     turnsByLive.delete(liveSessionId);
-    liveSessionId = await resumeSession(params.conversation_id);
-    turn.liveSessionId = liveSessionId;
-    turnsByLive.set(liveSessionId, turn);
-    await gatewayRpcRequest('prompt.submit', { session_id: liveSessionId, text });
+    try {
+      liveSessionId = await resumeSession(params.conversation_id);
+      turn.liveSessionId = liveSessionId;
+      turnsByLive.set(liveSessionId, turn);
+      await gatewayRpcRequest('prompt.submit', { session_id: liveSessionId, text });
+    } catch {
+      clearTimeout(turn.timeout);
+      turnsByLive.delete(liveSessionId);
+      throw runtimeSubmissionError();
+    }
   }
 
-  return { msg_id: msgId, turn_id: turnId, runtime: runningRuntime(turnId) };
+  return { msg_id: userMsgId, turn_id: turnId, runtime: runningRuntime(turnId) };
 }
 
 export async function stopHermesConversation(
@@ -596,21 +696,25 @@ export async function stopHermesConversation(
   }
   const turn = turnsByLive.get(liveSessionId);
   if (turn) {
-    emitResponse(turn, 'finish', {});
-    emitCompleted(turn, 'Interrupted');
-    turnsByLive.delete(liveSessionId);
-    toolsByLive.delete(liveSessionId);
+    finishTurn(liveSessionId, 'Interrupted');
   }
   clearPendingRequests(conversationId);
   return { runtime: idleRuntime() };
 }
 
 export function resetHermesChatRuntimeState(): void {
+  for (const turn of turnsByLive.values()) {
+    clearTimeout(turn.timeout);
+    if (turn.flushHandle) {
+      clearTimeout(turn.flushHandle);
+    }
+  }
   liveByStored.clear();
   storedByLive.clear();
   turnsByLive.clear();
   toolsByLive.clear();
   pendingRequestsByConversation.clear();
+  profilesByStored.clear();
 }
 
 export async function listHermesPendingRequests(

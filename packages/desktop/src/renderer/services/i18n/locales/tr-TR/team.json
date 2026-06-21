@@ -48,13 +48,16 @@
     "confirmTitle": "Takım Üyesini Kaldır",
     "confirmContent": "Bu üye şu anda aktif. Zorla kaldırılsın mı?"
   },
+  "sidecar": {
+    "required": "Konsey yerel çalışma zamanı sidecar'ını gerektirir. Konsey oluşturmadan veya mesaj göndermeden önce Headmaster'ı yeniden başlatın veya AppData günlüklerini kontrol edin.",
+    "requiredShort": "Konsey sidecar'ı çalışmıyor. Konsey oluşturmak için Headmaster'ı yeniden başlatın."
+  },
   "emptyState": {
     "subtitle": "Hedefini söyle, ekibi koordine ederek tamamlayayım",
     "suggestions": {
-      "help_build": "Sıfırdan yeni bir özellik oluşturmama yardım et",
-      "analyze_code": "Bu kod tabanını analiz et ve iyileştirmeler öner",
-      "write_report": "Bir konuyu araştır ve ayrıntılı rapor yaz",
-      "fix_bug": "Projemizdeki hataları bul ve düzelt"
+      "debate": "Yapılandırılmış bir tartışma için Specialist'lar oluştur: moderatör, savunucu, muhalif ve özetleyici. Her birine net bir pozisyon ver, tartışmayı yürüt ve özetle.",
+      "interview": "Röportör ve uzman Specialist'lar oluştur, ardından anlattığım konuda yapılandırılmış bir soru-cevap röportajı yap.",
+      "expert_review": "Farklı uzmanlık alanlarına sahip birden fazla uzman Specialist oluştur, her biri sorunu incelesin, sonra bulguları sentezle."
     }
   }
 }
