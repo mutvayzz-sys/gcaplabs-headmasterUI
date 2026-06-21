@@ -207,7 +207,7 @@ function composeMessageWithIndex(message: TMessage | undefined, list: TMessage[]
       }
     }
 
-    if (last.type === 'text' && last.msg_id === message.msg_id) {
+    if (last.type === 'text' && last.msg_id === message.msg_id && last.position === message.position) {
       const newList = list.slice();
       newList[newList.length - 1] = {
         ...last,

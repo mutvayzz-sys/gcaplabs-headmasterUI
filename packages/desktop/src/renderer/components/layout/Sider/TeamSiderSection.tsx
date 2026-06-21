@@ -17,6 +17,7 @@ import { blurActiveElement } from '@renderer/utils/ui/focus';
 import { useTeamList } from '@renderer/pages/team/hooks/useTeamList';
 import { useSiderTeamBadges } from '@renderer/pages/team/hooks/useSiderTeamBadges';
 import TeamCreateModal from '@renderer/pages/team/components/TeamCreateModal';
+import { useCouncilSidecar } from '@renderer/pages/team/hooks/useCouncilSidecar';
 import { ipcBridge } from '@/common';
 import SiderItem from './SiderItem';
 import type { SiderMenuItem } from './SiderItem';
@@ -43,6 +44,7 @@ const TeamSiderSection: React.FC<TeamSiderSectionProps> = ({
   const { teams, mutate: refreshTeams, removeTeam } = useTeamList();
   const teamBadgeCounts = useSiderTeamBadges(teams);
   const { mutate: globalMutate } = useSWRConfig();
+  const { available: sidecarAvailable } = useCouncilSidecar();
 
   const [createTeamVisible, setCreateTeamVisible] = useState(false);
   const [expanded, setExpanded] = useState<boolean>(() => localStorage.getItem('team-section-expanded') === 'true');
@@ -164,12 +166,27 @@ const TeamSiderSection: React.FC<TeamSiderSectionProps> = ({
             </span>
             {/* [E2E SYNC] data-testid="team-create-btn" 是 E2E 测试的入口 selector，不得删除或重命名。
                 如需修改，必须同步更新 tests/e2e/cases/teams/team-create.e2e.ts。 */}
-            <Tooltip content={t('team.sider.createTeam')} position='top'>
+            <Tooltip
+              content={
+                sidecarAvailable
+                  ? t('team.sider.createTeam')
+                  : t('team.sidecar.requiredShort', {
+                      defaultValue: 'Council sidecar is not running. Restart Headmaster to create a Council.',
+                    })
+              }
+              position='top'
+            >
               <div
                 data-testid='team-create-btn'
-                className='ml-auto -mr-4px size-20px rd-4px flex items-center justify-center hover:bg-fill-4 transition-all shrink-0 cursor-pointer text-t-secondary hover:text-t-primary'
+                className={classNames(
+                  'ml-auto -mr-4px size-20px rd-4px flex items-center justify-center transition-all shrink-0',
+                  sidecarAvailable
+                    ? 'hover:bg-fill-4 cursor-pointer text-t-secondary hover:text-t-primary'
+                    : 'cursor-not-allowed opacity-40 text-t-tertiary'
+                )}
                 onClick={(e) => {
                   e.stopPropagation();
+                  if (!sidecarAvailable) return;
                   setCreateTeamVisible(true);
                 }}
               >

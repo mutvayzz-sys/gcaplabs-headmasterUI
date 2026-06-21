@@ -1,10 +1,14 @@
 import { ipcBridge } from '@/common';
 import type { IProvider, TChatConversation, TProviderWithModel } from '@/common/config/storage';
-import { Spin } from '@arco-design/web-react';
+import type { ITeamRunAck } from '@/common/types/team/teamTypes';
+import { Message, Spin } from '@arco-design/web-react';
 import React, { Suspense, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAionrsModelSelection } from '@/renderer/pages/conversation/platforms/aionrs/useAionrsModelSelection';
 import { saveAionrsDefaultModel } from '@/renderer/pages/guid/hooks/agentSelectionUtils';
 import { isLegacyReadOnlyConversationType } from '@/renderer/pages/conversation/utils/conversationRuntime';
+import type { TeamRunViewState } from '../hooks/useTeamRunView';
+import { buildTeamSendRuntime, buildTeamStopHandler } from './teamSendRuntime';
 import TeamChatEmptyState from './TeamChatEmptyState';
 
 const AcpChat = React.lazy(() => import('@/renderer/pages/conversation/platforms/acp/AcpChat'));
@@ -13,15 +17,22 @@ const LegacyReadOnlyConversation = React.lazy(
   () => import('@/renderer/pages/conversation/platforms/legacy/LegacyReadOnlyConversation')
 );
 
-// Narrow to Aionrs conversations so model field is always available
 type AionrsConversation = Extract<TChatConversation, { type: 'aionrs' }>;
+type TeamSendOverride = (payload: { input: string; files: string[] }) => Promise<void>;
 
-/** Aionrs sub-component manages model selection state without adding a ChatLayout wrapper */
+const EMPTY_TEAM_RUN_VIEW: TeamRunViewState = {
+  activeRun: undefined,
+  childTurnsBySlot: {},
+  slotWorkBySlot: {},
+};
+
 const AionrsTeamChat: React.FC<{
   conversation: AionrsConversation;
   emptySlot?: React.ReactNode;
   agent_name?: string;
-}> = ({ conversation, emptySlot, agent_name }) => {
+  teamSendMessage?: TeamSendOverride;
+  teamRuntime?: ReturnType<typeof buildTeamSendRuntime>;
+}> = ({ conversation, emptySlot, agent_name, teamSendMessage, teamRuntime }) => {
   const onSelectModel = useCallback(
     async (_provider: IProvider, modelName: string) => {
       const selected = { ..._provider, use_model: modelName } as TProviderWithModel;
@@ -41,6 +52,8 @@ const AionrsTeamChat: React.FC<{
       modelSelection={modelSelection}
       emptySlot={emptySlot}
       agent_name={agent_name}
+      teamSendMessage={teamSendMessage}
+      teamRuntime={teamRuntime}
     />
   );
 };
@@ -48,32 +61,67 @@ const AionrsTeamChat: React.FC<{
 type TeamChatViewProps = {
   conversation: TChatConversation;
   hideSendBox?: boolean;
-  /** When set, shows the team greeting empty state */
   team_id?: string;
+  slot_id?: string;
   agent_name?: string;
   agent_icon?: string;
   isLeader?: boolean;
+  teamRunView?: TeamRunViewState;
+  onTeamRunAck?: (ack: ITeamRunAck) => void;
 };
 
-/**
- * Routes to the correct platform chat component based on conversation type.
- * Does NOT wrap in ChatLayout — that is done by the parent TeamPage.
- */
 const TeamChatView: React.FC<TeamChatViewProps> = ({
   conversation,
   hideSendBox,
   team_id,
+  slot_id,
   agent_name,
   agent_icon,
   isLeader,
+  teamRunView = EMPTY_TEAM_RUN_VIEW,
+  onTeamRunAck,
 }) => {
-  // Single source of truth for the team greeting. Each *Chat simply forwards `emptySlot`
-  // to MessageList; the empty state itself reads team_id / backend / preset info from the
-  // shared SWR-cached conversation record, so none of that needs to flow through props.
+  const { t } = useTranslation();
   const resolvedHideSendBox = hideSendBox || isLegacyReadOnlyConversationType(conversation.type);
   const emptySlot = team_id ? (
     <TeamChatEmptyState conversation_id={conversation.id} icon={agent_icon} isLeader={isLeader} />
   ) : undefined;
+
+  const teamSendMessage = useCallback<TeamSendOverride>(
+    async ({ input, files }) => {
+      if (!team_id) throw new Error('Missing team id for team send');
+      if (isLeader) {
+        const ack = await ipcBridge.team.sendMessage.invoke({ team_id, input, files });
+        onTeamRunAck?.(ack);
+        return;
+      }
+      if (!slot_id) throw new Error('Missing slot id for team agent send');
+      const ack = await ipcBridge.team.sendMessageToAgent.invoke({ team_id, slot_id, input, files });
+      onTeamRunAck?.(ack);
+    },
+    [isLeader, onTeamRunAck, slot_id, team_id]
+  );
+
+  const teamSendMessageOverride = team_id ? teamSendMessage : undefined;
+  const teamRuntime =
+    team_id && slot_id
+      ? buildTeamSendRuntime({
+          slot_id,
+          runView: teamRunView,
+          onStop: buildTeamStopHandler({
+            team_id,
+            slot_id,
+            runView: teamRunView,
+            pauseSlotWork: (params) => ipcBridge.team.pauseSlotWork.invoke(params),
+            onStopFailed: () => {
+              Message.error(
+                t('team.stopAgentFailed', { defaultValue: 'Failed to stop this agent. Please try again.' })
+              );
+            },
+          }),
+        })
+      : undefined;
+
   const content = (() => {
     if (isLegacyReadOnlyConversationType(conversation.type)) {
       return <LegacyReadOnlyConversation key={conversation.id} conversation={conversation} emptySlot={emptySlot} />;
@@ -91,6 +139,8 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({
             agent_name={agent_name ?? (conversation.extra as { agent_name?: string })?.agent_name}
             hideSendBox={resolvedHideSendBox}
             emptySlot={emptySlot}
+            teamSendMessage={teamSendMessageOverride}
+            teamRuntime={teamRuntime}
           />
         );
       case 'aionrs':
@@ -100,6 +150,8 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({
             conversation={conversation as AionrsConversation}
             emptySlot={emptySlot}
             agent_name={agent_name}
+            teamSendMessage={teamSendMessageOverride}
+            teamRuntime={teamRuntime}
           />
         );
       default:

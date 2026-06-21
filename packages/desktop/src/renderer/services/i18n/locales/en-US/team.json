@@ -30,7 +30,7 @@
     "subAgentsPlaceholder": "Select Council Members",
     "confirm": "Create Council",
     "noSupportedAgents": "No supported Specialists installed",
-    "supportedAgentsHint": "Currently supports Claude and Codex. More Specialists coming soon.",
+    "supportedAgentsHint": "Any CLI Specialist detected on your PATH can lead a Council when the runtime is connected.",
     "leaderDesc": "Understands your goals and coordinates Council Members to complete tasks",
     "step": {
       "dispatch": "Council Leader",
@@ -48,12 +48,16 @@
     "confirmTitle": "Remove Council Member",
     "confirmContent": "This Council Member is currently active. Force remove?"
   },
+  "sidecar": {
+    "required": "Council requires the local runtime sidecar. Restart Headmaster or check logs in AppData before creating or messaging a Council.",
+    "requiredShort": "Council sidecar is not running. Restart Headmaster to create a Council."
+  },
   "emptyState": {
     "subtitle": "Describe your goal and I'll get The Council working on it",
     "suggestions": {
-      "debate": "Organize a debate with Council Members taking different sides",
-      "interview": "Plan an in-depth interview between Council Members",
-      "expert_review": "Have multiple experts analyze the same problem"
+      "debate": "Spawn Specialists for a structured debate: a moderator, an advocate, a challenger, and a synthesizer. Give each a distinct position, then run the debate and summarize.",
+      "interview": "Spawn interviewer and expert Specialists, then run a structured Q&A on the topic I describe.",
+      "expert_review": "Spawn multiple expert Specialists with different specialties, have each review the problem, then synthesize their findings."
     }
   }
 }

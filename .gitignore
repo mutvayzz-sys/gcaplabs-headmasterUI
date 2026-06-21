@@ -93,14 +93,25 @@ typings/
 # Vite
 .vite/
 
-# Electron-Forge
+# Electron-Forge / electron-vite / electron-builder output
 out/
+out-*/
+out*/
+win-unpacked/
+
+# Cursor IDE session/debug artifacts (never commit)
+.cursor/
+
+# Instrumented smoke / debug session logs (never commit)
+debug-*.log
+**/debug-*.log
 
 # IDE and Editor files
 .idea
 .vscode
 
 # AI CLI tool configurations (may contain sensitive information)
+.claude/settings.local.json
 **/.claude/settings.local.json
 **/.claude/settings.json
 .qwen/
@@ -133,7 +144,6 @@ Thumbs.db
 # Build and output directories
 dist/
 build/
-out/
 
 # Keep extension example dist (pre-built distributable assets)
 !examples/**/dist/

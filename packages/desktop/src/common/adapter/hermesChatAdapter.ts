@@ -46,11 +46,16 @@ export interface HermesGatewayEvent {
 type ActiveTurn = {
   conversationId: string;
   liveSessionId: string;
+  userMsgId: string;
   msgId: string;
   turnId: string;
   sawContent: boolean;
+  pendingContent: string;
+  flushHandle: ReturnType<typeof setTimeout> | null;
   timeout: ReturnType<typeof setTimeout>;
 };
+
+const STREAM_DELTA_FLUSH_MS = 32;
 
 type PendingInteractiveRequestKind = 'approval' | 'clarify' | 'sudo' | 'secret';
 
@@ -146,6 +151,15 @@ const emitCompleted = (turn: ActiveTurn, detail = ''): void => {
 const finishTurn = (liveSessionId: string, detail = '', errorMessage?: string): void => {
   const turn = turnsByLive.get(liveSessionId);
   if (!turn) return;
+  if (turn.flushHandle) {
+    clearTimeout(turn.flushHandle);
+    turn.flushHandle = null;
+  }
+  if (turn.pendingContent) {
+    turn.sawContent = true;
+    emitResponse(turn, 'content', { content: turn.pendingContent });
+    turn.pendingContent = '';
+  }
   clearTimeout(turn.timeout);
   if (errorMessage) {
     emitResponse(turn, 'tips', { content: errorMessage, type: 'error' });
@@ -396,6 +410,22 @@ async function confirmPendingRequest(params: IConfirmMessageParams): Promise<voi
   removePendingRequest(params.conversation_id, request.requestId);
 }
 
+const flushContentDelta = (turn: ActiveTurn): void => {
+  if (!turn.pendingContent) return;
+  const chunk = turn.pendingContent;
+  turn.pendingContent = '';
+  turn.sawContent = true;
+  emitResponse(turn, 'content', { content: chunk });
+};
+
+const scheduleContentFlush = (turn: ActiveTurn): void => {
+  if (turn.flushHandle !== null) return;
+  turn.flushHandle = setTimeout(() => {
+    turn.flushHandle = null;
+    flushContentDelta(turn);
+  }, STREAM_DELTA_FLUSH_MS);
+};
+
 export function handleHermesGatewayEvent(event: HermesGatewayEvent): void {
   if (event.type === 'gateway.disconnected') {
     for (const liveSessionId of [...turnsByLive.keys()]) {
@@ -422,17 +452,16 @@ export function handleHermesGatewayEvent(event: HermesGatewayEvent): void {
     case 'message.delta': {
       const text = textFromPayload(payload);
       if (text) {
-        turn.sawContent = true;
-        emitResponse(turn, 'content', { content: text });
+        turn.pendingContent += text;
+        scheduleContentFlush(turn);
       }
       break;
     }
     case 'reasoning.delta':
-    case 'reasoning.available': {
-      const text = textFromPayload(payload);
-      if (text) emitResponse(turn, 'thought', { subject: 'Reasoning', description: text });
+    case 'reasoning.available':
+      // Hermes desktop ignores thinking.delta; reasoning is optional and
+      // expensive to render on every token in the legacy message list UI.
       break;
-    }
     case 'tool.start':
     case 'tool.progress':
     case 'tool.generating':
@@ -488,6 +517,15 @@ export function handleHermesGatewayEvent(event: HermesGatewayEvent): void {
       break;
     }
     case 'message.complete': {
+      if (turn.flushHandle) {
+        clearTimeout(turn.flushHandle);
+        turn.flushHandle = null;
+      }
+      if (turn.pendingContent) {
+        turn.sawContent = true;
+        emitResponse(turn, 'content', { content: turn.pendingContent });
+        turn.pendingContent = '';
+      }
       const finalText = textFromPayload(payload);
       if (!turn.sawContent && finalText) {
         emitResponse(turn, 'content', { content: finalText });
@@ -545,6 +583,7 @@ export async function createHermesChatConversation(params: ICreateConversationPa
   ensureSubscribed();
   const workspace = params.extra.workspace?.trim();
   const profile = params.assistant?.id?.trim();
+  const sessionMode = params.extra?.session_mode;
   const created = await gatewayRpcRequest<HermesSessionCreateResponse>('session.create', {
     cols: 96,
     ...(workspace ? { cwd: workspace } : {}),
@@ -587,7 +626,8 @@ export async function sendHermesMessage(params: {
   } catch {
     throw runtimeSubmissionError();
   }
-  const msgId = uuid();
+  const userMsgId = uuid();
+  const assistantMsgId = uuid();
   const turnId = uuid();
   const timeout = setTimeout(() => {
     finishTurn(
@@ -599,15 +639,18 @@ export async function sendHermesMessage(params: {
   const turn: ActiveTurn = {
     conversationId: params.conversation_id,
     liveSessionId,
-    msgId,
+    userMsgId,
+    msgId: assistantMsgId,
     turnId,
     sawContent: false,
+    pendingContent: '',
+    flushHandle: null,
     timeout,
   };
   turnsByLive.set(liveSessionId, turn);
   broadcastWsEvent('message.userCreated', {
     conversation_id: params.conversation_id,
-    msg_id: msgId,
+    msg_id: userMsgId,
     content: params.input,
     position: 'right',
     status: 'finish',
@@ -637,7 +680,7 @@ export async function sendHermesMessage(params: {
     }
   }
 
-  return { msg_id: msgId, turn_id: turnId, runtime: runningRuntime(turnId) };
+  return { msg_id: userMsgId, turn_id: turnId, runtime: runningRuntime(turnId) };
 }
 
 export async function stopHermesConversation(
@@ -662,6 +705,9 @@ export async function stopHermesConversation(
 export function resetHermesChatRuntimeState(): void {
   for (const turn of turnsByLive.values()) {
     clearTimeout(turn.timeout);
+    if (turn.flushHandle) {
+      clearTimeout(turn.flushHandle);
+    }
   }
   liveByStored.clear();
   storedByLive.clear();

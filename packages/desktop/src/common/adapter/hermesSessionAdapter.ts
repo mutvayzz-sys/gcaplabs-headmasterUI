@@ -6,6 +6,8 @@
 
 import type { TMessage } from '../chat/chatLib';
 import type { TChatConversation, TProviderWithModel } from '../config/storage';
+import { fromApiConversation } from './apiModelMapper';
+import { aioncoreHttpRequest, isAioncoreAvailable, rememberConversationRoute } from './aioncoreBridge';
 import { httpRequest } from './httpBridge';
 
 export interface HermesSessionInfo {
@@ -90,32 +92,90 @@ const sessionName = (session: HermesSessionInfo): string =>
 const profileQuery = (profile: string | undefined): string =>
   profile && profile !== 'default' ? `?profile=${encodeURIComponent(profile)}` : '';
 
-async function loadHermesTranscript(session: HermesSessionInfo): Promise<HermesSessionMessagesResponse> {
-  return httpRequest<HermesSessionMessagesResponse>(
+async function listAioncoreConversations(params: {
+  cursor?: string;
+  limit?: number;
+}): Promise<PaginatedResult<TChatConversation>> {
+  const limit = params.limit ?? 100;
+  const query = new URLSearchParams();
+  if (params.cursor) query.set('cursor', params.cursor);
+  query.set('limit', String(limit));
+  const qs = query.toString();
+  const raw = await aioncoreHttpRequest<PaginatedResult<TChatConversation>>(
     'GET',
-    `/api/sessions/${encodeURIComponent(session.id)}/messages${profileQuery(session.profile)}`
+    `/api/conversations${qs ? `?${qs}` : ''}`
   );
+  const items = (raw.items ?? []).map((item) => {
+    rememberConversationRoute(item.id, 'aioncore');
+    return fromApiConversation(item);
+  });
+  return {
+    items,
+    total: raw.total ?? items.length,
+    has_more: raw.has_more ?? false,
+  };
 }
 
-const hasMultipleUserQueries = (messages: HermesSessionMessage[]): boolean => {
-  let userQueries = 0;
-  for (const message of messages) {
-    if (message.role !== 'user') continue;
-    userQueries += 1;
-    if (userQueries >= 2) return true;
+function mergeConversationPages(
+  hermes: PaginatedResult<TChatConversation>,
+  aioncore: PaginatedResult<TChatConversation>,
+  limit: number,
+  visibleOffset: number
+): PaginatedResult<TChatConversation> {
+  const byId = new Map<string, TChatConversation>();
+  for (const item of [...hermes.items, ...aioncore.items]) {
+    const existing = byId.get(item.id);
+    if (!existing || (item.modified_at ?? 0) >= (existing.modified_at ?? 0)) {
+      byId.set(item.id, item);
+    }
   }
-  return false;
-};
+  const merged = [...byId.values()].sort((a, b) => (b.modified_at ?? 0) - (a.modified_at ?? 0));
+  const visible = merged.slice(visibleOffset, visibleOffset + limit);
+  return {
+    items: visible,
+    total: merged.length,
+    has_more: visibleOffset + visible.length < merged.length,
+  };
+}
+
+export async function listUserConversations(params: {
+  cursor?: string;
+  limit?: number;
+}): Promise<PaginatedResult<TChatConversation>> {
+  const limit = params.limit ?? 100;
+  const visibleOffset = Number.parseInt(params.cursor || '0', 10) || 0;
+  const hermes = await listHermesConversations({ cursor: '0', limit: 500 });
+  if (!isAioncoreAvailable()) {
+    const visible = hermes.items.slice(visibleOffset, visibleOffset + limit);
+    return {
+      items: visible,
+      total: hermes.total,
+      has_more: visibleOffset + visible.length < hermes.total,
+    };
+  }
+  try {
+    const aioncore = await listAioncoreConversations({ limit: 500 });
+    const merged = mergeConversationPages(hermes, aioncore, limit, visibleOffset);
+    return merged;
+  } catch {
+    const visible = hermes.items.slice(visibleOffset, visibleOffset + limit);
+    return {
+      items: visible,
+      total: hermes.total,
+      has_more: visibleOffset + visible.length < hermes.total,
+    };
+  }
+}
 
 async function isTrackedHermesSession(session: HermesSessionInfo, includeLocallyOpen = false): Promise<boolean> {
   if (includeLocallyOpen && locallyOpenSessions.has(session.id)) return true;
-  if (session.message_count < 2) return false;
-  try {
-    const transcript = await loadHermesTranscript(session);
-    return hasMultipleUserQueries(transcript.messages);
-  } catch {
-    return false;
-  }
+  if (locallyOpenSessions.has(session.id)) return true;
+  return session.message_count >= 1;
+}
+
+function isTrackedHermesSessionSync(session: HermesSessionInfo): boolean {
+  if (locallyOpenSessions.has(session.id)) return true;
+  return session.message_count >= 1;
 }
 
 export function rememberOpenHermesConversation(
@@ -315,7 +375,7 @@ export async function listHermesConversations(params: {
     const query = new URLSearchParams({
       limit: String(rawLimit),
       offset: String(rawOffset),
-      min_messages: '2',
+      min_messages: '1',
       order: 'recent',
     });
     const page = await httpRequest<HermesPaginatedSessions>('GET', `/api/sessions?${query}`);
@@ -324,15 +384,7 @@ export async function listHermesConversations(params: {
     if (page.sessions.length === 0 || rawOffset >= page.total) break;
   }
 
-  const tracked: HermesSessionInfo[] = [];
-  for (let index = 0; index < candidates.length; index += 12) {
-    const batch = candidates.slice(index, index + 12);
-    const decisions = await Promise.all(batch.map((session) => isTrackedHermesSession(session)));
-    decisions.forEach((include, batchIndex) => {
-      if (include) tracked.push(batch[batchIndex]);
-    });
-  }
-
+  const tracked = candidates.filter(isTrackedHermesSessionSync);
   const visible = tracked.slice(visibleOffset, visibleOffset + limit);
   return {
     items: visible.map(fromHermesSession),

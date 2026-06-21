@@ -383,9 +383,9 @@ const GuidPage: React.FC = () => {
       backend: agentSelection.currentEffectiveAgentInfo.agent_type,
       defaults: selectedAssistantDetail.defaults,
       preferences: {
-        last_model_id: selectedAssistantDetail.preferences.last_model_id,
-        last_permission_value: selectedAssistantDetail.preferences.last_permission_value,
-        last_mcp_ids: selectedAssistantDetail.preferences.last_mcp_ids,
+        last_model_id: selectedAssistantDetail.preferences?.last_model_id,
+        last_permission_value: selectedAssistantDetail.preferences?.last_permission_value,
+        last_mcp_ids: selectedAssistantDetail.preferences?.last_mcp_ids,
       },
     });
     if (appliedAssistantDefaultsKeyRef.current === signature) {

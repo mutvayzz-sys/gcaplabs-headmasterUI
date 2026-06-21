@@ -48,12 +48,16 @@
     "confirmTitle": "移除團隊成員",
     "confirmContent": "該成員正在工作中，確定要強制移除嗎？"
   },
+  "sidecar": {
+    "required": "議會需要本機執行階段邊車。建立或傳送議會訊息前，請重新啟動 Headmaster 或查看 AppData 中的日誌。",
+    "requiredShort": "議會邊車未執行。請重新啟動 Headmaster 以建立議會。"
+  },
   "emptyState": {
     "subtitle": "描述你的目標，我來協調團隊搞定它",
     "suggestions": {
-      "debate": "組織一場辯論賽，讓 Agent 各持立場",
-      "interview": "策劃一場深度訪談",
-      "expert_review": "多位專家會診同一個問題"
+      "debate": "建立多位 Specialist 進行結構化辯論：主持人、正方、反方與總結者，各自明確立場後開展辯論並彙總。",
+      "interview": "建立主持人與專家 Specialist，就我描述的主題進行結構化問答訪談。",
+      "expert_review": "建立多位不同專長的專家 Specialist，分別評審同一問題，然後綜合結論。"
     }
   }
 }

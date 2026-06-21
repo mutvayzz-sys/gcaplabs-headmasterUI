@@ -159,7 +159,7 @@ describe('Hermes session adapter', () => {
     );
   });
 
-  it('excludes empty and single-query sessions while retaining chats with two user prompts', async () => {
+  it('includes normal single-turn chats while excluding empty sessions', async () => {
     const empty = session({ id: 'empty', message_count: 0 });
     const single = session({ id: 'single', message_count: 4 });
     const multiple = session({ id: 'multiple', message_count: 3 });
@@ -173,40 +173,19 @@ describe('Hermes session adapter', () => {
           total: 2,
         };
       }
-      if (url.includes('/single/messages')) {
-        return {
-          session_id: 'single',
-          messages: [
-            { role: 'user', content: 'one' },
-            { role: 'assistant', content: 'answer' },
-            { role: 'assistant', content: '', tool_calls: [{ id: 'tool' }] },
-            { role: 'tool', content: 'result' },
-          ],
-        };
-      }
-      if (url.includes('/multiple/messages')) {
-        return {
-          session_id: 'multiple',
-          messages: [
-            { role: 'user', content: 'one' },
-            { role: 'assistant', content: 'answer' },
-            { role: 'user', content: 'two' },
-          ],
-        };
-      }
       throw new Error(`Unexpected request: ${url}`);
     });
 
     const result = await listHermesConversations({ limit: 20 });
 
     expect(empty.id).toBe('empty');
-    expect(result.items.map((item) => item.id)).toEqual(['multiple']);
-    expect(result.total).toBe(1);
+    expect(result.items.map((item) => item.id)).toEqual(['single', 'multiple']);
+    expect(result.total).toBe(2);
     expect(result.has_more).toBe(false);
-    expect(String(mocks.httpRequest.mock.calls[0]?.[1])).toContain('min_messages=2');
+    expect(String(mocks.httpRequest.mock.calls[0]?.[1])).toContain('min_messages=1');
   });
 
-  it('ignores incomplete, interrupted, failed, and tool-heavy first-query sessions', async () => {
+  it('keeps tool-heavy and interrupted first-turn chats in history', async () => {
     const sessions = [
       session({ id: 'incomplete', message_count: 2, is_active: true }),
       session({ id: 'interrupted', message_count: 3, is_active: false }),
@@ -214,54 +193,29 @@ describe('Hermes session adapter', () => {
       session({ id: 'tool-heavy', message_count: 5, tool_call_count: 2 }),
       session({ id: 'two-query', message_count: 4 }),
     ];
-    const transcripts: Record<string, HermesSessionMessage[]> = {
-      incomplete: [
-        { role: 'user', content: 'one' },
-        { role: 'assistant', content: '' },
-      ],
-      interrupted: [
-        { role: 'user', content: 'one' },
-        { role: 'assistant', content: 'partial' },
-        { role: 'system', content: 'interrupted' },
-      ],
-      failed: [
-        { role: 'user', content: 'one' },
-        { role: 'assistant', content: 'request failed' },
-      ],
-      'tool-heavy': [
-        { role: 'user', content: 'one' },
-        { role: 'assistant', content: '', tool_calls: [{ id: 'a' }, { id: 'b' }] },
-        { role: 'tool', content: 'a', tool_call_id: 'a' },
-        { role: 'tool', content: 'b', tool_call_id: 'b' },
-        { role: 'assistant', content: 'answer' },
-      ],
-      'two-query': [
-        { role: 'user', content: 'one' },
-        { role: 'assistant', content: 'answer' },
-        { role: 'user', content: 'two' },
-        { role: 'assistant', content: 'answer two' },
-      ],
-    };
 
     mocks.httpRequest.mockImplementation(async (_method: string, url: string) => {
       if (url.startsWith('/api/sessions?')) {
         return { limit: 200, offset: 0, sessions, total: sessions.length };
       }
-      const id = /\/api\/sessions\/([^/]+)\/messages/.exec(url)?.[1] ?? '';
-      return { session_id: id, messages: transcripts[id] ?? [] };
+      throw new Error(`Unexpected request: ${url}`);
     });
 
     const result = await listHermesConversations({ limit: 20 });
 
-    expect(result.items.map((item) => item.id)).toEqual(['two-query']);
-    expect(result.total).toBe(1);
+    expect(result.items.map((item) => item.id)).toEqual([
+      'incomplete',
+      'interrupted',
+      'failed',
+      'tool-heavy',
+      'two-query',
+    ]);
+    expect(result.total).toBe(5);
   });
 
   it('paginates over visible chats rather than raw Hermes sessions', async () => {
     const sessions = [
-      session({ id: 'single-1', message_count: 2 }),
       session({ id: 'tracked-1', message_count: 3 }),
-      session({ id: 'single-2', message_count: 2 }),
       session({ id: 'tracked-2', message_count: 3 }),
     ];
 
@@ -269,20 +223,7 @@ describe('Hermes session adapter', () => {
       if (url.startsWith('/api/sessions?')) {
         return { limit: 200, offset: 0, sessions, total: sessions.length };
       }
-      const id = /\/api\/sessions\/([^/]+)\/messages/.exec(url)?.[1] ?? '';
-      return {
-        session_id: id,
-        messages: id.startsWith('tracked')
-          ? [
-              { role: 'user', content: 'one' },
-              { role: 'assistant', content: 'answer' },
-              { role: 'user', content: 'two' },
-            ]
-          : [
-              { role: 'user', content: 'one' },
-              { role: 'assistant', content: 'answer' },
-            ],
-      };
+      throw new Error(`Unexpected request: ${url}`);
     });
 
     const first = await listHermesConversations({ cursor: '0', limit: 1 });

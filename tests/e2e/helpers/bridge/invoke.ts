@@ -2,6 +2,20 @@ import type { Page } from '@playwright/test';
 import { RESPONSE_MAPPERS } from './mappers';
 import { HTTP_ROUTES } from './routes';
 
+const IPC_BRIDGE_ALIASES: Record<string, string> = {
+  'get-conversation': 'conversation.get',
+  'team.ensure-session': 'team.ensureSession',
+  'team.add-agent': 'team.addAgent',
+  'team.remove-agent': 'team.removeAgent',
+  'team.rename-agent': 'team.renameAgent',
+  'team.rename-team': 'team.renameTeam',
+  'team.set-session-mode': 'team.setSessionMode',
+};
+
+function resolveBridgeKey(key: string): string {
+  return IPC_BRIDGE_ALIASES[key] ?? key;
+}
+
 type ElectronApi = {
   emit?: (name: string, data: unknown) => Promise<unknown>;
   on?: (callback: (payload: { event: unknown; value: unknown }) => void) => () => void;
@@ -24,7 +38,8 @@ export async function invokeBridge<T = unknown>(
   data?: unknown,
   timeoutMs = 10_000
 ): Promise<T> {
-  const route = HTTP_ROUTES[key];
+  const resolvedKey = resolveBridgeKey(key);
+  const route = HTTP_ROUTES[resolvedKey];
   if (route) {
     const params = (data ?? {}) as Record<string, unknown>;
     const resolvedPath = typeof route.path === 'function' ? route.path(params) : route.path;
@@ -143,6 +158,6 @@ export async function invokeBridge<T = unknown>(
         });
       });
     },
-    { requestKey: key, requestData: data, requestTimeoutMs: timeoutMs }
+    { requestKey: resolvedKey, requestData: data, requestTimeoutMs: timeoutMs }
   ) as Promise<T>;
 }

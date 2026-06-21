@@ -24,6 +24,12 @@ import { installQuitCleanup } from './process/startup/quitCleanup';
 import { ProcessConfig } from './process/utils/initStorage';
 import { registerWindowMaximizeListeners } from '@process/bridge';
 import { HermesBootstrap } from '@process/backend/hermesBootstrap';
+import {
+  AioncoreBootstrap,
+  clearAioncorePort,
+  exposeAioncorePort,
+  setAioncoreBootstrap,
+} from '@process/backend/aioncoreBootstrap';
 import { setHermesBootstrap } from '@process/utils/hermesBootstrapSingleton';
 import { initBridges } from '@process/utils/initBridge';
 import './process/bridge/feedbackBridge';
@@ -197,12 +203,24 @@ const hermesBootstrap = new HermesBootstrap({
   resourcesPath: process.resourcesPath,
   userDataPath: app.getPath('userData'),
 });
+const aioncoreBootstrap = new AioncoreBootstrap({
+  version: app.getVersion(),
+  isPackaged: app.isPackaged,
+  resourcesPath: process.resourcesPath,
+  userDataPath: app.getPath('userData'),
+});
 setHermesBootstrap(hermesBootstrap);
+setAioncoreBootstrap(aioncoreBootstrap);
 initBridges({ hermesBootstrap });
 
 let backendStartedOk = false;
 let backendStartupFailed = false;
 let rendererInitialLanguage: string | null = null;
+
+ipcMain.on('get-aioncore-port', (event) => {
+  event.returnValue =
+    (globalThis as typeof globalThis & { __aioncorePort?: number }).__aioncorePort ?? aioncoreBootstrap.port ?? 0;
+});
 
 ipcMain.on('get-backend-port', (event) => {
   event.returnValue =
@@ -322,6 +340,32 @@ ipcMain.handle('runtime:get-status', async () => {
   return { generatedAt: Date.now(), porting: probeResults };
 });
 
+async function startAioncoreSidecar(): Promise<void> {
+  if (getConnectionMode() === 'remote') {
+    clearAioncorePort();
+    return;
+  }
+  try {
+    const { getDataPath } = await import('./process/utils/utils');
+    const { getSystemDir } = await import('./process/utils/initStorage');
+    const sysDir = getSystemDir();
+    const result = await aioncoreBootstrap.start(getDataPath(), sysDir.logDir, {
+      cacheDir: sysDir.cacheDir,
+      workDir: sysDir.workDir,
+      logDir: sysDir.logDir,
+    });
+    if (result.ok && result.port > 0) {
+      exposeAioncorePort(result.port);
+      console.log(`[Headmaster] AionCore sidecar ready (port=${result.port})`);
+    } else {
+      clearAioncorePort();
+    }
+  } catch (error) {
+    clearAioncorePort();
+    console.warn('[Headmaster] AionCore sidecar startup skipped:', error);
+  }
+}
+
 // ---------------------------------------------------------------------------
 // runtime:restart — stop and re-launch the Hermes dashboard, then reload the
 // renderer window so the new port is picked up via the preload sync-send.
@@ -329,18 +373,21 @@ ipcMain.handle('runtime:get-status', async () => {
 ipcMain.handle('runtime:restart', async () => {
   try {
     hermesBootstrap.stop();
-    // Give the process a moment to fully exit before restarting
+    await aioncoreBootstrap.stop();
+    clearAioncorePort();
     await new Promise<void>((resolve) => setTimeout(resolve, 1500));
     const result = await hermesBootstrap.start({ installIfMissing: false });
     if (result.ok && result.port) {
       (globalThis as typeof globalThis & { __backendPort?: number }).__backendPort = result.port;
     }
-    // Reload the renderer to pick up the new port from the preload sync-send
+    if (getConnectionMode() !== 'remote') {
+      await startAioncoreSidecar();
+    }
     const wins = BrowserWindow.getAllWindows();
     for (const win of wins) {
       if (!win.isDestroyed()) win.webContents.reload();
     }
-    return { ok: result.ok, port: result.port };
+    return { ok: result.ok, port: result.port, aioncorePort: aioncoreBootstrap.port };
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error('[Headmaster] runtime:restart failed:', msg);
@@ -639,6 +686,7 @@ const handleAppReady = async (): Promise<void> => {
         hermesBootstrap.sessionToken;
       markBackendReady(hermesStartup.port, 'hermes.dashboard');
       mark('hermesBootstrap.start');
+      await startAioncoreSidecar();
     } else {
       const error = new Error(hermesStartup.error || 'Hermes dashboard failed to start');
       console.error('[Headmaster] Hermes dashboard bootstrap failed:', error.message);
@@ -895,7 +943,11 @@ installQuitCleanup({
     isExplicitQuit = true;
   },
   destroyTray,
-  stopBackend: async () => hermesBootstrap.stop(),
+  stopBackend: async () => {
+    await aioncoreBootstrap.stop();
+    clearAioncorePort();
+    await hermesBootstrap.stop();
+  },
   logInfo: console.log,
   logWarn: console.warn,
   logError: console.error,

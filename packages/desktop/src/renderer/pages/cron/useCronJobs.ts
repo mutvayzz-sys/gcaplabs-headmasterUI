@@ -183,7 +183,8 @@ export function useAllCronJobs() {
     setLoading(true);
     try {
       const allJobs = await ipcBridge.cron.listJobs.invoke();
-      setJobs(await repairCronJobTimeZones(allJobs || []));
+      const repaired = await repairCronJobTimeZones(allJobs || []);
+      setJobs(repaired);
     } catch (err) {
       console.error('[useAllCronJobs] Failed to fetch jobs:', err);
     } finally {

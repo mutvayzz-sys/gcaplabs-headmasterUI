@@ -18,7 +18,9 @@ import { initAgentBridge } from './agentBridge';
 import { initConnectionBridge } from './connectionBridge';
 import { initFileSystemBridge } from './fsBridge';
 import { initRuntimeDetectionBridge } from './runtimeDetectionBridge';
+import { initTeamBridge } from './teamBridge';
 import type { HermesBootstrap } from '@process/backend/hermesBootstrap';
+import { disposeAllTeamSessions as disposeTeamSessions } from '@process/team/TeamSessionManager';
 
 export interface BridgeDependencies {
   hermesBootstrap?: HermesBootstrap;
@@ -41,6 +43,7 @@ export function initAllBridges(deps: BridgeDependencies = {}): void {
   initAgentBridge();
   initConnectionBridge();
   initFileSystemBridge();
+  initTeamBridge();
 }
 
 export {
@@ -54,4 +57,4 @@ export {
   initWebuiBridge,
 };
 export { registerWindowMaximizeListeners } from './windowControlsBridge';
-export const disposeAllTeamSessions = (): Promise<void> => Promise.resolve();
+export const disposeAllTeamSessions = (): Promise<void> => disposeTeamSessions();

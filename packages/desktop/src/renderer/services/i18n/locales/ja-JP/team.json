@@ -48,12 +48,16 @@
     "confirmTitle": "チームメンバーを削除",
     "confirmContent": "このメンバーは現在稼働中です。強制的に削除しますか？"
   },
+  "sidecar": {
+    "required": "議会にはローカルランタイムのサイドカーが必要です。議会の作成やメッセージ送信の前に、Headmaster を再起動するか AppData のログを確認してください。",
+    "requiredShort": "議会サイドカーが起動していません。議会を作成するには Headmaster を再起動してください。"
+  },
   "emptyState": {
     "subtitle": "目標を教えてください。チームを調整してタスクを完了します",
     "suggestions": {
-      "debate": "Agentが異なる立場をとるディベートを開催する",
-      "interview": "Agentによる深層インタビューを企画する",
-      "expert_review": "複数の専門家が同じ問題を分析する"
+      "debate": "複数の Specialist を起動して構造化ディベートを行う：司会、賛成側、反対側、まとめ役。それぞれ明確な立場を持たせ、ディベート後に要約する。",
+      "interview": "インタビュアーと専門家 Specialist を起動し、私が説明するテーマについて構造化された Q&A インタビューを実施する。",
+      "expert_review": "異なる専門分野の専門家 Specialist を複数起動し、それぞれが同じ問題をレビューした後、結果を統合する。"
     }
   }
 }

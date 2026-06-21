@@ -66,12 +66,19 @@ describe('useDetectedAgents', () => {
 
     const { result } = renderHook(() => useDetectedAgents());
 
-    expect(result.current.availableBackends).toHaveLength(1); // unsupported local/remote runtimes excluded
+    expect(result.current.availableBackends).toHaveLength(2); // 'remote' excluded
     // backend slug wins when present
     expect(result.current.availableBackends[0]).toEqual({
       id: 'claude',
       name: 'ClaudeCode',
       isExtension: false,
+      modelOptions: [],
+    });
+    // falls back to agent_type when backend is absent (e.g. internal engines)
+    expect(result.current.availableBackends[1]).toEqual({
+      id: 'local',
+      name: 'ExtAgent',
+      isExtension: true,
       modelOptions: [],
     });
   });

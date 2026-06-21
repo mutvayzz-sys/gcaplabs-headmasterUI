@@ -45,12 +45,25 @@ import type {
   UpdateProviderRequest,
 } from '../types/provider/providerApi';
 import type {
+  ICancelTeamChildTurnParams,
+  ICancelTeamRunParams,
+  IPauseTeamSlotParams,
+  ISendTeamAgentMessageParams,
+  ISendTeamMessageParams,
   ITeamAgentRemovedEvent,
   ITeamAgentRenamedEvent,
   ITeamAgentSpawnedEvent,
   ITeamAgentStatusEvent,
+  ITeamChildTurnEvent,
   ITeamCreatedEvent,
   ITeamListChangedEvent,
+  ITeamMcpStatusEvent,
+  ITeamRemovedEvent,
+  ITeamRenamedEvent,
+  ITeamRunAck,
+  ITeamRunEvent,
+  ITeamSessionChangedEvent,
+  ITeamTaskChangedEvent,
   ITeamTeammateMessageEvent,
   TTeam,
   TeamAgent,
@@ -64,6 +77,10 @@ import type {
   UpdateDownloadResult,
 } from '../update/updateTypes';
 import type { Theme } from '@/common/theme/types';
+import type { AgentMetadata } from '@/renderer/utils/model/agentTypes';
+import { sanitizeAgentMetadata } from '@/common/agent/agentDisplayNames';
+import { resolveTeamCapable } from '@/common/agent/teamCapability';
+import { requireCouncilSidecar } from '@/common/errors/councilSidecar';
 import type { ProtocolDetectionRequest, ProtocolDetectionResponse } from '../utils/protocolDetector';
 import {
   httpDelete,
@@ -72,7 +89,7 @@ import {
   httpPost,
   httpPut,
   httpRequest,
-  stubProvider,
+  callbackProvider,
   withResponseMap,
   wsEmitter,
   wsMappedEmitter,
@@ -80,15 +97,13 @@ import {
 import { normalizeHermesList } from './hermesResponse';
 import { fromApiSearchResult, type ApiMessageSearchItem } from './searchMapper';
 import type { IAddTeamAgentParams, ICreateTeamParams } from './teamMapper';
-import {
-  fromBackendAgent,
-  fromBackendTeam,
-  fromBackendTeamList,
-  fromBackendTeamOptional,
-  toBackendAgent,
-} from './teamMapper';
 import { fromBackendCompareResult, type RawCompareResult } from './fileSnapshotMapper';
-import { fromBackendWorkspaceFlatFiles, type RawWorkspaceFlatFile } from './workspaceMapper';
+import {
+  absoluteToRelativePath,
+  fromBackendWorkspaceFlatFiles,
+  fromBackendWorkspaceList,
+  type RawWorkspaceFlatFile,
+} from './workspaceMapper';
 import {
   createHermesChatConversation,
   confirmHermesPendingRequest,
@@ -101,8 +116,41 @@ import {
   getHermesConversation,
   getHermesConversationMessages,
   listHermesConversations,
+  listUserConversations,
   updateHermesConversation,
 } from './hermesSessionAdapter';
+import { invokeWithMissingRouteFallback, isMissingHermesRoute } from './hermesRouteFallback';
+import {
+  aioncoreHttpRequest,
+  isAioncoreAvailable,
+  rememberConversationRoute,
+  resolveConversationRoute,
+} from './aioncoreBridge';
+import {
+  fromBackendAgent,
+  fromBackendTeam,
+  fromBackendTeamList,
+  fromBackendTeamOptional,
+  toBackendAgent,
+} from './teamMapper';
+
+async function invokeNativeTeam<Data, Params>(key: string, params: Params): Promise<Data> {
+  return bridge.buildProvider<Data, Params>(key).invoke(params);
+}
+
+async function dualConversationRequest<T>(
+  conversationId: string,
+  aioncoreCall: () => Promise<T>,
+  hermesCall: () => Promise<T>
+): Promise<T> {
+  const route = await resolveConversationRoute(conversationId);
+  if (route === 'aioncore' && isAioncoreAvailable()) {
+    rememberConversationRoute(conversationId, 'aioncore');
+    return aioncoreCall();
+  }
+  rememberConversationRoute(conversationId, 'hermes');
+  return hermesCall();
+}
 
 const acpModeStateByConversation = new Map<string, { mode: string; initialized: boolean }>();
 const acpModelStateByConversation = new Map<string, { model_info: AcpModelInfo | null }>();
@@ -212,37 +260,133 @@ function profileToAssistantDetail(profile: HermesProfileInfo): AssistantDetail {
   };
 }
 
+const upstreamAssistantsList = httpGet<Assistant[], void>('/api/assistants');
+
+async function listAssistants(): Promise<Assistant[]> {
+  try {
+    const upstream = await upstreamAssistantsList.invoke();
+    if (Array.isArray(upstream) && upstream.length > 0) {
+      return upstream;
+    }
+  } catch {
+    // fall through to Hermes profiles
+  }
+  return buildAssistantsFromHermes();
+}
+
+async function getAssistantDetail(params: { id: string; locale?: string }): Promise<AssistantDetail | null> {
+  try {
+    const detail = await httpGet<AssistantDetail, { id: string; locale?: string }>(
+      ({ id, locale }) =>
+        `/api/assistants/${encodeURIComponent(id)}${locale ? `?locale=${encodeURIComponent(locale)}` : ''}`
+    ).invoke(params);
+    if (detail) return detail;
+  } catch {
+    // fall through
+  }
+  const result = await httpRequest<{ profiles?: HermesProfileInfo[] }>('GET', '/api/profiles').catch(
+    (): { profiles: HermesProfileInfo[] } => ({ profiles: [] })
+  );
+  const profile = (result.profiles ?? []).find((item) => item.name === params.id);
+  return profile ? profileToAssistantDetail(profile) : null;
+}
+
 export const assistants = {
   list: {
     provider: () => {},
-    invoke: (async () => buildAssistantsFromHermes()) as () => Promise<Assistant[]>,
+    invoke: listAssistants,
   },
   get: {
     provider: () => {},
-    invoke: (async (params: { id: string; locale?: string }) => {
-      const result = await httpRequest<{ profiles?: HermesProfileInfo[] }>('GET', '/api/profiles').catch(
-        (): { profiles: HermesProfileInfo[] } => ({ profiles: [] })
-      );
-      const profile = (result.profiles ?? []).find((item) => item.name === params.id);
-      return profile ? profileToAssistantDetail(profile) : null;
-    }) as (params: { id: string; locale?: string }) => Promise<AssistantDetail | null>,
+    invoke: getAssistantDetail,
   },
-  // Hermes has no `POST /api/profiles` yet (verified recon). Stub for v1.
-  create: stubProvider<Assistant, CreateAssistantRequest>('assistants.create', {} as Assistant),
-  update: stubProvider<Assistant, UpdateAssistantRequest>('assistants.update', {} as Assistant),
-  delete: stubProvider<void, { id: string }>('assistants.delete', undefined as unknown as void),
-  setState: stubProvider<Assistant, SetAssistantStateRequest>('assistants.setState', {} as Assistant),
-  import: stubProvider<ImportAssistantsResult, ImportAssistantsRequest>('assistants.import', {
-    imported: 0,
-    failed: 0,
-    skipped: 0,
-    errors: [],
-  } as ImportAssistantsResult),
+  create: {
+    provider: () => {},
+    invoke: async (params: CreateAssistantRequest) => {
+      try {
+        return await httpPost<Assistant, CreateAssistantRequest>('/api/assistants').invoke(params);
+      } catch (error) {
+        if (isMissingHermesRoute(error)) {
+          throw new Error(
+            'Creating assistants requires the full backend (/api/assistants). Hermes profiles are read-only; use Runtime settings to manage profiles.'
+          );
+        }
+        throw error;
+      }
+    },
+  },
+  update: {
+    provider: () => {},
+    invoke: async (params: UpdateAssistantRequest) => {
+      try {
+        return await httpPut<Assistant, UpdateAssistantRequest>((p) => `/api/assistants/${p.id}`).invoke(params);
+      } catch (error) {
+        if (isMissingHermesRoute(error)) {
+          throw new Error(
+            'Updating assistants requires the full backend (/api/assistants). Hermes profiles are read-only.'
+          );
+        }
+        throw error;
+      }
+    },
+  },
+  delete: {
+    provider: () => {},
+    invoke: async (params: { id: string }) => {
+      try {
+        return await httpDelete<void, { id: string }>((p) => `/api/assistants/${p.id}`).invoke(params);
+      } catch (error) {
+        if (isMissingHermesRoute(error)) {
+          throw new Error('Deleting assistants requires the full backend (/api/assistants).');
+        }
+        throw error;
+      }
+    },
+  },
+  setState: {
+    provider: () => {},
+    invoke: async (params: SetAssistantStateRequest) => {
+      try {
+        return await httpPatch<Assistant, SetAssistantStateRequest>(
+          (p) => `/api/assistants/${p.id}/state`,
+          (p) => {
+            const { id: _id, ...body } = p;
+            return body;
+          }
+        ).invoke(params);
+      } catch (error) {
+        if (isMissingHermesRoute(error)) {
+          const existing = (await buildAssistantsFromHermes()).find((item) => item.id === params.id);
+          if (!existing) throw error;
+          return { ...existing, enabled: params.enabled ?? existing.enabled, sort_order: params.sort_order ?? existing.sort_order };
+        }
+        throw error;
+      }
+    },
+  },
+  import: {
+    provider: () => {},
+    invoke: async (params: ImportAssistantsRequest) => {
+      try {
+        return await httpPost<ImportAssistantsResult, ImportAssistantsRequest>('/api/assistants/import').invoke(params);
+      } catch (error) {
+        if (isMissingHermesRoute(error)) {
+          throw new Error('Importing assistants requires the full backend (/api/assistants/import).');
+        }
+        throw error;
+      }
+    },
+  },
 };
 
 // ---------------------------------------------------------------------------
 // Conversation — REST + WS
 // ---------------------------------------------------------------------------
+
+const responseSearchWorkSpace = callbackProvider<void, { file: number; dir: number; match?: IDirOrFile }>(
+  'responseSearchWorkSpace',
+  undefined as unknown as void
+);
 
 export const conversation = {
   create: {
@@ -253,10 +397,7 @@ export const conversation = {
     provider: () => {},
     invoke: async (params: { conversation: TChatConversation }): Promise<TChatConversation> => params.conversation,
   },
-  get: {
-    provider: () => {},
-    invoke: (params: { id: string }) => getHermesConversation(params.id),
-  },
+  get: bridge.buildProvider<TChatConversation | null, { id: string }>('conversation.get'),
   getAssociateConversation: {
     provider: () => {},
     invoke: async (params: { conversation_id: string }) => {
@@ -301,55 +442,83 @@ export const conversation = {
     invoke: (params: { id: string; updates: Partial<TChatConversation>; merge_extra?: boolean }) =>
       updateHermesConversation(params.id, params.updates),
   },
-  reset: {
-    provider: () => {},
-    invoke: async (_params: IResetConversationParams): Promise<void> => undefined,
-  },
-  warmup: {
-    provider: () => {},
-    invoke: async (_params: { conversation_id: string }): Promise<void> => undefined,
-  },
+  reset: httpPost<void, IResetConversationParams>((p) => `/api/conversations/${p.id}/reset`),
+  warmup: bridge.buildProvider<void, { conversation_id: string }>('conversation.warmup'),
   stop: {
     provider: () => {},
-    invoke: (p: { conversation_id: string; turn_id: string }) => stopHermesConversation(p.conversation_id),
+    invoke: async (p: { conversation_id: string; turn_id: string }) => {
+      try {
+        return await httpPost<{ runtime: TConversationRuntimeSummary }, { conversation_id: string; turn_id: string }>(
+          (params) => `/api/conversations/${params.conversation_id}/cancel`,
+          (params) => ({ turn_id: params.turn_id })
+        ).invoke(p);
+      } catch {
+        await stopHermesConversation(p.conversation_id);
+        const runtime: TConversationRuntimeSummary = {
+          state: 'idle',
+          can_send_message: true,
+          has_task: false,
+          task_status: 'finished',
+          is_processing: false,
+          pending_confirmations: 0,
+          turn_id: null,
+        };
+        return { runtime };
+      }
+    },
   },
-  activeCount: {
-    provider: () => {},
-    invoke: async () => ({ count: 0 }),
-  },
+  activeCount: httpGet<{ count: number }, void>('/api/conversations/active-count'),
   sendMessage: {
     provider: () => {},
-    invoke: sendHermesMessage,
+    invoke: async (params: ISendMessageParams) => {
+      return dualConversationRequest(
+        params.conversation_id,
+        () =>
+          aioncoreHttpRequest<ISendMessageResult>(
+            'POST',
+            `/api/conversations/${encodeURIComponent(params.conversation_id)}/messages`,
+            {
+              content: params.input,
+              files: params.files,
+              loading_id: params.loading_id,
+              inject_skills: params.inject_skills,
+            }
+          ),
+        () => sendHermesMessage(params)
+      );
+    },
   },
-  getSlashCommands: {
-    provider: () => {},
-    invoke: async (_params: { conversation_id: string }): Promise<AcpSlashCommandApiItem[]> =>
-      [] as AcpSlashCommandApiItem[],
-  },
-  askSideQuestion: {
-    provider: () => {},
-    invoke: async (_params: { conversation_id: string; question: string }): Promise<ConversationSideQuestionResult> =>
-      ({
-        status: 'unsupported',
-      }) as ConversationSideQuestionResult,
-  },
+  getSlashCommands: httpGet<AcpSlashCommandApiItem[], { conversation_id: string }>(
+    (p) => `/api/conversations/${p.conversation_id}/slash-commands`
+  ),
+  askSideQuestion: httpPost<ConversationSideQuestionResult, { conversation_id: string; question: string }>(
+    (p) => `/api/conversations/${p.conversation_id}/side-question`,
+    (p) => ({ question: p.question })
+  ),
   confirmMessage: {
     provider: () => {},
-    invoke: async (_params: IConfirmMessageParams): Promise<void> => undefined,
+    invoke: async (params: IConfirmMessageParams): Promise<void> => {
+      try {
+        await httpPost<void, IConfirmMessageParams>(
+          (p) =>
+            `/api/conversations/${p.conversation_id}/confirmations/${encodeURIComponent(p.call_id)}/confirm`,
+          (p) => ({ msg_id: p.msg_id, data: p.confirm_key, always_allow: p.always_allow ?? false })
+        ).invoke(params);
+      } catch {
+        await confirmHermesPendingRequest(params);
+      }
+    },
   },
-  listArtifacts: {
-    provider: () => {},
-    invoke: async (_params: { conversation_id: string }): Promise<IConversationArtifact[]> =>
-      [] as IConversationArtifact[],
-  },
-  updateArtifact: {
-    provider: () => {},
-    invoke: async (_params: {
-      conversation_id: string;
-      artifact_id: string;
-      status: IConversationArtifactStatus;
-    }): Promise<IConversationArtifact> => undefined as unknown as IConversationArtifact,
-  },
+  listArtifacts: httpGet<IConversationArtifact[], { conversation_id: string }>(
+    (p) => `/api/conversations/${p.conversation_id}/artifacts`
+  ),
+  updateArtifact: httpPatch<
+    IConversationArtifact,
+    { conversation_id: string; artifact_id: string; status: IConversationArtifactStatus }
+  >(
+    (p) => `/api/conversations/${p.conversation_id}/artifacts/${p.artifact_id}`,
+    (p) => ({ status: p.status })
+  ),
   responseStream: wsEmitter<IResponseMessage>('message.stream'),
   userCreated: wsEmitter<{
     conversation_id: string;
@@ -408,44 +577,75 @@ export const conversation = {
     };
   }),
   listChanged: wsEmitter<IConversationListChangedEvent>('conversation.listChanged'),
-  // Uses the filesystem IPC bridge directly so workspace reads stay local to
-  // the desktop shell instead of depending on a backend HTTP route.
+  responseSearchWorkSpace,
+  // Uses backend workspace listing when available; falls back to local fs.
   getWorkspace: {
     provider: () => {},
     invoke: (async (p: { conversation_id: string; workspace: string; path: string; search?: string }) => {
-      void p.conversation_id;
-      return fs.getFilesByDir.invoke({
-        dir: p.path,
-        root: p.workspace,
-        ...(p.search ? { search: p.search } : {}),
-      } as { dir: string; root: string; search?: string });
+      try {
+        const rel = absoluteToRelativePath(p.path, p.workspace);
+        const url = `/api/conversations/${p.conversation_id}/workspace?path=${encodeURIComponent(rel)}${p.search ? `&search=${encodeURIComponent(p.search)}` : ''}`;
+        const raw = await httpRequest<Array<{ name: string; type: string }>>('GET', url);
+        return fromBackendWorkspaceList(raw, p.workspace, rel);
+      } catch {
+        const files = await fs.getFilesByDir.invoke({
+          dir: p.path,
+          root: p.workspace,
+          ...(p.search ? { search: p.search } : {}),
+        } as { dir: string; root: string; search?: string });
+        if (p.search && files.length > 0) {
+          const match =
+            files.find((entry) => entry.name.toLowerCase().includes(p.search!.toLowerCase())) ?? files[0];
+          await responseSearchWorkSpace.invoke({ file: 0, dir: 0, match });
+        }
+        return files;
+      }
     }) as (p: { conversation_id: string; workspace: string; path: string; search?: string }) => Promise<IDirOrFile[]>,
   },
-  responseSearchWorkSpace: stubProvider<void, { file: number; dir: number; match?: IDirOrFile }>(
-    'responseSearchWorkSpace',
-    undefined as unknown as void
-  ),
   confirmation: {
     add: wsEmitter<IConfirmation<unknown> & { conversation_id: string }>('confirmation.add'),
     update: wsEmitter<IConfirmation<unknown> & { conversation_id: string }>('confirmation.update'),
     confirm: {
       provider: () => {},
-      invoke: confirmHermesPendingRequest,
+      invoke: async (params: {
+        conversation_id: string;
+        msg_id: string;
+        data: unknown;
+        call_id: string;
+        always_allow?: boolean;
+      }): Promise<void> => {
+        try {
+          await httpPost<
+            void,
+            { conversation_id: string; msg_id: string; data: unknown; call_id: string; always_allow?: boolean }
+          >(
+            (p) => `/api/conversations/${p.conversation_id}/confirmations/${encodeURIComponent(p.call_id)}/confirm`,
+            (p) => ({ msg_id: p.msg_id, data: p.data, always_allow: p.always_allow ?? false })
+          ).invoke(params);
+        } catch {
+          await confirmHermesPendingRequest(params);
+        }
+      },
     },
     list: {
       provider: () => {},
-      invoke: async (params: { conversation_id: string }): Promise<IConfirmation<unknown>[]> =>
-        listHermesPendingRequests(params.conversation_id),
+      invoke: async (params: { conversation_id: string }): Promise<IConfirmation<unknown>[]> => {
+        try {
+          return await httpGet<IConfirmation<unknown>[], { conversation_id: string }>(
+            (p) => `/api/conversations/${p.conversation_id}/confirmations`
+          ).invoke(params);
+        } catch {
+          return listHermesPendingRequests(params.conversation_id);
+        }
+      },
     },
     remove: wsEmitter<{ conversation_id: string; id: string }>('confirmation.remove'),
   },
   approval: {
-    check: {
-      provider: () => {},
-      invoke: async (_params: { conversation_id: string; action: string; command_type?: string }) => ({
-        approved: false,
-      }),
-    },
+    check: httpGet<{ approved: boolean }, { conversation_id: string; action: string; command_type?: string }>(
+      (p) =>
+        `/api/conversations/${p.conversation_id}/approvals/check?action=${encodeURIComponent(p.action)}${p.command_type ? `&command_type=${encodeURIComponent(p.command_type)}` : ''}`
+    ),
   },
 };
 
@@ -709,14 +909,13 @@ export const fs = {
   listAvailableSkills: {
     provider: () => {},
     invoke: async () => {
-      const skills = await httpRequest<
-        Array<{
-          name?: unknown;
-          description?: unknown;
-          category?: unknown;
-          enabled?: unknown;
-        }>
-      >('GET', '/api/skills');
+      const raw = await httpRequest<unknown>('GET', '/api/skills');
+      const skills = normalizeHermesList<{
+        name?: unknown;
+        description?: unknown;
+        category?: unknown;
+        enabled?: unknown;
+      }>(raw, 'skills');
       return skills
         .map((skill) => ({
           name: typeof skill.name === 'string' ? skill.name : '',
@@ -730,12 +929,24 @@ export const fs = {
         .filter((skill) => skill.name);
     },
   },
-  // Hermes exposes one enabled-skills catalog at `/api/skills`; it has no
-  // separate auto-injected subset.
-  listBuiltinAutoSkills: stubProvider<Array<{ name: string; description: string; location: string }>, void>(
-    'fs.listBuiltinAutoSkills',
-    []
-  ),
+  listBuiltinAutoSkills: {
+    provider: () => {},
+    invoke: async () => {
+      return invokeWithMissingRouteFallback(
+        () =>
+          httpGet<Array<{ name: string; description: string; location: string }>, void>('/api/skills/builtin-auto').invoke(),
+        async () => {
+          const raw = await httpRequest<unknown>('GET', '/api/skills');
+          const skills = normalizeHermesList<{ name?: string; description?: string; location?: string }>(raw, 'skills');
+          return skills.map((skill) => ({
+            name: skill.name ?? '',
+            description: skill.description ?? '',
+            location: skill.location ?? '',
+          }));
+        }
+      );
+    },
+  },
   materializeSkillsForAgent: httpPost<
     { skills: Array<{ name: string; source_path: string }> },
     { conversation_id: string; skills: string[] }
@@ -755,15 +966,11 @@ export const fs = {
     }>,
     void
   >('/api/skills/detect-external'),
-  importSkillWithSymlink: stubProvider<{ skill_name: string; skill_names?: string[] }, { skill_path: string }>(
-    'fs.importSkillWithSymlink',
-    { skill_name: '', skill_names: [] }
+  importSkillWithSymlink: httpPost<{ skill_name: string; skill_names?: string[] }, { skill_path: string }>(
+    '/api/skills/import-symlink'
   ),
-  deleteSkill: stubProvider<void, { skill_name: string }>('fs.deleteSkill', undefined as unknown as void),
-  getSkillPaths: stubProvider<{ user_skills_dir: string; builtin_skills_dir: string }, void>('fs.getSkillPaths', {
-    user_skills_dir: '',
-    builtin_skills_dir: '',
-  }),
+  deleteSkill: httpDelete<void, { skill_name: string }>((p) => `/api/skills/${p.skill_name}`),
+  getSkillPaths: httpGet<{ user_skills_dir: string; builtin_skills_dir: string }, void>('/api/skills/paths'),
   getCustomExternalPaths: httpGet<Array<{ name: string; path: string }>, void>('/api/skills/external-paths'),
   addCustomExternalPath: httpPost<void, { name: string; path: string }>('/api/skills/external-paths'),
   removeCustomExternalPath: httpDelete<void, { path: string }>(
@@ -840,14 +1047,36 @@ export const fileSnapshot = {
 };
 
 // ---------------------------------------------------------------------------
-// Google Auth — stubbed (Electron-native OAuth flow)
+// Google Auth — upstream HTTP with subscription-status fallback
 // ---------------------------------------------------------------------------
 
 export const googleAuth = {
-  status: stubProvider<IBridgeResponse<{ account: string }>, { proxy?: string }>('googleAuth.status', {
-    success: false,
-    msg: 'Google Auth not available in backend mode',
-  }),
+  status: {
+    provider: () => {},
+    invoke: async (params: { proxy?: string } = {}): Promise<IBridgeResponse<{ account: string }>> => {
+      try {
+        const sub = await httpGet<
+          { isSubscriber: boolean; tier?: string; lastChecked: number; message?: string },
+          { proxy?: string }
+        >('/api/google/subscription-status').invoke(params);
+        if (sub?.message) {
+          return { success: true, data: { account: sub.message } };
+        }
+      } catch {
+        // try auth-status next
+      }
+      try {
+        return await httpGet<IBridgeResponse<{ account: string }>, { proxy?: string }>('/api/google/auth-status').invoke(
+          params
+        );
+      } catch (error) {
+        return {
+          success: false,
+          msg: error instanceof Error ? error.message : 'Google Auth unavailable',
+        };
+      }
+    },
+  },
 };
 
 // ---------------------------------------------------------------------------
@@ -884,13 +1113,9 @@ export const bedrock = {
 // Mode (Provider management) — routed to /api/providers/*
 // ---------------------------------------------------------------------------
 
-// Hermes path-correction (RECON §3): upstream's `/api/providers` doesn't
-// exist in Hermes. Model listing is at `/api/model/options`; the active
-// model is at `/api/model/info`; validation/refresh is at
-// `/api/providers/validate` (note plural). The exact response shape of
-// `/api/model/options` is pending Task 7's live probe — for v1 we map
-// listProviders through with response-shape pass-through, and stub the
-// mutating methods (create/update/delete) which Hermes doesn't expose.
+// listProviders falls back to Hermes `/api/model/options` when upstream
+// `/api/providers` is empty or unavailable. Mutating provider routes use
+// upstream `/api/providers` directly.
 interface HermesModelOptions {
   providers?: Array<{
     authenticated?: boolean;
@@ -938,24 +1163,50 @@ async function buildProvidersFromHermes(): Promise<IProvider[]> {
   );
 }
 
+const upstreamProvidersList = httpGet<IProvider[], void>('/api/providers');
+
+async function listProviders(): Promise<IProvider[]> {
+  try {
+    const upstream = await upstreamProvidersList.invoke();
+    if (Array.isArray(upstream) && upstream.length > 0) {
+      return upstream;
+    }
+  } catch {
+    // fall through
+  }
+  return buildProvidersFromHermes();
+}
+
 export const mode = {
   listProviders: {
     provider: () => {},
-    invoke: (async () => {
-      return buildProvidersFromHermes();
-    }) as () => Promise<IProvider[]>,
+    invoke: listProviders,
   },
-  // Hermes has no provider CRUD (profiles / oauth are config-only).
-  createProvider: stubProvider<IProvider, CreateProviderRequest>('mode.createProvider', {} as IProvider),
-  updateProvider: stubProvider<IProvider, { id: string } & UpdateProviderRequest>(
-    'mode.updateProvider',
-    {} as IProvider
+  createProvider: httpPost<IProvider, CreateProviderRequest>('/api/providers'),
+  updateProvider: httpPut<IProvider, { id: string } & UpdateProviderRequest>(
+    (p) => `/api/providers/${p.id}`,
+    (p) => {
+      const { id: _id, ...body } = p;
+      return body;
+    }
   ),
-  deleteProvider: stubProvider<void, { id: string }>('mode.deleteProvider', undefined as unknown as void),
-  fetchProviderModels: httpPost<FetchModelsResponse, { id: string; try_fix?: boolean }>(
-    '/api/providers/validate',
-    (p) => ({ id: p.id, try_fix: p.try_fix })
-  ),
+  deleteProvider: httpDelete<void, { id: string }>((p) => `/api/providers/${p.id}`),
+  fetchProviderModels: {
+    provider: () => {},
+    invoke: async (params: { id: string; try_fix?: boolean }): Promise<FetchModelsResponse> => {
+      try {
+        return await httpPost<FetchModelsResponse, { id: string; try_fix?: boolean }>(
+          (p) => `/api/providers/${p.id}/models`,
+          (p) => ({ try_fix: p.try_fix })
+        ).invoke(params);
+      } catch {
+        return httpPost<FetchModelsResponse, { id: string; try_fix?: boolean }>(
+          '/api/providers/validate',
+          (p) => ({ id: p.id, try_fix: p.try_fix })
+        ).invoke(params);
+      }
+    },
+  },
   /**
    * Pre-create form preview — anonymous fetch-models (T1b).
    * Takes credentials in the body, no provider row required. Used by
@@ -970,41 +1221,75 @@ export const mode = {
 // ACP Conversation — routed to /api/agents/* + conversation routes
 // ---------------------------------------------------------------------------
 
-// Hermes path-correction (RECON §3): `/api/agents` doesn't exist; the
-// analog is `GET /api/profiles` (same mapping the `assistants` block
-// uses). The "soul" — Hermes's term for a profile's per-agent config —
-// is at `/api/profiles/{name}/soul` (path pending Task 7 live-probe
-// confirmation of the exact sub-route).
+// Hermes may expose `/api/agents` when the runtime catalog is hydrated; fall
+// back to the desktop `$PATH` scanner when the endpoint is absent or empty.
+const remoteAvailableAgents = httpGet<AgentMetadata[], void>('/api/agents');
+
+async function loadAvailableAgents(): Promise<AgentMetadata[]> {
+  let remoteAgents: AgentMetadata[] = [];
+
+  if (isAioncoreAvailable()) {
+    try {
+      const aioncoreAgents = await aioncoreHttpRequest<AgentMetadata[]>('GET', '/api/agents');
+      if (Array.isArray(aioncoreAgents) && aioncoreAgents.length > 0) {
+        remoteAgents = aioncoreAgents;
+      }
+    } catch {
+      // fall through to Hermes / local scan
+    }
+  }
+
+  if (remoteAgents.length === 0) {
+    try {
+      const response = await remoteAvailableAgents.invoke();
+      if (Array.isArray(response)) {
+        remoteAgents = response;
+      }
+    } catch {
+      remoteAgents = [];
+    }
+  }
+
+  let localAgents: AgentMetadata[] = [];
+  try {
+    localAgents = await bridge.buildProvider<AgentMetadata[], void>('acpConversation.scanAgents').invoke();
+  } catch {
+    localAgents = [];
+  }
+
+  const byBackend = new Map<string, AgentMetadata>();
+  for (const agent of remoteAgents) {
+    byBackend.set(agent.backend || agent.agent_type || agent.id, agent);
+  }
+  for (const agent of localAgents) {
+    const key = agent.backend || agent.agent_type || agent.id;
+    if (!byBackend.has(key)) {
+      byBackend.set(key, agent);
+    }
+  }
+  const sidecarUp = isAioncoreAvailable();
+  const merged = [...byBackend.values()].map((agent) =>
+    sanitizeAgentMetadata({
+      ...agent,
+      team_capable: resolveTeamCapable(agent, { aioncoreSidecar: sidecarUp }),
+    })
+  );
+  return merged;
+}
+
 export const acpConversation = {
   sendMessage: conversation.sendMessage,
   responseStream: conversation.responseStream,
   getAvailableAgents: {
     provider: () => {},
-    invoke: (async () => {
-      // 1. Local CLI scanner — always works, probes $PATH for known binaries
-      let localAgents: AgentMetadata[] = [];
-      try {
-        localAgents = await bridge.buildProvider<AgentMetadata[], void>('acpConversation.scanAgents').invoke();
-      } catch {
-        // scanner not available (e.g. browser mode) — continue
-      }
-
-      // Hermes has no inherited `/api/extensions/acp-adapters` endpoint.
-      // The local scanner is the authoritative desktop catalog.
-      const byId = new Map<string, AgentMetadata>();
-      for (const agent of localAgents) {
-        byId.set(agent.id, agent);
-      }
-
-      return [...byId.values()];
-    }) as () => Promise<AgentMetadata[]>,
+    invoke: loadAvailableAgents,
   },
   scanAgents: bridge.buildProvider<AgentMetadata[], void>('acpConversation.scanAgents'),
-  refreshCustomAgents: stubProvider<void, void>('acpConversation.refreshCustomAgents', undefined as unknown as void),
-  testCustomAgent: stubProvider<
+  refreshCustomAgents: httpPost<void, void>('/api/agents/refresh'),
+  testCustomAgent: httpPost<
     { step: 'success' } | { step: 'fail_cli'; error: string } | { step: 'fail_acp'; error: string },
     { command: string; acp_args?: string[]; env?: Record<string, string>; runtime_scope_id?: string }
-  >('acpConversation.testCustomAgent', { step: 'success' }),
+  >('/api/agents/custom/try-connect'),
   // Hermes has no `POST /api/agents/custom/try-connect` endpoint; the
   // equivalent lives in `/api/curator/run` (TBD live-probe).
   createCustomAgent: httpPost<
@@ -1063,46 +1348,68 @@ export const acpConversation = {
       conversation_id: string;
       mode: string;
     }): Promise<{ mode: string; initialized: boolean }> => {
-      acpModeStateByConversation.set(params.conversation_id, { mode: params.mode, initialized: true });
-      return { mode: params.mode, initialized: true };
+      try {
+        return await httpPut<{ mode: string; initialized: boolean }, { conversation_id: string; mode: string }>(
+          (p) => `/api/conversations/${p.conversation_id}/mode`,
+          (p) => ({ mode: p.mode })
+        ).invoke(params);
+      } catch {
+        acpModeStateByConversation.set(params.conversation_id, { mode: params.mode, initialized: true });
+        await updateHermesConversation(params.conversation_id, {
+          extra: { session_mode: params.mode },
+        });
+        return { mode: params.mode, initialized: true };
+      }
     },
   },
-  // Hermes does not expose the old ACP mode/model REST endpoints. Keep a
-  // small local cache so the existing selector hooks continue to work.
   getMode: {
     provider: () => {},
     invoke: async (params: { conversation_id: string }): Promise<{ mode: string; initialized: boolean }> => {
-      const cached = acpModeStateByConversation.get(params.conversation_id);
-      if (cached) return cached;
-      const conversationInfo = await getHermesConversation(params.conversation_id).catch((): null => null);
-      const extra = conversationInfo?.extra as { session_mode?: string } | undefined;
-      const mode = extra?.session_mode?.trim();
-      if (mode) {
-        const resolved = { mode, initialized: true };
-        acpModeStateByConversation.set(params.conversation_id, resolved);
-        return resolved;
+      try {
+        return await httpGet<{ mode: string; initialized: boolean }, { conversation_id: string }>(
+          (p) => `/api/conversations/${p.conversation_id}/mode`,
+          { silentStatuses: [404] }
+        ).invoke(params);
+      } catch {
+        const cached = acpModeStateByConversation.get(params.conversation_id);
+        if (cached) return cached;
+        const conversationInfo = await getHermesConversation(params.conversation_id).catch((): null => null);
+        const extra = conversationInfo?.extra as { session_mode?: string } | undefined;
+        const mode = extra?.session_mode?.trim();
+        if (mode) {
+          const resolved = { mode, initialized: true };
+          acpModeStateByConversation.set(params.conversation_id, resolved);
+          return resolved;
+        }
+        return { mode: 'default', initialized: false };
       }
-      return { mode: 'default', initialized: false };
     },
   },
   getModel: {
     provider: () => {},
     invoke: async (params: { conversation_id: string }): Promise<{ model_info: AcpModelInfo | null }> => {
-      const cached = acpModelStateByConversation.get(params.conversation_id);
-      if (cached) return cached;
-      const conversationInfo = await getHermesConversation(params.conversation_id).catch((): null => null);
-      const extra = conversationInfo?.extra as { current_model_id?: string; current_model_label?: string } | undefined;
-      const conversationModel = conversationInfo as { model?: TProviderWithModel } | null;
-      const current_model_id = extra?.current_model_id?.trim() || conversationModel?.model?.use_model?.trim() || null;
-      if (!current_model_id) return { model_info: null };
-      const model_info: AcpModelInfo = {
-        current_model_id,
-        current_model_label: extra?.current_model_label?.trim() || current_model_id,
-        available_models: [{ id: current_model_id, label: extra?.current_model_label?.trim() || current_model_id }],
-      };
-      const result = { model_info };
-      acpModelStateByConversation.set(params.conversation_id, result);
-      return result;
+      try {
+        return await httpGet<{ model_info: AcpModelInfo | null }, { conversation_id: string }>(
+          (p) => `/api/conversations/${p.conversation_id}/model`,
+          { silentStatuses: [404] }
+        ).invoke(params);
+      } catch {
+        const cached = acpModelStateByConversation.get(params.conversation_id);
+        if (cached) return cached;
+        const conversationInfo = await getHermesConversation(params.conversation_id).catch((): null => null);
+        const extra = conversationInfo?.extra as { current_model_id?: string; current_model_label?: string } | undefined;
+        const conversationModel = conversationInfo as { model?: TProviderWithModel } | null;
+        const current_model_id = extra?.current_model_id?.trim() || conversationModel?.model?.use_model?.trim() || null;
+        if (!current_model_id) return { model_info: null };
+        const model_info: AcpModelInfo = {
+          current_model_id,
+          current_model_label: extra?.current_model_label?.trim() || current_model_id,
+          available_models: [{ id: current_model_id, label: extra?.current_model_label?.trim() || current_model_id }],
+        };
+        const result = { model_info };
+        acpModelStateByConversation.set(params.conversation_id, result);
+        return result;
+      }
     },
   },
   setModel: {
@@ -1111,18 +1418,32 @@ export const acpConversation = {
       conversation_id: string;
       model_id: string;
     }): Promise<{ model_info: AcpModelInfo | null }> => {
-      const previous = acpModelStateByConversation.get(params.conversation_id)?.model_info ?? null;
-      const label = previous?.available_models.find((model) => model.id === params.model_id)?.label || params.model_id;
-      const model_info: AcpModelInfo = {
-        current_model_id: params.model_id,
-        current_model_label: label,
-        available_models: previous?.available_models.length
-          ? previous.available_models
-          : [{ id: params.model_id, label }],
-      };
-      const result = { model_info };
-      acpModelStateByConversation.set(params.conversation_id, result);
-      return result;
+      try {
+        return await httpPut<{ model_info: AcpModelInfo | null }, { conversation_id: string; model_id: string }>(
+          (p) => `/api/conversations/${p.conversation_id}/model`,
+          (p) => ({ model_id: p.model_id })
+        ).invoke(params);
+      } catch {
+        const previous = acpModelStateByConversation.get(params.conversation_id)?.model_info ?? null;
+        const label =
+          previous?.available_models.find((model) => model.id === params.model_id)?.label || params.model_id;
+        const model_info: AcpModelInfo = {
+          current_model_id: params.model_id,
+          current_model_label: label,
+          available_models: previous?.available_models.length
+            ? previous.available_models
+            : [{ id: params.model_id, label }],
+        };
+        const result = { model_info };
+        acpModelStateByConversation.set(params.conversation_id, result);
+        await updateHermesConversation(params.conversation_id, {
+          extra: {
+            current_model_id: params.model_id,
+            current_model_label: label,
+          } as TChatConversation['extra'],
+        });
+        return result;
+      }
     },
   },
 };
@@ -1166,18 +1487,33 @@ export const mcpService = {
     IMcpServer[],
     { servers: Array<Partial<IMcpServer> & Pick<IMcpServer, 'name' | 'transport'>> }
   >('/api/mcp/servers/import'),
-  getAgentMcpConfigs: httpGet<
-    Array<{
-      source: string;
-      servers: Array<
-        IMcpServer & {
-          importable: boolean;
-          import_skip_reason?: string;
-        }
-      >;
-    }>,
-    Array<{ agent_type: string; backend?: string; name: string; cli_path?: string }>
-  >('/api/mcp/agent-configs'),
+  getAgentMcpConfigs: {
+    provider: () => {},
+    invoke: async (
+      params: Array<{ agent_type: string; backend?: string; name: string; cli_path?: string }>
+    ) => {
+      void params;
+      return invokeWithMissingRouteFallback(
+        () =>
+          httpGet<
+            Array<{
+              source: string;
+              servers: Array<
+                IMcpServer & {
+                  importable: boolean;
+                  import_skip_reason?: string;
+                }
+              >;
+            }>,
+            Array<{ agent_type: string; backend?: string; name: string; cli_path?: string }>
+          >('/api/mcp/agent-configs').invoke(params),
+        (): Array<{
+          source: string;
+          servers: Array<IMcpServer & { importable: boolean; import_skip_reason?: string }>;
+        }> => []
+      );
+    },
+  },
   testMcpConnection: httpPost<
     {
       success: boolean;
@@ -1256,7 +1592,7 @@ export const database = {
   >((p) => `/api/conversations/${p.conversation_id}/messages/${encodeURIComponent(p.message_id)}`),
   getUserConversations: {
     provider: () => {},
-    invoke: listHermesConversations,
+    invoke: listUserConversations,
   },
   searchConversationMessages: withResponseMap(
     httpGet<PaginatedResult<ApiMessageSearchItem>, { keyword: string; page?: number; page_size?: number }>(
@@ -1265,8 +1601,14 @@ export const database = {
     ),
     fromApiSearchResult
   ),
-  deleteMessage: async (_msgId: string) => {
-    console.warn('[headmaster] deleteMessage: not supported by Hermes runtime');
+  deleteMessage: async (msgId: string) => {
+    try {
+      await httpDelete<void, { message_id: string }>((p) => `/api/messages/${encodeURIComponent(p.message_id)}`).invoke({
+        message_id: msgId,
+      });
+    } catch (error) {
+      console.warn('[headmaster] deleteMessage:', error instanceof Error ? error.message : String(error));
+    }
   },
 };
 
@@ -1450,15 +1792,39 @@ export const notification = {
 };
 
 // ---------------------------------------------------------------------------
-// Task management — stubbed (internal process management)
+// Task management — upstream HTTP with optional Hermes watch stop
 // ---------------------------------------------------------------------------
 
 export const task = {
-  stopAll: stubProvider<{ success: boolean; count: number }, void>('task.stopAll', { success: true, count: 0 }),
-  getRunningCount: stubProvider<{ success: boolean; count: number }, void>('task.getRunningCount', {
-    success: true,
-    count: 0,
-  }),
+  stopAll: {
+    provider: () => {},
+    invoke: async (): Promise<{ success: boolean; count: number }> => {
+      let count = 0;
+      try {
+        await httpPost<void, void>('/api/fs/watch/stop-all').invoke();
+        count += 1;
+      } catch {
+        // optional endpoint
+      }
+      try {
+        const result = await httpPost<{ count?: number }, void>('/api/tasks/stop-all').invoke();
+        count += typeof result?.count === 'number' ? result.count : 0;
+      } catch {
+        // optional endpoint
+      }
+      return { success: true, count };
+    },
+  },
+  getRunningCount: {
+    provider: () => {},
+    invoke: async (): Promise<{ success: boolean; count: number }> => {
+      try {
+        return await httpGet<{ success: boolean; count: number }, void>('/api/tasks/running-count').invoke();
+      } catch {
+        return { success: true, count: 0 };
+      }
+    },
+  },
 };
 
 // ---------------------------------------------------------------------------
@@ -1925,7 +2291,14 @@ export const extensions = {
   getLoadedExtensions: httpGet<IExtensionInfo[], void>('/api/extensions'),
   getAssistants: httpGet<Record<string, unknown>[], void>('/api/extensions/assistants'),
   getAgents: httpGet<Record<string, unknown>[], void>('/api/extensions/agents'),
-  getAcpAdapters: stubProvider<Record<string, unknown>[], void>('extensions.getAcpAdapters', []),
+  getAcpAdapters: {
+    provider: () => {},
+    invoke: () =>
+      invokeWithMissingRouteFallback(
+        () => httpGet<Record<string, unknown>[], void>('/api/extensions/acp-adapters').invoke(),
+        (): Record<string, unknown>[] => [] as Record<string, unknown>[]
+      ),
+  },
   getMcpServers: httpGet<Record<string, unknown>[], void>('/api/extensions/mcp-servers'),
   getSkills: httpGet<Array<{ name: string; description: string; location: string }>, void>('/api/extensions/skills'),
   getSettingsTabs: httpGet<IExtensionSettingsTab[], void>('/api/extensions/settings-tabs'),
@@ -2050,7 +2423,6 @@ export const channel = {
 // ---------------------------------------------------------------------------
 
 import type { HubExtensionStatus, IHubAgentItem } from '@/common/types/agent/hub';
-import type { AgentMetadata } from '@/renderer/utils/model/agentTypes';
 
 export const hub = {
   getExtensionList: httpGet<IHubAgentItem[], void>('/api/hub/extensions'),
@@ -2063,51 +2435,182 @@ export const hub = {
 };
 
 // ---------------------------------------------------------------------------
-// The Council API — routed to /api/teams/*
+// The Council API — requires AionCore sidecar (no native mutating fallback)
 // ---------------------------------------------------------------------------
 
 export type { IAddTeamAgentParams, ICreateTeamParams } from './teamMapper';
 
-// Hermes has no inherited `/api/teams` surface. Keep the sidebar read path
-// inert instead of issuing a failing request during every startup.
 export const team = {
-  create: httpPost<TTeam, ICreateTeamParams>('/api/teams', (params) => ({
-    user_id: params.user_id,
-    name: params.name,
-    workspace: params.workspace,
-    workspace_mode: params.workspace_mode,
-    agents: params.agents.map(toBackendAgent),
-  })),
-  list: stubProvider<TTeam[], { user_id: string }>('team.list', []),
-  get: withResponseMap(
-    httpGet<unknown, { id: string }>((p) => `/api/teams/${encodeURIComponent(p.id)}`),
-    (raw) => fromBackendTeamOptional(raw)
-  ),
-  remove: httpDelete<void, { id: string }>((p) => `/api/teams/${encodeURIComponent(p.id)}`),
-  addAgent: stubProvider<TeamAgent, IAddTeamAgentParams>('team.addAgent', {} as TeamAgent),
-  removeAgent: stubProvider<void, { team_id: string; slot_id: string }>(
-    'team.removeAgent',
-    undefined as unknown as void
-  ),
-  stop: stubProvider<void, { team_id: string }>('team.stop', undefined as unknown as void),
-  ensureSession: stubProvider<void, { team_id: string }>('team.ensureSession', undefined as unknown as void),
-  renameAgent: httpPatch<void, { team_id: string; slot_id: string; new_name: string }>(
-    (p) => `/api/teams/${p.team_id}/agents/${p.slot_id}/name`,
-    (p) => ({ name: p.new_name })
-  ),
-  renameTeam: httpPatch<void, { id: string; name: string }>(
-    (p) => `/api/teams/${p.id}/name`,
-    (p) => ({ name: p.name })
-  ),
-  setSessionMode: httpPost<void, { team_id: string; session_mode: string }>(
-    (p) => `/api/teams/${p.team_id}/session-mode`,
-    (p) => ({ session_mode: p.session_mode })
-  ),
-  agentStatusChanged: wsEmitter<ITeamAgentStatusEvent>('team.agent.status'),
-  agentSpawned: wsEmitter<ITeamAgentSpawnedEvent>('team.agent.spawned'),
-  agentRemoved: wsEmitter<ITeamAgentRemovedEvent>('team.agent.removed'),
-  agentRenamed: wsEmitter<ITeamAgentRenamedEvent>('team.agent.renamed'),
-  listChanged: wsEmitter<ITeamListChangedEvent>('team.list-changed'),
+  create: {
+    provider: () => {},
+    invoke: async (params: ICreateTeamParams) => {
+      requireCouncilSidecar();
+      return fromBackendTeam(
+        await aioncoreHttpRequest('POST', '/api/teams', {
+          name: params.name,
+          agents: params.agents.map(toBackendAgent),
+          ...(params.workspace ? { workspace: params.workspace } : {}),
+        })
+      );
+    },
+  },
+  list: {
+    provider: () => {},
+    invoke: async (params: { user_id: string }) => {
+      if (isAioncoreAvailable()) {
+        return fromBackendTeamList(
+          await aioncoreHttpRequest('GET', `/api/teams?user_id=${encodeURIComponent(params.user_id)}`)
+        );
+      }
+      return invokeNativeTeam<TTeam[], { user_id: string }>('team.list', params);
+    },
+  },
+  get: {
+    provider: () => {},
+    invoke: async (params: { id: string }) => {
+      if (isAioncoreAvailable()) {
+        return fromBackendTeamOptional(await aioncoreHttpRequest('GET', `/api/teams/${params.id}`));
+      }
+      return invokeNativeTeam<TTeam | null, { id: string }>('team.get', params);
+    },
+  },
+  remove: {
+    provider: () => {},
+    invoke: async (params: { id: string }) => {
+      requireCouncilSidecar();
+      await aioncoreHttpRequest('DELETE', `/api/teams/${params.id}`);
+    },
+  },
+  addAgent: {
+    provider: () => {},
+    invoke: async (params: IAddTeamAgentParams) => {
+      requireCouncilSidecar();
+      return fromBackendAgent(
+        await aioncoreHttpRequest('POST', `/api/teams/${params.team_id}/agents`, toBackendAgent(params.agent))
+      );
+    },
+  },
+  removeAgent: {
+    provider: () => {},
+    invoke: async (params: { team_id: string; slot_id: string }) => {
+      requireCouncilSidecar();
+      await aioncoreHttpRequest('DELETE', `/api/teams/${params.team_id}/agents/${params.slot_id}`);
+    },
+  },
+  stop: {
+    provider: () => {},
+    invoke: async (params: { team_id: string }) => {
+      requireCouncilSidecar();
+      await aioncoreHttpRequest('DELETE', `/api/teams/${params.team_id}/session`);
+    },
+  },
+  ensureSession: {
+    provider: () => {},
+    invoke: async (params: { team_id: string }) => {
+      requireCouncilSidecar();
+      await aioncoreHttpRequest('POST', `/api/teams/${params.team_id}/session`);
+    },
+  },
+  renameAgent: {
+    provider: () => {},
+    invoke: async (params: { team_id: string; slot_id: string; new_name: string }) => {
+      requireCouncilSidecar();
+      await aioncoreHttpRequest('PATCH', `/api/teams/${params.team_id}/agents/${params.slot_id}/name`, {
+        name: params.new_name,
+      });
+    },
+  },
+  renameTeam: {
+    provider: () => {},
+    invoke: async (params: { id: string; name: string }) => {
+      requireCouncilSidecar();
+      await aioncoreHttpRequest('PATCH', `/api/teams/${params.id}/name`, { name: params.name });
+    },
+  },
+  setSessionMode: {
+    provider: () => {},
+    invoke: async (params: { team_id: string; session_mode: string }) => {
+      requireCouncilSidecar();
+      await aioncoreHttpRequest('POST', `/api/teams/${params.team_id}/session-mode`, {
+        mode: params.session_mode,
+      });
+    },
+  },
+  sendMessage: {
+    provider: () => {},
+    invoke: async (params: ISendTeamMessageParams) => {
+      requireCouncilSidecar();
+      return aioncoreHttpRequest<ITeamRunAck>('POST', `/api/teams/${params.team_id}/messages`, {
+        content: params.input,
+        files: params.files,
+      });
+    },
+  },
+  sendMessageToAgent: {
+    provider: () => {},
+    invoke: async (params: ISendTeamAgentMessageParams) => {
+      requireCouncilSidecar();
+      return aioncoreHttpRequest<ITeamRunAck>(
+        'POST',
+        `/api/teams/${params.team_id}/agents/${params.slot_id}/messages`,
+        {
+          content: params.input,
+          files: params.files,
+        }
+      );
+    },
+  },
+  cancelRun: {
+    provider: () => {},
+    invoke: async (params: ICancelTeamRunParams) => {
+      requireCouncilSidecar();
+      await aioncoreHttpRequest('POST', `/api/teams/${params.team_id}/runs/${params.team_run_id}/cancel`, {
+        target_slot_id: params.target_slot_id,
+        reason: params.reason,
+      });
+    },
+  },
+  cancelChildTurn: {
+    provider: () => {},
+    invoke: async (params: ICancelTeamChildTurnParams) => {
+      requireCouncilSidecar();
+      await aioncoreHttpRequest(
+        'POST',
+        `/api/teams/${params.team_id}/runs/${params.team_run_id}/agents/${params.slot_id}/cancel`,
+        { reason: params.reason }
+      );
+    },
+  },
+  pauseSlotWork: {
+    provider: () => {},
+    invoke: async (params: IPauseTeamSlotParams) => {
+      requireCouncilSidecar();
+      await aioncoreHttpRequest(
+        'POST',
+        `/api/teams/${params.team_id}/runs/${params.team_run_id}/agents/${params.slot_id}/pause`,
+        { reason: params.reason }
+      );
+    },
+  },
+  agentStatusChanged: wsEmitter<ITeamAgentStatusEvent>('team.agentStatusChanged'),
+  agentSpawned: wsEmitter<ITeamAgentSpawnedEvent>('team.agentSpawned'),
+  agentRemoved: wsEmitter<ITeamAgentRemovedEvent>('team.agentRemoved'),
+  agentRenamed: wsEmitter<ITeamAgentRenamedEvent>('team.agentRenamed'),
+  listChanged: wsEmitter<ITeamListChangedEvent>('team.listChanged'),
   created: wsEmitter<ITeamCreatedEvent>('team.created'),
-  teammateMessage: wsEmitter<ITeamTeammateMessageEvent>('team.teammate.message'),
+  removed: wsEmitter<ITeamRemovedEvent>('team.removed'),
+  renamed: wsEmitter<ITeamRenamedEvent>('team.renamed'),
+  teammateMessage: wsEmitter<ITeamTeammateMessageEvent>('team.teammateMessage'),
+  mcpStatus: wsEmitter<ITeamMcpStatusEvent>('team.mcpStatus'),
+  taskChanged: wsEmitter<ITeamTaskChangedEvent>('team.taskChanged'),
+  sessionChanged: wsEmitter<ITeamSessionChangedEvent>('team.sessionChanged'),
+  runAccepted: wsEmitter<ITeamRunEvent>('team.runAccepted'),
+  runStarted: wsEmitter<ITeamRunEvent>('team.runStarted'),
+  runUpdated: wsEmitter<ITeamRunEvent>('team.runUpdated'),
+  runCompleted: wsEmitter<ITeamRunEvent>('team.runCompleted'),
+  runCancelled: wsEmitter<ITeamRunEvent>('team.runCancelled'),
+  runFailed: wsEmitter<ITeamRunEvent>('team.runFailed'),
+  childTurnStarted: wsEmitter<ITeamChildTurnEvent>('team.childTurnStarted'),
+  childTurnCompleted: wsEmitter<ITeamChildTurnEvent>('team.childTurnCompleted'),
+  childTurnCancelled: wsEmitter<ITeamChildTurnEvent>('team.childTurnCancelled'),
 };

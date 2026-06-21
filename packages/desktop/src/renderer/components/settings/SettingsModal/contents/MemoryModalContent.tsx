@@ -113,16 +113,19 @@ const MemoryModalContent: React.FC = () => {
             value={provider?.id}
             onChange={(value) => void updateProvider(String(value), { enabled: true })}
             direction='vertical'
+            className='flex flex-col gap-8px'
           >
             {providers.map((p) => (
-              <Radio key={p.id} value={p.id}>
-                <span className='text-14px text-t-primary'>{p.name}</span>
-                {p.enabled && (
-                  <Tag size='small' color='green' className='ml-8px'>
-                    {t('settings.memory.active', { defaultValue: 'Active' })}
-                  </Tag>
-                )}
-              </Radio>
+              <div key={p.id} className='flex min-h-32px items-center'>
+                <Radio value={p.id} className='!m-0 !leading-normal'>
+                  <span className='text-14px text-t-primary'>{p.name}</span>
+                  {p.enabled && (
+                    <Tag size='small' color='green' className='ml-8px'>
+                      {t('settings.memory.active', { defaultValue: 'Active' })}
+                    </Tag>
+                  )}
+                </Radio>
+              </div>
             ))}
           </Radio.Group>
         )}

@@ -5,6 +5,7 @@
  */
 
 import { execSync } from 'child_process';
+import { isTeamCapableBackend } from '@/common/agent/teamCapability';
 
 /**
  * Catalog of known CLI agents to probe for on $PATH.
@@ -18,9 +19,9 @@ const KNOWN_AGENTS = [
   { id: 'opencode', name: 'OpenCode', command: 'opencode', backend: 'opencode' },
   { id: 'cursor', name: 'Cursor', command: 'cursor', backend: 'cursor' },
   { id: 'snow', name: 'Snow', command: 'snow', backend: 'snow' },
-  { id: 'aionrs', name: 'CLI Agent', command: 'aionrs', backend: 'aionrs' },
+  { id: 'aionrs', name: 'Headmaster', command: 'aionrs', backend: 'aionrs' },
   { id: 'grok', name: 'Grok CLI', command: 'grok', backend: 'grok' },
-  { id: 'headmaster', name: 'Headmaster Runtime', command: 'hermes', backend: 'hermes' },
+  { id: 'headmaster', name: 'Headmaster', command: 'hermes', backend: 'hermes' },
 ] as const;
 
 export type ScannedAgent = {
@@ -31,6 +32,7 @@ export type ScannedAgent = {
   agent_source: 'builtin';
   enabled: boolean;
   available: boolean;
+  team_capable: boolean;
   command: string;
 };
 
@@ -61,6 +63,7 @@ export function scanForAgents(): ScannedAgent[] {
           agent_source: 'builtin',
           enabled: true,
           available: true,
+          team_capable: isTeamCapableBackend(agent.backend),
           command: agent.command,
         });
       }

@@ -246,7 +246,33 @@ const fetchWithAllowlistedRedirects = async (rawUrl: string, signal: AbortSignal
   throw new Error((await getI18n()).t('update.errors.tooManyRedirects'));
 };
 
-const fetchGitHubReleases = async (_repo: string): Promise<GitHubReleaseApi[]> => {
+const fetchGitHubReleasesFromApi = async (repo: string, signal: AbortSignal): Promise<GitHubReleaseApi[]> => {
+  const token = process.env.HEADMASTER_GITHUB_TOKEN?.trim() || process.env.GITHUB_TOKEN?.trim();
+  const headers: Record<string, string> = {
+    Accept: 'application/vnd.github+json',
+    'User-Agent': DEFAULT_USER_AGENT,
+  };
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+
+  const res = await fetch(`https://api.github.com/repos/${repo}/releases`, {
+    headers,
+    signal,
+  });
+
+  if (!res.ok) {
+    throw new Error((await getI18n()).t('update.errors.githubApiFailed', { status: res.status }));
+  }
+
+  const json = (await res.json()) as unknown;
+  if (!Array.isArray(json)) {
+    throw new Error((await getI18n()).t('update.errors.githubApiNotArray'));
+  }
+  return json as GitHubReleaseApi[];
+};
+
+const fetchGitHubReleases = async (repo: string): Promise<GitHubReleaseApi[]> => {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 30000);
 
@@ -261,20 +287,31 @@ const fetchGitHubReleases = async (_repo: string): Promise<GitHubReleaseApi[]> =
       signal: controller.signal,
     });
 
-    if (!res.ok) {
-      throw new Error((await getI18n()).t('update.errors.githubApiFailed', { status: res.status }));
+    if (res.ok) {
+      const json = (await res.json()) as unknown;
+      if (!Array.isArray(json)) {
+        throw new Error((await getI18n()).t('update.errors.githubApiNotArray'));
+      }
+      return json as GitHubReleaseApi[];
     }
 
-    const json = (await res.json()) as unknown;
-    if (!Array.isArray(json)) {
-      throw new Error((await getI18n()).t('update.errors.githubApiNotArray'));
+    if (res.status === 404 || res.status >= 500) {
+      console.warn(
+        `[updateBridge] Release proxy returned ${res.status}; falling back to GitHub API for ${resolveRepo(repo)}`
+      );
+      return fetchGitHubReleasesFromApi(resolveRepo(repo), controller.signal);
     }
-    return json as GitHubReleaseApi[];
+
+    throw new Error((await getI18n()).t('update.errors.githubApiFailed', { status: res.status }));
   } catch (err: unknown) {
     if (err instanceof Error && err.name === 'AbortError') {
       throw new Error((await getI18n()).t('update.errors.githubApiTimeout'), { cause: err });
     }
-    throw err;
+    if (err instanceof Error && err.message.includes('githubApiFailed')) {
+      throw err;
+    }
+    console.warn('[updateBridge] Release proxy unreachable; falling back to GitHub API:', err);
+    return fetchGitHubReleasesFromApi(resolveRepo(repo), controller.signal);
   } finally {
     clearTimeout(timeoutId);
   }

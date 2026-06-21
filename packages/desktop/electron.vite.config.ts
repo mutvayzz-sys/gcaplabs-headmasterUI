@@ -144,6 +144,7 @@ export default defineConfig(({ mode }) => {
                   // Use single * glob to copy top-level items (directories) with their contents intact.
                   // Using ** would flatten all nested files into the dest root.
                   { src: 'packages/desktop/src/renderer/assets/logos/*', dest: 'static/images' },
+                  { src: 'packages/desktop/src/process/team/teamMcpStdio.js', dest: '.' },
                 ],
               }),
             ]

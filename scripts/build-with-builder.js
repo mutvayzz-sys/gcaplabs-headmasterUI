@@ -280,14 +280,22 @@ function cleanupWindowsPackOutput() {
     const fullPath = path.join(outDir, entry.name);
 
     if (entry.isDirectory() && winUnpackedDirRe.test(entry.name)) {
-      fs.rmSync(fullPath, { recursive: true, force: true });
-      removed.push(entry.name);
+      try {
+        fs.rmSync(fullPath, { recursive: true, force: true });
+        removed.push(entry.name);
+      } catch (error) {
+        console.log(`⚠️  Could not clean ${entry.name}: ${error.message}`);
+      }
       continue;
     }
 
     if (entry.isFile() && winArtifactFileRe.test(entry.name)) {
-      fs.rmSync(fullPath, { force: true });
-      removed.push(entry.name);
+      try {
+        fs.rmSync(fullPath, { force: true });
+        removed.push(entry.name);
+      } catch (error) {
+        console.log(`⚠️  Could not clean ${entry.name}: ${error.message}`);
+      }
     }
   }
 
@@ -455,7 +463,19 @@ try {
     return;
   }
 
-  // 5. Prepare optional hub resources (index.json + extension zips for offline fallback).
+  // 5. Prepare AionCore sidecar binary (Council / ACP runtime)
+  console.log('📦 Preparing AionCore sidecar binary...');
+  const { prepareAioncore } = require('../packages/shared-scripts/src/prepare-aioncore.js');
+  const { resolveAioncoreVersion } = require('./resolveAioncoreVersion.js');
+  const projectRoot = path.resolve(__dirname, '..');
+  prepareAioncore({
+    projectRoot,
+    platform: process.platform,
+    arch: targetArch,
+    version: resolveAioncoreVersion(projectRoot),
+  });
+
+  // 6. Prepare optional hub resources (index.json + extension zips for offline fallback).
   if (process.env.HEADMASTER_HUB_REQUIRED === '1') {
     execSync('node scripts/prepareHubResources.js', { stdio: 'inherit', env: process.env });
   } else {

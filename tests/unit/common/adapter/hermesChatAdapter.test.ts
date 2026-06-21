@@ -129,6 +129,7 @@ describe('Hermes chat adapter', () => {
         conversation_id: 'stored-1',
         type: 'content',
         data: { content: 'Hi' },
+        msg_id: expect.not.stringMatching(sent.msg_id),
       })
     );
     expect(mocks.broadcast).toHaveBeenCalledWith(

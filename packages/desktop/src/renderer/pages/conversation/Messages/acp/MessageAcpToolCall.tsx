@@ -5,6 +5,7 @@
  */
 
 import type { IMessageAcpToolCall } from '@/common/chat/chatLib';
+import { sanitizeToolDisplayName } from '@/common/agent/agentDisplayNames';
 import FileChangesPanel from '@/renderer/components/base/FileChangesPanel';
 import { useDiffPreviewHandlers } from '@/renderer/hooks/file/useDiffPreviewHandlers';
 import { parseDiff } from '@/renderer/utils/file/diffUtils';
@@ -88,7 +89,6 @@ const MessageAcpToolCall: React.FC<{ message: IMessageAcpToolCall }> = ({ messag
   }
   const { update } = content;
   const { tool_call_id, kind, title, status, rawInput, content: diffContent } = update;
-
   const getKindDisplayName = (kind: string) => {
     switch (kind) {
       case 'edit':
@@ -101,13 +101,14 @@ const MessageAcpToolCall: React.FC<{ message: IMessageAcpToolCall }> = ({ messag
         return kind;
     }
   };
+  const displayTitle = sanitizeToolDisplayName(title) || getKindDisplayName(kind);
 
   return (
     <Card className='w-full mb-2' size='small' bordered>
       <div className='flex items-start gap-3'>
         <div className='flex-1 min-w-0'>
           <div className='flex items-center gap-2 mb-2'>
-            <span className='font-medium text-t-primary'>{title || getKindDisplayName(kind)}</span>
+            <span className='font-medium text-t-primary'>{displayTitle}</span>
             <StatusTag status={status} />
           </div>
           {rawInput && (

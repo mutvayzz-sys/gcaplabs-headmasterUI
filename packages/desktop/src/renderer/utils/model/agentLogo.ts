@@ -10,7 +10,7 @@
  * All places that need to display agent icons should use this utility instead of maintaining separate lists
  */
 
-import { resolveBackendAssetUrl } from '@/renderer/utils/platform';
+import { resolveAgentAssetUrl } from './resolveAgentAssetUrl';
 import claudeLogo from '@/renderer/assets/logos/ai-major/claude.svg';
 import codexLogo from '@/renderer/assets/logos/tools/coding/codex.svg';
 import geminiLogo from '@/renderer/assets/logos/ai-major/gemini.svg';
@@ -40,16 +40,6 @@ const AGENT_LOGO_PATH_MAP = {
 const OPEN_CODE_LIGHT_FILE_NAME = 'opencode-light.svg';
 const OPEN_CODE_DARK_FILE_NAME = 'opencode-dark.svg';
 
-function applyThemeVariant(logo: string): string {
-  if (!isDarkTheme()) return logo;
-  if (!logo.endsWith(OPEN_CODE_LIGHT_FILE_NAME)) return logo;
-  return logo.replace(new RegExp(`${OPEN_CODE_LIGHT_FILE_NAME}$`), OPEN_CODE_DARK_FILE_NAME);
-}
-
-function normalizeLogoUrl(logo: string): string {
-  return applyThemeVariant(resolveBackendAssetUrl(logo) ?? logo);
-}
-
 function isDarkTheme(): boolean {
   if (typeof document === 'undefined') return false;
   const theme = document.documentElement.getAttribute('data-theme');
@@ -61,12 +51,20 @@ function isDarkTheme(): boolean {
   return false;
 }
 
+function applyThemeVariant(logo: string): string {
+  if (!isDarkTheme()) return logo;
+  if (!logo.endsWith(OPEN_CODE_LIGHT_FILE_NAME)) return logo;
+  return logo.replace(new RegExp(`${OPEN_CODE_LIGHT_FILE_NAME}$`), OPEN_CODE_DARK_FILE_NAME);
+}
+
+function normalizeLogoUrl(logo: string): string {
+  const resolved = resolveAgentAssetUrl(logo) ?? logo;
+  return applyThemeVariant(resolved);
+}
+
 /**
  * 根据 agent 名称获取对应的 logo
  * Get agent logo by agent name
- *
- * @param agent - Agent 名称（不区分大小写）/ Agent name (case-insensitive)
- * @returns Logo 路径，如果不存在则返回 null / Logo path, or null if not found
  */
 export function getAgentLogo(agent: string | undefined | null): string | null {
   if (!agent || typeof agent !== 'string') return null;
@@ -77,12 +75,6 @@ export function getAgentLogo(agent: string | undefined | null): string | null {
 
 /**
  * Resolve the best available logo for an agent.
- *
- * Priority:
- *   1. Explicit icon/avatar (if provided)
- *   2. Adapter ID from custom_agent_id (format `ext:extensionName:adapterId`) → built-in logo map
- *   3. Backend ID → built-in logo map
- *   4. null (caller renders its own fallback)
  */
 export function resolveAgentLogo(opts: {
   icon?: string | null;
@@ -90,52 +82,32 @@ export function resolveAgentLogo(opts: {
   custom_agent_id?: string | null;
   isExtension?: boolean;
 }): string | null {
-  if (opts.icon) return normalizeLogoUrl(opts.icon);
+  const fromIcon = opts.icon ? normalizeLogoUrl(opts.icon) : null;
+  if (fromIcon && !fromIcon.includes('/api/assets/')) {
+    return fromIcon;
+  }
 
-  // For extension agents, extract adapter ID from custom_agent_id
   if (opts.isExtension && opts.custom_agent_id) {
     const adapterId = opts.custom_agent_id.split(':').pop();
     const logo = getAgentLogo(adapterId);
     if (logo) return logo;
   }
 
-  return getAgentLogo(opts.backend);
+  const fromBackend = getAgentLogo(opts.backend);
+  if (fromBackend) return fromBackend;
+
+  return fromIcon;
 }
 
-/**
- * 检查 agent 是否有对应的 logo
- * Check if agent has a corresponding logo
- *
- * @param agent - Agent 名称（不区分大小写）/ Agent name (case-insensitive)
- * @returns 是否存在对应的 logo / Whether the agent has a corresponding logo
- */
 export function hasAgentLogo(agent: string | undefined | null): boolean {
   return getAgentLogo(agent) !== null;
 }
 
-/**
- * Check if a model value/label indicates it's a default/recommended model
- * 检查模型值/标签是否表示默认/推荐模型
- *
- * @param value - Model value
- * @param label - Model label
- * @returns true if the model is marked as default/recommended
- */
 export const isDefaultModel = (value?: string | null, label?: string | null): boolean => {
   const text = `${value || ''} ${label || ''}`.toLowerCase();
   return text.includes('default') || text.includes('recommended') || text.includes('默认');
 };
 
-/**
- * Get display label for a model, with fallback handling
- * 获取模型的显示标签，带回退处理
- *
- * @param selected_value - Selected model value
- * @param selectedLabel - Selected model label
- * @param defaultModelLabel - Label to use for default models
- * @param fallbackLabel - Label to use when no label is available
- * @returns The computed display label
- */
 export const getModelDisplayLabel = ({
   selected_value: _selected_value,
   selectedLabel,

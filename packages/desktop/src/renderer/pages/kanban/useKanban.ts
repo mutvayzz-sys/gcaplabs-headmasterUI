@@ -6,7 +6,6 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { httpGet, httpPatch, isBackendHttpError } from '@/common/adapter/httpBridge';
-
 export type KanbanColumnId = 'triage' | 'ready' | 'running' | 'blocked' | 'done';
 
 export interface KanbanTask {

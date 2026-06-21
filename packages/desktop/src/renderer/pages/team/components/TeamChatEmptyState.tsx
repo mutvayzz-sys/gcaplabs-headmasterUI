@@ -4,9 +4,8 @@ import useSWR from 'swr';
 import type { TChatConversation } from '@/common/config/storage';
 import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
 import { getSendBoxDraftHook } from '@renderer/hooks/chat/useSendBoxDraft';
-import { getAgentLogo } from '@renderer/utils/model/agentLogo';
+import { resolveAgentLogo } from '@renderer/utils/model/agentLogo';
 import { usePresetAssistantInfo } from '@renderer/hooks/agent/usePresetAssistantInfo';
-import { resolveBackendAssetUrl } from '@renderer/utils/platform';
 
 const useAcpDraft = getSendBoxDraftHook('acp', { _type: 'acp', atPath: [], content: '', uploadFile: [] });
 const useAionrsDraft = getSendBoxDraftHook('aionrs', { _type: 'aionrs', atPath: [], content: '', uploadFile: [] });
@@ -24,9 +23,11 @@ const SUGGESTIONS = [
 ];
 
 const SUGGESTION_DEFAULTS: Record<string, string> = {
-  debate: 'Organize a debate with agents taking different sides',
-  interview: 'Plan an in-depth interview between agents',
-  expert_review: 'Have multiple experts analyze the same problem',
+  debate:
+    'Spawn Specialists for a structured debate: a moderator, an advocate, a challenger, and a synthesizer. Give each a distinct position, then run the debate and summarize.',
+  interview: 'Spawn interviewer and expert Specialists, then run a structured Q&A on the topic I describe.',
+  expert_review:
+    'Spawn multiple expert Specialists with different specialties, have each review the problem, then synthesize their findings.',
 };
 
 type TeamDraftKind = 'acp' | 'aionrs';
@@ -91,8 +92,11 @@ const TeamChatEmptyState: React.FC<Props> = ({ conversation_id, icon, isLeader =
 
   const agent_type = resolveAgentTypeFromConversation(conversation);
   const agent_name = resolveAgentName(conversation, presetInfo?.name ?? null);
-  const explicitLogo = resolveBackendAssetUrl(icon) ?? icon;
-  const backendLogo = getAgentLogo(agent_type);
+  const resolvedLogo = resolveAgentLogo({
+    icon,
+    backend: agent_type,
+    custom_agent_id: conversation_id,
+  });
 
   const renderAvatar = () => {
     if (presetInfo) {
@@ -111,13 +115,10 @@ const TeamChatEmptyState: React.FC<Props> = ({ conversation_id, icon, isLeader =
         />
       );
     }
-    if (explicitLogo) {
+    if (resolvedLogo) {
       return (
-        <img src={explicitLogo} alt={agent_name} className='w-48px h-48px object-contain rounded-8px opacity-80' />
+        <img src={resolvedLogo} alt={agent_name} className='w-48px h-48px object-contain rounded-8px opacity-80' />
       );
-    }
-    if (backendLogo) {
-      return <img src={backendLogo} alt={agent_name} className='w-48px h-48px object-contain rounded-8px opacity-80' />;
     }
     return (
       <div className='w-48px h-48px rounded-full bg-fill-3 flex items-center justify-center text-20px font-medium text-t-secondary'>
