@@ -12,6 +12,29 @@ declare global {
   }
 }
 
+const DEFAULT_BACKEND_HOST = '127.0.0.1';
+const DEFAULT_BACKEND_PORT = 13400;
+
+/** Host published by main/preload for local or remote Hermes connections. */
+export function resolveBackendHost(): string {
+  if (typeof window !== 'undefined' && window.__backendHost) {
+    return window.__backendHost;
+  }
+  const g = globalThis as typeof globalThis & { __backendHost?: string };
+  return g.__backendHost ?? DEFAULT_BACKEND_HOST;
+}
+
+/** Port published by main/preload once the runtime is ready. */
+export function resolveBackendPort(fallback = DEFAULT_BACKEND_PORT): number {
+  if (typeof window !== 'undefined') {
+    const w = window.__backendPort;
+    if (typeof w === 'number' && w > 0) return w;
+  }
+  const g = globalThis as typeof globalThis & { __backendPort?: number };
+  const port = g.__backendPort;
+  return typeof port === 'number' && port > 0 ? port : fallback;
+}
+
 /**
  * Single source of truth for the backend base URL. The Settings, config
  * service, http bridge, and runtime probes all read this — so updating the
@@ -29,9 +52,7 @@ export function getBackendBase(): string {
   if (typeof document !== 'undefined' && !window.electronAPI) {
     return '';
   }
-  const port = window.__backendPort || 13400;
-  const host = window.__backendHost || '127.0.0.1';
-  return `http://${host}:${port}`;
+  return `http://${resolveBackendHost()}:${resolveBackendPort()}`;
 }
 
 /**

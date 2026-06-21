@@ -18,6 +18,7 @@ import fixPath from 'fix-path';
 import * as fs from 'fs';
 import * as path from 'path';
 import { initMainAdapterWithWindow } from './common/adapter/main';
+import { resolveBackendHost } from './common/adapter/backendUrl';
 import { ipcBridge } from './common';
 import { initializeProcess } from './process';
 import { installQuitCleanup } from './process/startup/quitCleanup';
@@ -228,7 +229,7 @@ ipcMain.on('get-backend-port', (event) => {
 });
 
 ipcMain.on('get-backend-host', (event) => {
-  event.returnValue = (globalThis as typeof globalThis & { __backendHost?: string }).__backendHost ?? '127.0.0.1';
+  event.returnValue = resolveBackendHost();
 });
 
 ipcMain.on('get-hermes-session-token', (event) => {
@@ -291,11 +292,13 @@ ipcMain.handle('runtime:get-status', async () => {
   }
 
   const headers: Record<string, string> = token ? { 'X-Hermes-Session-Token': token } : {};
+  const host = resolveBackendHost();
+  const baseUrl = `http://${host}:${port}`;
 
   const probeResults = await Promise.all(
     RUNTIME_STATUS_ENDPOINTS.map(async (entry) => {
       try {
-        const res = await fetch(`http://127.0.0.1:${port}${entry.endpoint}`, { headers });
+        const res = await fetch(`${baseUrl}${entry.endpoint}`, { headers });
         if (res.status === 404) {
           return {
             id: entry.id,

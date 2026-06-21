@@ -16,18 +16,20 @@
  *
  * Three hooks:
  *   - `useDashboardStatus()` — full status (status, port, token, error, home)
- *   - `useDashboardUrl()` — `http://127.0.0.1:{port}` or `null`
- *   - `useDashboardWsUrl()` — `ws://127.0.0.1:{port}/api/ws?token={token}` or `null`
+ *   - `useDashboardUrl()` — `{backendHost}:{port}` or `null`
+ *   - `useDashboardWsUrl()` — `ws://{backendHost}:{port}/api/ws?token={token}` or `null`
  *
  * Recon reference: `headmaster-hermes/RECON.md` §1 (dashboard server).
  */
 
 import { useEffect, useRef, useState } from 'react';
 import { ipcBridge } from '@/common';
+import { resolveBackendHost } from '@/common/adapter/backendUrl';
 
 declare global {
   interface Window {
     __backendPort?: number;
+    __backendHost?: string;
     __hermesPort?: number;
     __hermesSessionToken?: string;
     __hermesHome?: string;
@@ -110,7 +112,7 @@ export function useDashboardStatus(): HermesDashboardStatusSnapshot {
 export function useDashboardUrl(): string | null {
   const { status, port } = useDashboardStatus();
   if (status !== 'ready' || !port) return null;
-  return `http://127.0.0.1:${port}`;
+  return `http://${resolveBackendHost()}:${port}`;
 }
 
 /** Returns the dashboard WebSocket URL with `?token=` query param, or `null` until ready. */
@@ -118,7 +120,7 @@ export function useDashboardWsUrl(): string | null {
   const { status, port, sessionToken } = useDashboardStatus();
   if (status !== 'ready' || !port) return null;
   const params = new URLSearchParams({ token: sessionToken });
-  return `ws://127.0.0.1:${port}/api/ws?${params.toString()}`;
+  return `ws://${resolveBackendHost()}:${port}/api/ws?${params.toString()}`;
 }
 
 /**
