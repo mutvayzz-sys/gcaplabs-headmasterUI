@@ -1,5 +1,5 @@
-import { ipcBridge } from '@/common';
-import { httpPut } from '@/common/adapter/httpBridge';
+import { httpPut, httpRequest } from '@/common/adapter/httpBridge';
+import { normalizeHermesList } from '@/common/adapter/hermesResponse';
 import { Message, Switch } from '@arco-design/web-react';
 import { Info, Puzzle, Search, Refresh } from '@icon-park/react';
 import {
@@ -37,6 +37,49 @@ interface SkillInfo {
 const normalizeTestId = (name: string): string => {
   return name.replace(/[:/\s<>"'|?*]/g, '-');
 };
+
+function mapSkillRecord(skill: {
+  name?: unknown;
+  description?: unknown;
+  category?: unknown;
+  enabled?: unknown;
+  location?: unknown;
+  is_custom?: unknown;
+  source?: unknown;
+}): SkillInfo | null {
+  const source: SkillInfo['source'] =
+    skill.source === 'extension' || skill.source === 'custom' || skill.source === 'builtin'
+      ? skill.source
+      : skill.is_custom
+        ? 'custom'
+        : 'builtin';
+  const name = typeof skill.name === 'string' ? skill.name : '';
+  if (!name) return null;
+  return {
+    name,
+    description: typeof skill.description === 'string' ? skill.description : '',
+    category: typeof skill.category === 'string' ? skill.category : undefined,
+    enabled: skill.enabled !== false,
+    location: typeof skill.location === 'string' ? skill.location : '',
+    is_custom: Boolean(skill.is_custom),
+    source,
+  };
+}
+
+async function fetchAvailableSkills(): Promise<SkillInfo[]> {
+  const raw = await httpRequest<unknown>('GET', '/api/skills');
+  return normalizeHermesList<{
+    name?: unknown;
+    description?: unknown;
+    category?: unknown;
+    enabled?: unknown;
+    location?: unknown;
+    is_custom?: unknown;
+    source?: unknown;
+  }>(raw, 'skills')
+    .map((skill) => mapSkillRecord(skill))
+    .filter((skill): skill is SkillInfo => skill !== null);
+}
 
 function skillCategory(skill: SkillInfo): string {
   const cat = skill.category?.trim();
@@ -126,7 +169,7 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const skills = await ipcBridge.fs.listAvailableSkills.invoke();
+      const skills = await fetchAvailableSkills();
       setAvailableSkills(skills);
     } catch (error) {
       console.error('Failed to fetch skills:', error);

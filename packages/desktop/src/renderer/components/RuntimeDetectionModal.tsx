@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { Spin } from '@arco-design/web-react';
+import { useTranslation } from 'react-i18next';
 
 interface RuntimeDetectionProps {
   onRuntimeSelected: (mode: 'detected' | 'skip' | 'quit') => void;
 }
 
 export const RuntimeDetectionModal: React.FC<RuntimeDetectionProps> = ({ onRuntimeSelected }) => {
+  const { t } = useTranslation();
   const [runtimeStatus, setRuntimeStatus] = useState<'checking' | 'detected' | 'not-detected'>('checking');
   const [callbackFired, setCallbackFired] = useState(false);
 
@@ -14,7 +16,7 @@ export const RuntimeDetectionModal: React.FC<RuntimeDetectionProps> = ({ onRunti
       try {
         // Call the direct IPC handler to check and prompt for runtime
         if (window.electronAPI?.checkHermesRuntime) {
-          console.log('[RuntimeDetectionModal] Checking Hermes runtime...');
+          console.log('[RuntimeDetectionModal] Checking local runtime...');
           const result = await window.electronAPI.checkHermesRuntime();
           console.log('[RuntimeDetectionModal] Result:', result);
           if (result?.detected) {
@@ -83,7 +85,7 @@ export const RuntimeDetectionModal: React.FC<RuntimeDetectionProps> = ({ onRunti
       >
         <Spin />
         <p style={{ marginTop: '16px', color: '#666', fontSize: '14px' }}>
-          Checking for runtime…
+          {t('common.runtimeDetection.checking', { defaultValue: 'Checking for runtime…' })}
         </p>
       </div>
     );
@@ -103,10 +105,10 @@ export const RuntimeDetectionModal: React.FC<RuntimeDetectionProps> = ({ onRunti
       >
         <div style={{ fontSize: '48px', marginBottom: '16px' }}>✓</div>
         <p style={{ fontSize: '18px', fontWeight: 500, marginBottom: '8px' }}>
-          Runtime Detected
+          {t('common.runtimeDetection.detected', { defaultValue: 'Runtime detected' })}
         </p>
         <p style={{ color: '#666', fontSize: '14px' }}>
-          Loading application...
+          {t('common.runtimeDetection.loading', { defaultValue: 'Loading application…' })}
         </p>
       </div>
     );

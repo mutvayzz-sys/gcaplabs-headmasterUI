@@ -7,6 +7,8 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { Button } from '@arco-design/web-react';
+import { ArrowCounterClockwise } from '@phosphor-icons/react';
 import { extensions as extensionsIpc, type IExtensionSettingsTab } from '@/common/adapter/ipcBridge';
 import { useExtI18n } from '@/renderer/hooks/system/useExtI18n';
 import { useExtensionSettingsTabs } from '@/renderer/hooks/system/useExtensionSettingsTabs';
@@ -22,10 +24,12 @@ const isExternalSettingsUrl = (url?: string): boolean => /^https?:\/\//i.test(ur
  */
 const ExtensionSettingsPage: React.FC = () => {
   const { tabId } = useParams<{ tabId: string }>();
-  const { i18n } = useTranslation();
+  const { i18n, t } = useTranslation();
   const { resolveExtTabName } = useExtI18n();
   const extensionTabs = useExtensionSettingsTabs();
   const [loading, setLoading] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
   const { tab, error } = useMemo<{ tab: IExtensionSettingsTab | null; error: string | null }>(() => {
@@ -49,7 +53,17 @@ const ExtensionSettingsPage: React.FC = () => {
 
   useEffect(() => {
     setLoading(true);
-  }, [tab?.id, resolvedUrl]);
+    setLoadFailed(false);
+  }, [tab?.id, resolvedUrl, reloadKey]);
+
+  useEffect(() => {
+    if (!tab || isExternalTab || loading) return;
+    const timeout = window.setTimeout(() => {
+      setLoadFailed(true);
+      setLoading(false);
+    }, 20_000);
+    return () => window.clearTimeout(timeout);
+  }, [tab, isExternalTab, loading, reloadKey]);
 
   const postLocaleInit = useCallback(async () => {
     if (!tab || isExternalTab) return;
@@ -126,7 +140,25 @@ const ExtensionSettingsPage: React.FC = () => {
           </div>
         )}
         {error && <div className='flex items-center justify-center h-full text-t-secondary text-14px'>{error}</div>}
+        {loadFailed && tab && !isExternalTab && (
+          <div className='flex flex-col items-center justify-center gap-12px h-full text-t-secondary text-14px'>
+            <span>{t('settings.extension.loadFailed', { defaultValue: 'Extension settings failed to load.' })}</span>
+            <Button
+              type='secondary'
+              size='small'
+              icon={<ArrowCounterClockwise size={14} />}
+              onClick={() => {
+                setLoadFailed(false);
+                setLoading(true);
+                setReloadKey((key) => key + 1);
+              }}
+            >
+              {t('common.reload', { defaultValue: 'Reload' })}
+            </Button>
+          </div>
+        )}
         {tab &&
+          !loadFailed &&
           (isExternalTab ? (
             <WebviewHost
               key={tab.id}
@@ -147,9 +179,12 @@ const ExtensionSettingsPage: React.FC = () => {
               )}
               <iframe
                 ref={iframeRef}
-                key={tab.id}
+                key={`${tab.id}-${reloadKey}`}
                 src={resolvedUrl}
-                onLoad={() => setLoading(false)}
+                onLoad={() => {
+                  setLoading(false);
+                  setLoadFailed(false);
+                }}
                 sandbox='allow-scripts allow-same-origin'
                 className='w-full border-none'
                 style={{
