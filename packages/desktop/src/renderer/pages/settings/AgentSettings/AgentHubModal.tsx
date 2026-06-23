@@ -13,7 +13,7 @@ interface AgentHubModalProps {
   onCancel: () => void;
 }
 
-const HEADMASTER_HUB_REPO_URL = 'https://github.com/mutvayzz-sys/gcaplabs-headmaster';
+const HEADMASTER_HUB_REPO_URL = 'https://github.com/mutvayzz-sys/gcaplabs-headmasterhub';
 
 export const AgentHubModal: React.FC<AgentHubModalProps> = ({ visible, onCancel }) => {
   const { t } = useTranslation();
