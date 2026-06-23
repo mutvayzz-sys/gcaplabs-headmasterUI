@@ -112,9 +112,14 @@
   "runtimeUpdateAvailable": "Runtime update available",
   "runtimeUpdateRestarting": "Applying update…",
   "runtimeUpdateDone": "Update applied — restarting",
+  "runtimeStatusBar": {
+    "connecting": "Connecting to the runtime…",
+    "reconnecting": "Runtime connection lost. Reconnecting…",
+    "disconnected": "Runtime is not connected",
+    "restart": "Restart"
+  },
   "appUpdateAvailable": "Headmaster Desktop v{{version}} available",
   "sidebar": {
-    "dashboard": "Dashboard",
     "chat": "Chat",
     "activity": "Activity",
     "approvals": "Approvals",

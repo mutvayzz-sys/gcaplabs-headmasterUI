@@ -24,7 +24,7 @@ import { initializeProcess } from './process';
 import { installQuitCleanup } from './process/startup/quitCleanup';
 import { ProcessConfig } from './process/utils/initStorage';
 import { registerWindowMaximizeListeners } from '@process/bridge';
-import { HermesBootstrap } from '@process/backend/hermesBootstrap';
+import { HermesBootstrap, type HermesRuntimeSnapshot } from '@process/backend/hermesBootstrap';
 import {
   AioncoreBootstrap,
   clearAioncorePort,
@@ -214,6 +214,44 @@ setHermesBootstrap(hermesBootstrap);
 setAioncoreBootstrap(aioncoreBootstrap);
 initBridges({ hermesBootstrap });
 
+function syncHermesGlobalsFromBootstrap(snapshot: HermesRuntimeSnapshot): void {
+  if (snapshot.status === 'ready' && snapshot.port > 0) {
+    exposeBackendPort(snapshot.port);
+    (globalThis as typeof globalThis & { __hermesPort?: number }).__hermesPort = snapshot.port;
+    if (snapshot.sessionToken) {
+      (globalThis as typeof globalThis & { __hermesSessionToken?: string }).__hermesSessionToken =
+        snapshot.sessionToken;
+    }
+    return;
+  }
+
+  if (
+    snapshot.status === 'restarting' ||
+    snapshot.status === 'starting' ||
+    snapshot.status === 'stopped' ||
+    snapshot.status === 'failed'
+  ) {
+    (globalThis as typeof globalThis & { __backendPort?: number }).__backendPort = 0;
+    if (snapshot.sessionToken) {
+      (globalThis as typeof globalThis & { __hermesSessionToken?: string }).__hermesSessionToken =
+        snapshot.sessionToken;
+    }
+  }
+}
+
+function notifyRendererRuntimeChanged(): void {
+  for (const win of BrowserWindow.getAllWindows()) {
+    if (!win.isDestroyed()) {
+      win.webContents.send('hermes:runtime-changed');
+    }
+  }
+}
+
+hermesBootstrap.onRuntimeChange((snapshot) => {
+  syncHermesGlobalsFromBootstrap(snapshot);
+  notifyRendererRuntimeChanged();
+});
+
 let backendStartedOk = false;
 let backendStartupFailed = false;
 let rendererInitialLanguage: string | null = null;
@@ -224,8 +262,12 @@ ipcMain.on('get-aioncore-port', (event) => {
 });
 
 ipcMain.on('get-backend-port', (event) => {
+  if (hermesBootstrap.status === 'ready' && hermesBootstrap.port > 0) {
+    event.returnValue = hermesBootstrap.port;
+    return;
+  }
   event.returnValue =
-    (globalThis as typeof globalThis & { __backendPort?: number }).__backendPort ?? hermesBootstrap.port;
+    (globalThis as typeof globalThis & { __backendPort?: number }).__backendPort ?? 0;
 });
 
 ipcMain.on('get-backend-host', (event) => {
@@ -234,8 +276,8 @@ ipcMain.on('get-backend-host', (event) => {
 
 ipcMain.on('get-hermes-session-token', (event) => {
   event.returnValue =
-    (globalThis as typeof globalThis & { __hermesSessionToken?: string }).__hermesSessionToken ??
-    hermesBootstrap.sessionToken ??
+    hermesBootstrap.sessionToken ||
+    (globalThis as typeof globalThis & { __hermesSessionToken?: string }).__hermesSessionToken ||
     '';
 });
 
@@ -275,8 +317,8 @@ const RUNTIME_STATUS_ENDPOINTS: Array<{ id: string; endpoint: string; countKey: 
 ipcMain.handle('runtime:get-status', async () => {
   const port = (globalThis as typeof globalThis & { __backendPort?: number }).__backendPort ?? hermesBootstrap.port;
   const token =
-    (globalThis as typeof globalThis & { __hermesSessionToken?: string }).__hermesSessionToken ??
-    hermesBootstrap.sessionToken ??
+    hermesBootstrap.sessionToken ||
+    (globalThis as typeof globalThis & { __hermesSessionToken?: string }).__hermesSessionToken ||
     '';
 
   if (!port) {
@@ -381,7 +423,11 @@ ipcMain.handle('runtime:restart', async () => {
     await new Promise<void>((resolve) => setTimeout(resolve, 1500));
     const result = await hermesBootstrap.start({ installIfMissing: false });
     if (result.ok && result.port) {
-      (globalThis as typeof globalThis & { __backendPort?: number }).__backendPort = result.port;
+      syncHermesGlobalsFromBootstrap({
+        status: hermesBootstrap.status,
+        port: result.port,
+        sessionToken: hermesBootstrap.sessionToken,
+      });
     }
     if (getConnectionMode() !== 'remote') {
       await startAioncoreSidecar();
@@ -683,10 +729,11 @@ const handleAppReady = async (): Promise<void> => {
     // require the legacy bundled backend binary.
     const hermesStartup = await hermesBootstrap.start({ installIfMissing: false });
     if (hermesStartup.ok && hermesStartup.port) {
-      (globalThis as typeof globalThis & { __hermesPort?: number; __hermesSessionToken?: string }).__hermesPort =
-        hermesStartup.port;
-      (globalThis as typeof globalThis & { __hermesSessionToken?: string }).__hermesSessionToken =
-        hermesBootstrap.sessionToken;
+      syncHermesGlobalsFromBootstrap({
+        status: hermesBootstrap.status,
+        port: hermesStartup.port,
+        sessionToken: hermesBootstrap.sessionToken,
+      });
       markBackendReady(hermesStartup.port, 'hermes.dashboard');
       mark('hermesBootstrap.start');
       await startAioncoreSidecar();

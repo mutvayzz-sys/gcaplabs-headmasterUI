@@ -14,6 +14,7 @@
  */
 
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { resetHttpBridgeConnections } from '@/common/adapter/httpBridge';
 import { useRuntimeConnectionState } from '@renderer/hooks/system/useRuntimeConnectionState';
 
@@ -28,6 +29,7 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 export const HermesStatusBar: React.FC = () => {
+  const { t } = useTranslation();
   const { state, reason, retry } = useRuntimeConnectionState();
   const [restarting, setRestarting] = React.useState(false);
 
@@ -37,10 +39,10 @@ export const HermesStatusBar: React.FC = () => {
   const colorClass = STATUS_COLORS[status] ?? 'bg-gray-400';
   const label =
     state === 'starting'
-      ? 'Connecting to the runtime…'
+      ? t('common.runtimeStatusBar.connecting')
       : state === 'reconnecting'
-        ? 'Runtime connection lost. Reconnecting…'
-        : 'Runtime is not connected';
+        ? t('common.runtimeStatusBar.reconnecting')
+        : t('common.runtimeStatusBar.disconnected');
 
   const restart = async () => {
     if (!window.electronAPI?.restartRuntime) return;
@@ -60,7 +62,7 @@ export const HermesStatusBar: React.FC = () => {
         {reason ? `: ${reason}` : ''}
       </span>
       <button className='text-11px text-white underline' onClick={() => void retry()} type='button'>
-        Retry
+        {t('common.retry')}
       </button>
       {window.electronAPI?.restartRuntime && (
         <button
@@ -69,7 +71,7 @@ export const HermesStatusBar: React.FC = () => {
           onClick={() => void restart()}
           type='button'
         >
-          Restart
+          {t('common.runtimeStatusBar.restart')}
         </button>
       )}
     </div>

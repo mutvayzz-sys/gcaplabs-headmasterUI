@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (gcaplabs.com)
+ * Copyright 2025 Headmaster (gcaplabs.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 

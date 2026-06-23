@@ -1,10 +1,24 @@
-declare module '@xterm/headless/lib-headless/xterm-headless.js';
-declare module 'diff';
+/**
+ * @license
+ * Copyright 2025 Headmaster (gcaplabs.com)
+ * SPDX-License-Identifier: Apache-2.0
+ */
 
-declare module 'cookie' {
-  export type CookieParseOptions = {
-    decode?: (value: string) => string;
-  };
+import type { ElectronAPI } from './common/types/platform/electron';
 
-  export function parse(cookieHeader: string, options?: CookieParseOptions): Record<string, string>;
+declare global {
+  interface Window {
+    __backendPort?: number;
+    __backendHost?: string;
+    __hermesPort?: number;
+    __hermesSessionToken?: string;
+    __hermesHome?: string;
+    __aioncorePort?: number;
+    __initialLanguage?: string;
+    __backendStartupFailed?: boolean;
+    __backendStartupFailure?: string;
+    electronAPI?: ElectronAPI;
+  }
 }
+
+export {};

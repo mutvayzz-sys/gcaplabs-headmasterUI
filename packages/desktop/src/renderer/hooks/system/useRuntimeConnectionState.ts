@@ -20,7 +20,7 @@ const safeReason = (error: unknown): string => {
   const raw = error instanceof Error ? error.message : String(error);
   return raw
     .replace(/[A-Za-z]:\\[^\s|]+/g, '[local path]')
-    .replace(/(?:token|password|secret)=([^&\s]+)/gi, '$1=[redacted]')
+    .replace(/((?:token|password|secret)=)([^&\s]+)/gi, '$1[redacted]')
     .slice(0, 240);
 };
 
@@ -40,8 +40,12 @@ export function useRuntimeConnectionState(): RuntimeConnectionSnapshot {
     }
 
     try {
-      await httpRequest('GET', '/api/status');
       await gatewayRpcRequest('session.list', { limit: 1 }, 10_000);
+      try {
+        await httpRequest('GET', '/api/status');
+      } catch {
+        // Optional status endpoint; RPC success is authoritative.
+      }
       connectedRef.current = true;
       setState('connected');
       setReason(undefined);

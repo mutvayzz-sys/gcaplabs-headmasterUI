@@ -1,5 +1,50 @@
 # Changelog
 
+## [0.2.1](https://github.com/mutvayzz-sys/gcaplabs-headmasterUI/compare/v0.1.8...v0.2.1) (2026-06-23)
+
+### Desktop
+
+#### Features
+
+- Hermes-native chat adapter hardening: deferred user message broadcast until
+  `prompt.submit` succeeds, profile model fallback, gateway disconnect grace
+  period, RPC WebSocket reconnect backoff, and persisted session profiles.
+- `/council` alias routes to `/team/default`; `/settings/runtime` is the
+  canonical runtime settings path.
+- Runtime port/token mirroring aligned with upstream Hermes Desktop semantics
+  (`mirrorHermesDashboardGlobals`, `hermes:runtime-changed`, live IPC handlers).
+- English-only i18n: removed eight inherited locale trees; Arabic reserved for
+  a future release.
+- Skills catalog read path preserves Hermes `source`, `location`, and
+  `is_custom` metadata.
+- Split About panel from System settings (`AboutSettings`).
+
+#### Fixes
+
+- Migrated `conversation.get`, `conversation.warmup`, and `conversation.reset`
+  off legacy IPC/REST paths.
+- White-label sweep for runtime detection modals, OS dialogs, toolsets, kanban,
+  and bootstrap errors.
+- Renamed inherited `aionui*` storage keys and workspace events to
+  `headmaster*`.
+- Refuse foreign Hermes session tokens after dashboard child exit (upstream
+  `dashboard-token.cjs` semantics).
+- Build: `win.legalTrademarks`, synced `electronRebuild.electronVersion`,
+  full `out/` cleanup before Vite builds, `GITHUB_SHA` commit fallback,
+  tightened root `.gitignore`.
+
+#### Removed
+
+- Standalone Approvals page stub (approvals remain in-chat).
+- Analytics screen (cut from product scope).
+- Dashboard Command Center screen (cut from product scope; `/dashboard` redirects
+  to Chat).
+
+#### Chore
+
+- Moved finished audit/plan docs to `_archive/`.
+- Updated `todo.md` for v0.2.1 release closeout scope.
+
 ## [0.1.8](https://github.com/mutvayzz-sys/gcaplabs-headmasterUI/compare/v0.1.6...v0.1.8) (2026-06-19)
 
 ### Desktop

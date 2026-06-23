@@ -62,6 +62,8 @@ childProcess.execSync = function mockedExecSync(command) {
         encoding: 'utf8',
         env: {
           ...process.env,
+          HEADMASTER_SKIP_OUT_CLEAN: '1',
+          HEADMASTER_SKIP_AIONCORE_PREP: '1',
           NODE_OPTIONS: [process.env.NODE_OPTIONS, `--require=${hookPath}`].filter(Boolean).join(' '),
         },
       });

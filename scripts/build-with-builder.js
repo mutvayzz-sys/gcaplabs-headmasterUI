@@ -410,6 +410,12 @@ try {
   const skipViteBuild = shouldSkipViteBuild(skipVite, forceBuild);
 
   if (!skipViteBuild) {
+    const outDir = path.resolve(__dirname, '../out');
+    if (!process.env.HEADMASTER_SKIP_OUT_CLEAN && fs.existsSync(outDir)) {
+      console.log('🧹 Cleaning out/ before Vite build...');
+      fs.rmSync(outDir, { recursive: true, force: true });
+    }
+
     // Run electron-vite to build all bundles (main + preload + renderer)
     console.log(`📦 Building ${targetArch}...`);
     execSync(`bunx electron-vite build --config packages/desktop/electron.vite.config.ts`, {
@@ -464,16 +470,20 @@ try {
   }
 
   // 5. Prepare AionCore sidecar binary (Council / ACP runtime)
-  console.log('📦 Preparing AionCore sidecar binary...');
-  const { prepareAioncore } = require('../packages/shared-scripts/src/prepare-aioncore.js');
-  const { resolveAioncoreVersion } = require('./resolveAioncoreVersion.js');
-  const projectRoot = path.resolve(__dirname, '..');
-  prepareAioncore({
-    projectRoot,
-    platform: process.platform,
-    arch: targetArch,
-    version: resolveAioncoreVersion(projectRoot),
-  });
+  if (process.env.HEADMASTER_SKIP_AIONCORE_PREP === '1') {
+    console.log('⏭️  Skipping AionCore sidecar prepare (HEADMASTER_SKIP_AIONCORE_PREP=1)');
+  } else {
+    console.log('📦 Preparing AionCore sidecar binary...');
+    const { prepareAioncore } = require('../packages/shared-scripts/src/prepare-aioncore.js');
+    const { resolveAioncoreVersion } = require('./resolveAioncoreVersion.js');
+    const projectRoot = path.resolve(__dirname, '..');
+    prepareAioncore({
+      projectRoot,
+      platform: process.platform,
+      arch: targetArch,
+      version: resolveAioncoreVersion(projectRoot),
+    });
+  }
 
   // 6. Prepare optional hub resources (index.json + extension zips for offline fallback).
   if (process.env.HEADMASTER_HUB_REQUIRED === '1') {

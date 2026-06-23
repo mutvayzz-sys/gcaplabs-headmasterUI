@@ -4,10 +4,26 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-export const DEFAULT_RECENT_WS_KEY = 'aionui:recent-workspaces';
+const LEGACY_RECENT_WS_KEY = 'aionui:recent-workspaces';
+export const DEFAULT_RECENT_WS_KEY = 'headmaster:recent-workspaces';
 const MAX_RECENT_WORKSPACES = 5;
 
+const migrateRecentWorkspacesKey = (storageKey: string): void => {
+  if (storageKey !== DEFAULT_RECENT_WS_KEY) return;
+  try {
+    if (localStorage.getItem(storageKey) != null) return;
+    const legacy = localStorage.getItem(LEGACY_RECENT_WS_KEY);
+    if (legacy != null) {
+      localStorage.setItem(storageKey, legacy);
+      localStorage.removeItem(LEGACY_RECENT_WS_KEY);
+    }
+  } catch {
+    // Ignore storage errors
+  }
+};
+
 export const getRecentWorkspaces = (storageKey: string = DEFAULT_RECENT_WS_KEY): string[] => {
+  migrateRecentWorkspacesKey(storageKey);
   try {
     return JSON.parse(localStorage.getItem(storageKey) ?? '[]');
   } catch {

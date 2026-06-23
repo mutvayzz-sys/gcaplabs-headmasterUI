@@ -17,7 +17,7 @@ const rootPackageJson = JSON.parse(readFileSync(resolve(__dirname, '../../packag
 
 // Capture the short git commit hash at build time so the renderer can show it.
 // Falls back to 'dev' when git is unavailable (e.g. CI without checkout depth).
-let buildCommit = 'dev';
+let buildCommit = process.env.GITHUB_SHA?.slice(0, 7) ?? 'dev';
 try {
   buildCommit = execSync('git rev-parse --short HEAD', {
     encoding: 'utf-8',

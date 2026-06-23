@@ -67,7 +67,7 @@ const KanbanPage: React.FC = () => {
         <div className='mb-12px px-14px py-10px rd-10px bg-fill-1 border border-border-2 text-13px text-t-secondary'>
           {t('kanban.unavailable', {
             defaultValue:
-              'Kanban plugin is not enabled on this runtime. Enable the kanban plugin in your Hermes dashboard to use this board.',
+              'Kanban plugin is not enabled on this runtime. Enable the kanban plugin in your runtime dashboard to use this board.',
           })}
         </div>
       )}

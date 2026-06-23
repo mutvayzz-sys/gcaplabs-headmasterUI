@@ -130,7 +130,7 @@ const ToolsetsPanel: React.FC = () => {
           </h2>
           <p className='text-13px text-t-secondary mt-4px mb-0'>
             {t('settings.toolsets.subtitle', {
-              defaultValue: 'Enable and configure Hermes tool backends (search, browser, voice, etc.).',
+              defaultValue: 'Enable and configure Headmaster tool backends (search, browser, voice, etc.).',
             })}
           </p>
         </div>

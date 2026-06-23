@@ -27,20 +27,8 @@ export function normalizeLanguageCode(language: string): SupportedLanguage {
 
   const langOnly = normalized.toLowerCase().split('-')[0];
   switch (langOnly) {
-    case 'zh':
-      return 'zh-CN';
-    case 'ja':
-      return 'ja-JP';
-    case 'ko':
-      return 'ko-KR';
-    case 'tr':
-      return 'tr-TR';
-    case 'ru':
-      return 'ru-RU';
-    case 'uk':
-      return 'uk-UA';
-    case 'pt':
-      return 'pt-BR';
+    case 'ar':
+      return DEFAULT_LANGUAGE;
     default:
       return DEFAULT_LANGUAGE;
   }

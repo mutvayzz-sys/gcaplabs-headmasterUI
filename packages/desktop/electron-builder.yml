@@ -120,6 +120,7 @@ win:
     #    - msi
     - zip
   icon: resources/app.ico # Use the checked-in Windows icon resource for executable metadata/icon patching
+  legalTrademarks: Copyright © 2026 GCAP Labs
   artifactName: ${productName}-${version}-${os}-${arch}.${ext}
 
 nsis:

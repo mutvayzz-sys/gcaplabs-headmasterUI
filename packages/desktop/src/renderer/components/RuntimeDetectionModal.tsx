@@ -83,7 +83,7 @@ export const RuntimeDetectionModal: React.FC<RuntimeDetectionProps> = ({ onRunti
       >
         <Spin />
         <p style={{ marginTop: '16px', color: '#666', fontSize: '14px' }}>
-          Checking for Hermes Python installation...
+          Checking for runtime…
         </p>
       </div>
     );
@@ -103,7 +103,7 @@ export const RuntimeDetectionModal: React.FC<RuntimeDetectionProps> = ({ onRunti
       >
         <div style={{ fontSize: '48px', marginBottom: '16px' }}>✓</div>
         <p style={{ fontSize: '18px', fontWeight: 500, marginBottom: '8px' }}>
-          Hermes Runtime Detected
+          Runtime Detected
         </p>
         <p style={{ color: '#666', fontSize: '14px' }}>
           Loading application...

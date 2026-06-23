@@ -26,7 +26,6 @@ function pass(msg) {
 }
 
 const REQUIRED_PAGES = [
-  'dashboard',
   'activity',
   'documents',
   'memory',
@@ -39,7 +38,6 @@ const REQUIRED_PAGES = [
 ];
 
 const REQUIRED_ROUTES = [
-  '/dashboard',
   '/activity',
   '/documents',
   '/memory',
@@ -52,7 +50,6 @@ const REQUIRED_ROUTES = [
 ];
 
 const REQUIRED_NAV = [
-  'Dashboard',
   'Activity',
   'Documents',
   'Memory',
@@ -66,7 +63,7 @@ const REQUIRED_NAV = [
 
 const FORBIDDEN_ROUTES = ['/approvals'];
 
-const FORBIDDEN_NAV = ['Approvals'];
+const FORBIDDEN_NAV = ['Approvals', 'Dashboard'];
 
 // --- Page files exist + export default ---
 for (const page of REQUIRED_PAGES) {
@@ -119,7 +116,6 @@ for (const label of FORBIDDEN_NAV) {
 
 // --- i18n keys ---
 const REQUIRED_I18N_KEYS = [
-  'dashboard',
   'activity',
   'documents',
   'memory',
@@ -142,7 +138,6 @@ for (const key of REQUIRED_I18N_KEYS) {
 
 // --- Brand scan: no @icon-park in new pages ---
 const NEW_PAGES = [
-  'dashboard',
   'activity',
   'documents',
   'memory',

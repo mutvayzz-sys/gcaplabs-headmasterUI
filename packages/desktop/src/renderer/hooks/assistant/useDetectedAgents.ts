@@ -42,6 +42,17 @@ const resolveBackendModelOptions = (agent: AgentMetadata): AvailableBackendModel
   return [];
 };
 
+export function buildAvailableBackends(rawAgents: AgentMetadata[]): AvailableBackend[] {
+  return rawAgents
+    .filter((a) => a.enabled !== false && a.available !== false && a.agent_type !== 'remote' && a.agent_type !== 'nanobot')
+    .map((a) => ({
+      id: a.backend || a.agent_type,
+      name: a.name,
+      isExtension: a.agent_source === 'extension',
+      modelOptions: resolveBackendModelOptions(a),
+    }));
+}
+
 /**
  * Provides detected execution engines for assistant editor backend selectors.
  * Excludes preset assistants — those live in the backend catalog
@@ -53,20 +64,7 @@ const resolveBackendModelOptions = (agent: AgentMetadata): AvailableBackendModel
 export const useDetectedAgents = () => {
   const { data: rawAgents = [] } = useSWR<AgentMetadata[]>(DETECTED_AGENTS_SWR_KEY, fetchDetectedAgents);
 
-  const availableBackends = useMemo<AvailableBackend[]>(
-    () =>
-      rawAgents
-        .filter((a) => a.agent_type !== 'remote')
-        .map((a) => ({
-          // `preset_agent_type` stores the backend slug (e.g. "claude", "gemini"),
-          // not the AgentMetadata row id. Align the Select value with that contract.
-          id: a.backend || a.agent_type,
-          name: a.name,
-          isExtension: a.agent_source === 'extension',
-          modelOptions: resolveBackendModelOptions(a),
-        })),
-    [rawAgents]
-  );
+  const availableBackends = useMemo<AvailableBackend[]>(() => buildAvailableBackends(rawAgents), [rawAgents]);
 
   const refreshAgentDetection = useCallback(async () => {
     try {

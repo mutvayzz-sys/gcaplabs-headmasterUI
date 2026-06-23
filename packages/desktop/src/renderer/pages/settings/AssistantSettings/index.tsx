@@ -18,7 +18,7 @@
  * read-only so users can inspect what's bundled.
  */
 import { Message } from '@arco-design/web-react';
-import coworkSvg from '@/renderer/assets/icons/cowork.svg';
+import workAlongSvg from '@/renderer/assets/icons/work-along.svg';
 import { useDetectedAgents, useAssistantEditor, useAssistantList } from '@/renderer/hooks/assistant';
 import SettingsPageWrapper from '../components/SettingsPageWrapper';
 import { resolveAvatarImageSrc } from './assistantUtils';
@@ -52,8 +52,9 @@ const AssistantSettings: React.FC<AssistantSettingsProps> = ({ embedded = false 
   }, [setSearchParams]);
   const avatarImageMap: Record<string, string> = useMemo(
     () => ({
-      'cowork.svg': coworkSvg,
-      '\u{1F6E0}\u{FE0F}': coworkSvg,
+      'work-along.svg': workAlongSvg,
+      'cowork.svg': workAlongSvg,
+      '\u{1F6E0}\u{FE0F}': workAlongSvg,
     }),
     []
   );

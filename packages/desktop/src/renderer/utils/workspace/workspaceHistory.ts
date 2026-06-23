@@ -4,12 +4,27 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-const WORKSPACE_UPDATE_TIME_KEY = 'aionui_workspace_update_time';
+const LEGACY_WORKSPACE_UPDATE_TIME_KEY = 'aionui_workspace_update_time';
+const WORKSPACE_UPDATE_TIME_KEY = 'headmaster_workspace_update_time';
+
+const migrateWorkspaceUpdateTimeKey = (): void => {
+  try {
+    if (localStorage.getItem(WORKSPACE_UPDATE_TIME_KEY) != null) return;
+    const legacy = localStorage.getItem(LEGACY_WORKSPACE_UPDATE_TIME_KEY);
+    if (legacy != null) {
+      localStorage.setItem(WORKSPACE_UPDATE_TIME_KEY, legacy);
+      localStorage.removeItem(LEGACY_WORKSPACE_UPDATE_TIME_KEY);
+    }
+  } catch {
+    // Ignore storage errors
+  }
+};
 
 /**
  * 获取 workspace 的最后更新时间
  */
 export const getWorkspaceUpdateTime = (workspace: string): number => {
+  migrateWorkspaceUpdateTimeKey();
   try {
     const stored = localStorage.getItem(WORKSPACE_UPDATE_TIME_KEY);
     if (stored) {
@@ -27,6 +42,7 @@ export const getWorkspaceUpdateTime = (workspace: string): number => {
  * 在创建新会话时调用此函数
  */
 export const updateWorkspaceTime = (workspace: string): void => {
+  migrateWorkspaceUpdateTimeKey();
   try {
     const stored = localStorage.getItem(WORKSPACE_UPDATE_TIME_KEY);
     const times = stored ? JSON.parse(stored) : {};

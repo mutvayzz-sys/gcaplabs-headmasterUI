@@ -397,7 +397,10 @@ export const conversation = {
     provider: () => {},
     invoke: async (params: { conversation: TChatConversation }): Promise<TChatConversation> => params.conversation,
   },
-  get: bridge.buildProvider<TChatConversation | null, { id: string }>('conversation.get'),
+  get: {
+    provider: () => {},
+    invoke: (params: { id: string }) => getHermesConversation(params.id),
+  },
   getAssociateConversation: {
     provider: () => {},
     invoke: async (params: { conversation_id: string }) => {
@@ -405,13 +408,22 @@ export const conversation = {
       if (!current) return [];
       const workspace = (current.extra as { workspace?: string } | undefined)?.workspace?.trim();
       if (!workspace) return [];
-      const { items } = await listHermesConversations({ limit: 200 });
-      return items.filter((conversation) => {
-        if (conversation.id === params.conversation_id) return false;
-        if (conversation.type !== current.type) return false;
-        const otherWorkspace = (conversation.extra as { workspace?: string } | undefined)?.workspace?.trim();
-        return Boolean(otherWorkspace && otherWorkspace === workspace);
-      });
+      const collected: TChatConversation[] = [];
+      let cursor = '0';
+      while (true) {
+        const page = await listHermesConversations({ cursor, limit: 200 });
+        collected.push(
+          ...page.items.filter((conversation) => {
+            if (conversation.id === params.conversation_id) return false;
+            if (conversation.type !== current.type) return false;
+            const otherWorkspace = (conversation.extra as { workspace?: string } | undefined)?.workspace?.trim();
+            return Boolean(otherWorkspace && otherWorkspace === workspace);
+          })
+        );
+        if (!page.has_more || page.items.length === 0) break;
+        cursor = String(Number(cursor) + page.items.length);
+      }
+      return collected;
     },
   },
   listByCronJob: {
@@ -442,8 +454,18 @@ export const conversation = {
     invoke: (params: { id: string; updates: Partial<TChatConversation>; merge_extra?: boolean }) =>
       updateHermesConversation(params.id, params.updates),
   },
-  reset: httpPost<void, IResetConversationParams>((p) => `/api/conversations/${p.id}/reset`),
-  warmup: bridge.buildProvider<void, { conversation_id: string }>('conversation.warmup'),
+  reset: {
+    provider: () => {},
+    invoke: async (_params: IResetConversationParams): Promise<void> => {
+      // Hermes sessions do not expose the legacy REST reset route.
+    },
+  },
+  warmup: {
+    provider: () => {},
+    invoke: async (_params: { conversation_id: string }): Promise<void> => {
+      // Hermes warms sessions on first prompt.submit; no separate warmup RPC.
+    },
+  },
   stop: {
     provider: () => {},
     invoke: async (p: { conversation_id: string; turn_id: string }) => {
@@ -917,15 +939,32 @@ export const fs = {
         enabled?: unknown;
       }>(raw, 'skills');
       return skills
-        .map((skill) => ({
-          name: typeof skill.name === 'string' ? skill.name : '',
-          description: typeof skill.description === 'string' ? skill.description : '',
-          category: typeof skill.category === 'string' ? skill.category : undefined,
-          enabled: skill.enabled !== false,
-          location: '',
-          is_custom: false,
-          source: 'builtin' as const,
-        }))
+        .map((skill) => {
+          const record = skill as {
+            name?: unknown;
+            description?: unknown;
+            category?: unknown;
+            enabled?: unknown;
+            location?: unknown;
+            is_custom?: unknown;
+            source?: unknown;
+          };
+          const source: 'builtin' | 'custom' | 'extension' =
+            record.source === 'extension' || record.source === 'custom' || record.source === 'builtin'
+              ? record.source
+              : record.is_custom
+                ? 'custom'
+                : 'builtin';
+          return {
+            name: typeof record.name === 'string' ? record.name : '',
+            description: typeof record.description === 'string' ? record.description : '',
+            category: typeof record.category === 'string' ? record.category : undefined,
+            enabled: record.enabled !== false,
+            location: typeof record.location === 'string' ? record.location : '',
+            is_custom: Boolean(record.is_custom),
+            source,
+          };
+        })
         .filter((skill) => skill.name);
     },
   },
