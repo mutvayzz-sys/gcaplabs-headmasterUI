@@ -101,14 +101,13 @@ const PlatformRow: React.FC<{
   );
 };
 
-const ChannelsSettingsPage: React.FC = () => {
+const ChannelsSettingsPage: React.FC<{ withWrapper?: boolean }> = ({ withWrapper = true }) => {
   const { t } = useTranslation();
   const { platforms, loading, error, refresh, updatePlatform, savePlatformEnv } = useIntegrations();
   const [expanded, setExpanded] = useState<string[]>([]);
 
-  return (
-    <SettingsPageWrapper contentClassName='max-w-1100px'>
-      <div className='flex flex-col gap-20px'>
+  const content = (
+    <div className='flex flex-col gap-20px'>
         <section className='bg-2 rd-16px p-18px'>
           <div className='flex items-center justify-between gap-12px mb-14px'>
             <div>
@@ -157,8 +156,13 @@ const ChannelsSettingsPage: React.FC = () => {
           <WebuiModalContent webuiOnly />
         </section>
       </div>
-    </SettingsPageWrapper>
   );
+
+  if (!withWrapper) {
+    return content;
+  }
+
+  return <SettingsPageWrapper contentClassName='max-w-1100px'>{content}</SettingsPageWrapper>;
 };
 
 export default ChannelsSettingsPage;

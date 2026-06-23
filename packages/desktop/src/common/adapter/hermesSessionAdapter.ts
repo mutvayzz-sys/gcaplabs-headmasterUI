@@ -173,6 +173,19 @@ function isTrackedHermesSession(session: HermesSessionInfo): boolean {
   return session.message_count >= 1;
 }
 
+export function forgetOpenHermesConversation(id: string): void {
+  locallyOpenSessions.delete(id);
+  localConversations.delete(id);
+  sessionProfiles.delete(id);
+}
+
+/** @internal Vitest-only reset for module-level session caches. */
+export function resetHermesSessionAdapterStateForTests(): void {
+  sessionProfiles.clear();
+  locallyOpenSessions.clear();
+  localConversations.clear();
+}
+
 export function rememberOpenHermesConversation(
   id: string,
   profile?: string,
@@ -373,7 +386,6 @@ export async function listHermesConversations(params: {
     const query = new URLSearchParams({
       limit: String(rawLimit),
       offset: String(rawOffset),
-      min_messages: '1',
       order: 'recent',
     });
     const page = await httpRequest<HermesPaginatedSessions>('GET', `/api/sessions?${query}`);
@@ -382,12 +394,22 @@ export async function listHermesConversations(params: {
     if (page.sessions.length === 0 || rawOffset >= page.total) break;
   }
 
-  const tracked = candidates.filter(isTrackedHermesSession);
-  const visible = tracked.slice(visibleOffset, visibleOffset + limit);
+  const trackedSessions = candidates.filter(isTrackedHermesSession);
+  const conversations = trackedSessions.map(fromHermesSession);
+  const seenIds = new Set(conversations.map((conversation) => conversation.id));
+  for (const id of locallyOpenSessions) {
+    if (seenIds.has(id)) continue;
+    const local = localConversations.get(id);
+    if (!local) continue;
+    conversations.push(local);
+    seenIds.add(id);
+  }
+  conversations.sort((a, b) => (b.modified_at ?? 0) - (a.modified_at ?? 0));
+  const visible = conversations.slice(visibleOffset, visibleOffset + limit);
   return {
-    items: visible.map(fromHermesSession),
-    total: tracked.length,
-    has_more: visibleOffset + visible.length < tracked.length,
+    items: visible,
+    total: conversations.length,
+    has_more: visibleOffset + visible.length < conversations.length,
   };
 }
 

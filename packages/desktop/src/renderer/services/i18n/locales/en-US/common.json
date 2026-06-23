@@ -118,6 +118,11 @@
     "disconnected": "Runtime is not connected",
     "restart": "Restart"
   },
+  "runtimeDetection": {
+    "checking": "Checking for runtime…",
+    "detected": "Runtime detected",
+    "loading": "Loading application…"
+  },
   "appUpdateAvailable": "Headmaster Desktop v{{version}} available",
   "sidebar": {
     "chat": "Chat",

@@ -12,7 +12,7 @@ import { type IExtensionSettingsTab } from '@/common/adapter/ipcBridge';
 import { useExtI18n } from '@/renderer/hooks/system/useExtI18n';
 import { useExtensionSettingsTabs } from '@/renderer/hooks/system/useExtensionSettingsTabs';
 import { Tabs } from '@arco-design/web-react';
-import { Computer, Earth, Info, LinkCloud, Puzzle, Toolkit } from '@icon-park/react';
+import { Computer, Earth, Info, LinkCloud, Puzzle, Toolkit, Api } from '@icon-park/react';
 import classNames from 'classnames';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -24,6 +24,9 @@ import RuntimeSettings from '@/renderer/pages/settings/RuntimeSettings';
 import SystemModalContent from './contents/SystemModalContent';
 import ToolsModalContent from './contents/ToolsModalContent';
 import WebuiModalContent from './contents/WebuiModalContent';
+import SkillsHubSettings from '@/renderer/pages/settings/SkillsHubSettings';
+import IntegrationsPage from '@/renderer/pages/integrations';
+import ChannelsSettingsPage from '@/renderer/pages/settings/ChannelsSettingsPage';
 import { SettingsViewModeProvider } from './settingsViewContext';
 import { LEGACY_ANCHOR_REMAP } from '@/renderer/pages/settings/components/SettingsSider';
 
@@ -56,7 +59,17 @@ const RESIZE_DEBOUNCE_DELAY = 150;
 /**
  * 内置设置标签页类型 / Built-in settings tab type
  */
-export type BuiltinSettingTab = 'model' | 'tools' | 'webui' | 'runtime' | 'memory' | 'system' | 'about';
+export type BuiltinSettingTab =
+  | 'model'
+  | 'tools'
+  | 'skills-hub'
+  | 'integrations'
+  | 'channels'
+  | 'webui'
+  | 'runtime'
+  | 'memory'
+  | 'system'
+  | 'about';
 
 /**
  * 设置标签页类型（内置 + 扩展）/ Settings tab type (built-in + extension)
@@ -201,6 +214,21 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onCancel, defaul
         label: t('settings.tools'),
         icon: <Toolkit theme='outline' size='20' fill={iconColors.secondary} />,
       },
+      {
+        key: 'skills-hub',
+        label: t('settings.capabilitiesTab.skills', { defaultValue: 'Skills' }),
+        icon: <Puzzle theme='outline' size='20' fill={iconColors.secondary} />,
+      },
+      {
+        key: 'integrations',
+        label: t('settings.integrations', { defaultValue: 'Integrations' }),
+        icon: <Api theme='outline' size='20' fill={iconColors.secondary} />,
+      },
+      {
+        key: 'channels',
+        label: t('settings.channels', { defaultValue: 'Channels' }),
+        icon: <Earth theme='outline' size='20' fill={iconColors.secondary} />,
+      },
     ];
 
     if (isDesktop) {
@@ -315,6 +343,12 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onCancel, defaul
         return <ModelModalContent />;
       case 'tools':
         return <ToolsModalContent />;
+      case 'skills-hub':
+        return <SkillsHubSettings withWrapper={false} />;
+      case 'integrations':
+        return <IntegrationsPage />;
+      case 'channels':
+        return <ChannelsSettingsPage withWrapper={false} />;
       case 'webui':
         return <WebuiModalContent />;
       case 'system':

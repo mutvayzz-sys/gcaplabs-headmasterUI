@@ -14,6 +14,7 @@ import {
   getHermesConversation,
   listHermesConversations,
   rememberOpenHermesConversation,
+  resetHermesSessionAdapterStateForTests,
   type HermesSessionInfo,
   type HermesSessionMessage,
 } from '../../../../packages/desktop/src/common/adapter/hermesSessionAdapter';
@@ -40,6 +41,7 @@ const session = (overrides: Partial<HermesSessionInfo> = {}): HermesSessionInfo 
 describe('Hermes session adapter', () => {
   beforeEach(() => {
     mocks.httpRequest.mockReset();
+    resetHermesSessionAdapterStateForTests();
   });
 
   it('maps SessionInfo into the existing conversation model', () => {
@@ -169,8 +171,8 @@ describe('Hermes session adapter', () => {
         return {
           limit: 200,
           offset: 0,
-          sessions: [single, multiple],
-          total: 2,
+          sessions: [empty, single, multiple],
+          total: 3,
         };
       }
       throw new Error(`Unexpected request: ${url}`);
@@ -182,7 +184,23 @@ describe('Hermes session adapter', () => {
     expect(result.items.map((item) => item.id)).toEqual(['single', 'multiple']);
     expect(result.total).toBe(2);
     expect(result.has_more).toBe(false);
-    expect(String(mocks.httpRequest.mock.calls[0]?.[1])).toContain('min_messages=1');
+    expect(String(mocks.httpRequest.mock.calls[0]?.[1])).not.toContain('min_messages');
+  });
+
+  it('includes locally open zero-message sessions in the sidebar list', async () => {
+    const local = fromHermesSession(session({ id: 'draft', title: 'New Chat', message_count: 0 }));
+    rememberOpenHermesConversation(local.id, undefined, local);
+
+    mocks.httpRequest.mockImplementation(async (_method: string, url: string) => {
+      if (url.startsWith('/api/sessions?')) {
+        return { limit: 200, offset: 0, sessions: [], total: 0 };
+      }
+      throw new Error(`Unexpected request: ${url}`);
+    });
+
+    const result = await listHermesConversations({ limit: 20 });
+    expect(result.items.map((item) => item.id)).toEqual(['draft']);
+    expect(result.total).toBe(1);
   });
 
   it('keeps tool-heavy and interrupted first-turn chats in history', async () => {

@@ -40,6 +40,20 @@
 - Dashboard Command Center screen (cut from product scope; `/dashboard` redirects
   to Chat).
 
+#### Audit closeout (2026-06-23)
+
+- Session list policy: drop server-side `min_messages=1` filter; keep empty chats
+  out of sidebar via local tracking while preserving open drafts.
+- Settings modal parity: Skills, Integrations, and Channels tabs match full-page
+  settings routes.
+- Skills hub reads directly from `GET /api/skills` with the same normalization
+  as the IPC bridge.
+- Runtime detection splash strings moved to i18n; extension settings iframe gets
+  a reload affordance on load timeout.
+- Removed dead `AgentSettings` page wrapper; dropped unused root `jest` /
+  `ts-node` devDependencies.
+- Unit tests for `GatewayStatusIndicator` and `UpdateChecker`.
+
 #### Chore
 
 - Moved finished audit/plan docs to `_archive/`.
