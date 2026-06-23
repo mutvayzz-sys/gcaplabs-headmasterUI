@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { TChatConversation, TConversationRuntimeSummary } from '../config/storage';
+import type { TChatConversation, TConversationRuntimeSummary, TProviderWithModel } from '../config/storage';
 import { uuid } from '../utils';
 import type {
   IConfirmMessageParams,
@@ -81,8 +81,47 @@ const turnsByLive = new Map<string, ActiveTurn>();
 const toolsByLive = new Map<string, Map<string, Record<string, unknown>>>();
 const pendingRequestsByConversation = new Map<string, Map<string, PendingInteractiveRequest>>();
 const profilesByStored = new Map<string, string>();
+const PROFILES_STORAGE_KEY = 'headmaster.sessionProfiles';
 let subscribed = false;
-const TURN_TIMEOUT_MS = 180_000;
+const TURN_TIMEOUT_MS = 90_000;
+const GATEWAY_DISCONNECT_GRACE_MS = 5_000;
+let disconnectGraceTimer: ReturnType<typeof setTimeout> | null = null;
+
+const EMPTY_MODEL: TProviderWithModel = {
+  id: '',
+  name: '',
+  platform: '',
+  use_model: '',
+  base_url: '',
+  api_key: '',
+};
+
+const loadPersistedProfiles = (): void => {
+  if (typeof localStorage === 'undefined') return;
+  try {
+    const raw = localStorage.getItem(PROFILES_STORAGE_KEY);
+    if (!raw) return;
+    const parsed = JSON.parse(raw) as Record<string, string>;
+    for (const [storedId, profile] of Object.entries(parsed)) {
+      if (typeof profile === 'string' && profile.trim()) {
+        profilesByStored.set(storedId, profile.trim());
+      }
+    }
+  } catch {
+    // ignore corrupt storage
+  }
+};
+
+const persistProfiles = (): void => {
+  if (typeof localStorage === 'undefined') return;
+  try {
+    localStorage.setItem(PROFILES_STORAGE_KEY, JSON.stringify(Object.fromEntries(profilesByStored)));
+  } catch {
+    // ignore quota errors
+  }
+};
+
+loadPersistedProfiles();
 
 const runningRuntime = (turnId: string): TConversationRuntimeSummary => ({
   state: 'running',
@@ -426,17 +465,56 @@ const scheduleContentFlush = (turn: ActiveTurn): void => {
   }, STREAM_DELTA_FLUSH_MS);
 };
 
+const clearTurnTimeout = (turn: ActiveTurn): void => {
+  clearTimeout(turn.timeout);
+};
+
+const scheduleTurnTimeout = (turn: ActiveTurn): void => {
+  clearTurnTimeout(turn);
+  turn.timeout = setTimeout(() => {
+    finishTurn(
+      turn.liveSessionId,
+      'The runtime did not finish this response in time.',
+      'The runtime did not finish this response in time. You can retry without restarting Headmaster.'
+    );
+  }, TURN_TIMEOUT_MS);
+};
+
+const abortTurn = (turn: ActiveTurn): void => {
+  clearTurnTimeout(turn);
+  if (turn.flushHandle) {
+    clearTimeout(turn.flushHandle);
+    turn.flushHandle = null;
+  }
+  turnsByLive.delete(turn.liveSessionId);
+};
+
+const finalizeGatewayDisconnect = (): void => {
+  for (const liveSessionId of [...turnsByLive.keys()]) {
+    finishTurn(
+      liveSessionId,
+      'The runtime connection was interrupted.',
+      'The runtime connection was interrupted. Reconnect and send your message again.'
+    );
+  }
+  liveByStored.clear();
+  storedByLive.clear();
+};
+
 export function handleHermesGatewayEvent(event: HermesGatewayEvent): void {
-  if (event.type === 'gateway.disconnected') {
-    for (const liveSessionId of [...turnsByLive.keys()]) {
-      finishTurn(
-        liveSessionId,
-        'The runtime connection was interrupted.',
-        'The runtime connection was interrupted. Reconnect and send your message again.'
-      );
+  if (event.type === 'gateway.connected') {
+    if (disconnectGraceTimer) {
+      clearTimeout(disconnectGraceTimer);
+      disconnectGraceTimer = null;
     }
-    liveByStored.clear();
-    storedByLive.clear();
+    return;
+  }
+  if (event.type === 'gateway.disconnected') {
+    if (disconnectGraceTimer) clearTimeout(disconnectGraceTimer);
+    disconnectGraceTimer = setTimeout(() => {
+      disconnectGraceTimer = null;
+      finalizeGatewayDisconnect();
+    }, GATEWAY_DISCONNECT_GRACE_MS);
     return;
   }
   const liveSessionId = event.session_id;
@@ -538,6 +616,9 @@ export function handleHermesGatewayEvent(event: HermesGatewayEvent): void {
       clearPendingRequests(turn.conversationId);
       break;
     }
+    case 'tool.error':
+    case 'message.error':
+    case 'session.expired':
     case 'error': {
       const message = String(payload.message ?? 'The runtime could not complete this response.');
       finishTurn(liveSessionId, message, message);
@@ -565,7 +646,10 @@ const runtimeSubmissionError = (): Error =>
 
 async function resumeSession(storedId: string): Promise<string> {
   const profile = profilesByStored.get(storedId) ?? getHermesConversationProfile(storedId);
-  if (profile) profilesByStored.set(storedId, profile);
+  if (profile) {
+    profilesByStored.set(storedId, profile);
+    persistProfiles();
+  }
   const resumed = await gatewayRpcRequest<HermesSessionResumeResponse>('session.resume', {
     session_id: storedId,
     cols: 96,
@@ -592,9 +676,12 @@ export async function createHermesChatConversation(params: ICreateConversationPa
   });
   const storedId = created.stored_session_id || created.session_id;
   rememberSession(storedId, created.session_id);
-  if (profile) profilesByStored.set(storedId, profile);
+  if (profile) {
+    profilesByStored.set(storedId, profile);
+    persistProfiles();
+  }
   const now = Date.now();
-  const conversation = {
+  const conversation: TChatConversation = {
     id: storedId,
     name: params.name?.trim() || 'New Chat',
     type: 'aionrs',
@@ -602,14 +689,14 @@ export async function createHermesChatConversation(params: ICreateConversationPa
     modified_at: now,
     status: 'pending',
     source: 'headmaster',
-    model: params.model,
+    model: params.model ?? EMPTY_MODEL,
     runtime: idleRuntime(),
     extra: {
       ...params.extra,
       workspace: created.info?.cwd || workspace || '',
       custom_workspace: Boolean(created.info?.cwd || workspace),
     },
-  } as TChatConversation;
+  };
   rememberOpenHermesConversation(storedId, profile, conversation);
   return conversation;
 }
@@ -629,13 +716,6 @@ export async function sendHermesMessage(params: {
   const userMsgId = uuid();
   const assistantMsgId = uuid();
   const turnId = uuid();
-  const timeout = setTimeout(() => {
-    finishTurn(
-      liveSessionId,
-      'The runtime did not finish this response in time.',
-      'The runtime did not finish this response in time. You can retry without restarting Headmaster.'
-    );
-  }, TURN_TIMEOUT_MS);
   const turn: ActiveTurn = {
     conversationId: params.conversation_id,
     liveSessionId,
@@ -645,41 +725,45 @@ export async function sendHermesMessage(params: {
     sawContent: false,
     pendingContent: '',
     flushHandle: null,
-    timeout,
+    timeout: setTimeout(() => {}, 0),
   };
+  scheduleTurnTimeout(turn);
   turnsByLive.set(liveSessionId, turn);
-  broadcastWsEvent('message.userCreated', {
-    conversation_id: params.conversation_id,
-    msg_id: userMsgId,
-    content: params.input,
-    position: 'right',
-    status: 'finish',
-    hidden: false,
-    created_at: Date.now(),
-  });
   const text = [params.input, ...(params.files ?? []).map((file) => `@file:${file}`)].filter(Boolean).join('\n');
+
+  const emitUserCreated = (): void => {
+    broadcastWsEvent('message.userCreated', {
+      conversation_id: params.conversation_id,
+      msg_id: userMsgId,
+      content: params.input,
+      position: 'right',
+      status: 'finish',
+      hidden: false,
+      created_at: Date.now(),
+    });
+  };
 
   try {
     await gatewayRpcRequest('prompt.submit', { session_id: liveSessionId, text });
   } catch (error) {
     if (!isSessionNotFound(error)) {
-      clearTimeout(turn.timeout);
-      turnsByLive.delete(liveSessionId);
+      abortTurn(turn);
       throw runtimeSubmissionError();
     }
     turnsByLive.delete(liveSessionId);
     try {
       liveSessionId = await resumeSession(params.conversation_id);
       turn.liveSessionId = liveSessionId;
+      scheduleTurnTimeout(turn);
       turnsByLive.set(liveSessionId, turn);
       await gatewayRpcRequest('prompt.submit', { session_id: liveSessionId, text });
     } catch {
-      clearTimeout(turn.timeout);
-      turnsByLive.delete(liveSessionId);
+      abortTurn(turn);
       throw runtimeSubmissionError();
     }
   }
 
+  emitUserCreated();
   return { msg_id: userMsgId, turn_id: turnId, runtime: runningRuntime(turnId) };
 }
 
@@ -715,6 +799,13 @@ export function resetHermesChatRuntimeState(): void {
   toolsByLive.clear();
   pendingRequestsByConversation.clear();
   profilesByStored.clear();
+  if (typeof localStorage !== 'undefined') {
+    try {
+      localStorage.removeItem(PROFILES_STORAGE_KEY);
+    } catch {
+      // ignore
+    }
+  }
 }
 
 export async function listHermesPendingRequests(

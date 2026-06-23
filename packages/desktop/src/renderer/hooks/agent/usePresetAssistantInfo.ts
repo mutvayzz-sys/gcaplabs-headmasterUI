@@ -9,7 +9,7 @@ import { useTranslation } from 'react-i18next';
 import type { TChatConversation } from '@/common/config/storage';
 import { ipcBridge } from '@/common';
 import type { Assistant } from '@/common/types/agent/assistantTypes';
-import CoworkLogo from '@/renderer/assets/icons/cowork.svg';
+import WorkAlongLogo from '@/renderer/assets/icons/work-along.svg';
 import { resolveExtensionAssetUrl } from '@/renderer/utils/platform';
 import { DETECTED_AGENTS_SWR_KEY, fetchDetectedAgents, type AgentMetadata } from '@/renderer/utils/model/agentTypes';
 import useSWR from 'swr';
@@ -86,8 +86,8 @@ function normalizeAvatar(avatar: string | undefined): { logo: string; isEmoji: b
   const value = (avatar || '').trim();
   if (!value) return { logo: '🤖', isEmoji: true };
 
-  if (value === 'cowork.svg') {
-    return { logo: CoworkLogo, isEmoji: false };
+  if (value === 'work-along.svg' || value === 'cowork.svg') {
+    return { logo: WorkAlongLogo, isEmoji: false };
   }
 
   const resolved = resolveExtensionAssetUrl(value) || value;

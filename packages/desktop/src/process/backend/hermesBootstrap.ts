@@ -96,6 +96,12 @@ const extractServedDashboardToken = (html: string): string | null => {
   }
 };
 
+export interface HermesRuntimeSnapshot {
+  status: HermesBootstrapStatus;
+  port: number;
+  sessionToken: string;
+}
+
 export class HermesBootstrap {
   private childProcess: ChildProcess | null = null;
   private _port = 0;
@@ -105,8 +111,34 @@ export class HermesBootstrap {
   private _restartTimestamps: number[] = [];
   private _readyTimer: NodeJS.Timeout | null = null;
   private _lastError: string | null = null;
+  private readonly runtimeListeners = new Set<(snapshot: HermesRuntimeSnapshot) => void>();
 
   constructor(private readonly appMeta: HermesBootstrapAppMeta) {}
+
+  /** Subscribe to port/token/status changes (spawn, crash-restart, stop). */
+  onRuntimeChange(listener: (snapshot: HermesRuntimeSnapshot) => void): () => void {
+    this.runtimeListeners.add(listener);
+    return () => this.runtimeListeners.delete(listener);
+  }
+
+  private notifyRuntimeChange(): void {
+    const snapshot: HermesRuntimeSnapshot = {
+      status: this._status,
+      port: this._port,
+      sessionToken: this._sessionToken,
+    };
+    for (const listener of this.runtimeListeners) {
+      try {
+        listener(snapshot);
+      } catch (error) {
+        console.error('[hermes-bootstrap] runtime listener failed:', error);
+      }
+    }
+  }
+
+  private childAlive(): boolean {
+    return this.childProcess !== null && this.childProcess.exitCode === null && !this.childProcess.killed;
+  }
 
   // ---------------------------------------------------------------------------
   // Public getters — consumed by IPC handlers and renderer hooks.
@@ -159,6 +191,7 @@ export class HermesBootstrap {
     this._status = 'starting';
     this._startupStartedAt = Date.now();
     this._lastError = null;
+    this.notifyRuntimeChange();
 
     // 1. Resolve the venv hermes binary.
     const hermesBin = this.resolveHermesBin();
@@ -208,6 +241,7 @@ export class HermesBootstrap {
     }
     this._status = 'stopped';
     this._port = 0;
+    this.notifyRuntimeChange();
   }
 
   // ---------------------------------------------------------------------------
@@ -253,7 +287,7 @@ export class HermesBootstrap {
     const bootstrapPy = join(hermesAgentSrc, 'hermes_bootstrap.py');
     if (!existsSync(bootstrapPy)) {
       // The user hasn't cloned the Python repo yet. Surface a clear error.
-      this._lastError = `Hermes Python runtime not found at ${hermesAgentSrc}. Run: git clone https://github.com/NousResearch/hermes-agent ${hermesAgentSrc}`;
+      this._lastError = `Python runtime not found at ${hermesAgentSrc}. Install the runtime from Headmaster settings or your system administrator.`;
       console.error('[hermes-bootstrap]', this._lastError);
       return false;
     }
@@ -343,6 +377,11 @@ export class HermesBootstrap {
           const html = await res.text();
           const servedToken = extractServedDashboardToken(html);
           if (servedToken && servedToken !== this._sessionToken) {
+            if (!this.childAlive()) {
+              throw new Error(
+                'Dashboard served a different session token after the child exited; refusing foreign backend token'
+              );
+            }
             console.log('[hermes-bootstrap] dashboard served a different session token; adopting it');
             this._sessionToken = servedToken;
           }
@@ -350,6 +389,7 @@ export class HermesBootstrap {
           console.warn('[hermes-bootstrap] could not read served dashboard token; using spawn token', err);
         }
         console.log(`[hermes-bootstrap] dashboard ready on port ${port}`);
+        this.notifyRuntimeChange();
         resolve({ ok: true, port, status: 'ready' });
       };
 
@@ -403,6 +443,7 @@ export class HermesBootstrap {
   private handleCrash(reason: string): void {
     this._status = 'restarting';
     this._port = 0;
+    this.notifyRuntimeChange();
     const now = Date.now();
     this._restartTimestamps = this._restartTimestamps.filter((t) => now - t < 60_000);
     this._restartTimestamps.push(now);
@@ -410,6 +451,7 @@ export class HermesBootstrap {
       this._status = 'failed';
       this._lastError = `Dashboard crashed ${this._restartTimestamps.length} times in 60s (${reason}). Giving up.`;
       console.error('[hermes-bootstrap]', this._lastError);
+      this.notifyRuntimeChange();
       return;
     }
     this._lastError = `Dashboard crashed (${reason}); restarting (${this._restartTimestamps.length}/3)`;
@@ -419,6 +461,7 @@ export class HermesBootstrap {
       this.start().catch((err) => {
         this._lastError = `Restart failed: ${err.message ?? String(err)}`;
         this._status = 'failed';
+        this.notifyRuntimeChange();
       });
     }, 1_000);
   }

@@ -59,6 +59,28 @@ describe('Hermes chat adapter', () => {
     expect(result.id).toBe('stored-1');
   });
 
+  it('uses an empty model fallback when params.model is missing', async () => {
+    mocks.request.mockResolvedValue({
+      session_id: 'live-empty',
+      stored_session_id: 'stored-empty',
+      info: {},
+    });
+
+    const result = await createHermesChatConversation({
+      type: 'aionrs',
+      extra: {},
+    } as Parameters<typeof createHermesChatConversation>[0]);
+
+    expect(result.model).toEqual({
+      id: '',
+      name: '',
+      platform: '',
+      use_model: '',
+      base_url: '',
+      api_key: '',
+    });
+  });
+
   it('creates profile chats in the selected Hermes profile', async () => {
     mocks.request.mockResolvedValue({
       session_id: 'live-recruiter',
@@ -406,6 +428,7 @@ describe('gateway edge cases', () => {
   });
 
   it('finalizes an active turn once when the gateway disconnects', async () => {
+    vi.useFakeTimers();
     mocks.request
       .mockResolvedValueOnce({ session_id: 'live-1', stored_session_id: 'stored-1' })
       .mockResolvedValueOnce({ status: 'streaming' });
@@ -428,6 +451,10 @@ describe('gateway edge cases', () => {
     mocks.gatewayListener?.({ type: 'gateway.disconnected' });
     mocks.gatewayListener?.({ type: 'gateway.disconnected' });
 
+    expect(mocks.broadcast.mock.calls.filter((call) => call[0] === 'turn.completed')).toHaveLength(0);
+
+    await vi.advanceTimersByTimeAsync(5_000);
+
     const completedCalls = mocks.broadcast.mock.calls.filter((call) => call[0] === 'turn.completed');
     expect(completedCalls).toHaveLength(1);
     expect(mocks.broadcast).toHaveBeenCalledWith(
@@ -437,9 +464,11 @@ describe('gateway edge cases', () => {
         data: expect.objectContaining({ type: 'error' }),
       })
     );
+    vi.useRealTimers();
   });
 
   it('resumes the durable session before the next prompt after reconnecting', async () => {
+    vi.useFakeTimers();
     mocks.request
       .mockResolvedValueOnce({ session_id: 'live-old', stored_session_id: 'stored-1' })
       .mockResolvedValueOnce({ status: 'streaming' })
@@ -460,6 +489,7 @@ describe('gateway edge cases', () => {
     });
     await sendHermesMessage({ conversation_id: 'stored-1', input: 'first' });
     mocks.gatewayListener?.({ type: 'gateway.disconnected' });
+    await vi.advanceTimersByTimeAsync(5_000);
 
     await sendHermesMessage({ conversation_id: 'stored-1', input: 'second' });
 
@@ -467,6 +497,7 @@ describe('gateway edge cases', () => {
       ['session.resume', { session_id: 'stored-1', cols: 96 }],
       ['prompt.submit', { session_id: 'live-new', text: 'second' }],
     ]);
+    vi.useRealTimers();
   });
 
   it('sanitizes RPC failures and leaves the chat reusable', async () => {
@@ -491,6 +522,7 @@ describe('gateway edge cases', () => {
     await expect(sendHermesMessage({ conversation_id: 'stored-1', input: 'first' })).rejects.toThrow(
       'The runtime could not start this response.'
     );
+    expect(mocks.broadcast.mock.calls.some((call) => call[0] === 'message.userCreated')).toBe(false);
     await expect(sendHermesMessage({ conversation_id: 'stored-1', input: 'retry' })).resolves.toMatchObject({
       runtime: { state: 'running' },
     });

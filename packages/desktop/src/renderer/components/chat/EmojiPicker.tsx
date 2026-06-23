@@ -429,8 +429,22 @@ const EMOJI_CATEGORIES = {
 
 type CategoryKey = keyof typeof EMOJI_CATEGORIES;
 
-const RECENT_EMOJIS_KEY = 'aionui.emoji.recent';
+const LEGACY_RECENT_EMOJIS_KEY = 'aionui.emoji.recent';
+const RECENT_EMOJIS_KEY = 'headmaster.emoji.recent';
 const MAX_RECENT_EMOJIS = 24;
+
+const migrateRecentEmojisKey = (): void => {
+  try {
+    if (localStorage.getItem(RECENT_EMOJIS_KEY) != null) return;
+    const legacy = localStorage.getItem(LEGACY_RECENT_EMOJIS_KEY);
+    if (legacy != null) {
+      localStorage.setItem(RECENT_EMOJIS_KEY, legacy);
+      localStorage.removeItem(LEGACY_RECENT_EMOJIS_KEY);
+    }
+  } catch {
+    // Ignore storage errors
+  }
+};
 
 // Arco Design Popover position types
 type PopoverPosition = 'top' | 'bottom' | 'left' | 'right' | 'tl' | 'tr' | 'bl' | 'br' | 'lt' | 'lb' | 'rt' | 'rb';
@@ -461,6 +475,7 @@ const EmojiPicker: React.FC<EmojiPickerProps> = ({
 
   // Load recent emojis from localStorage
   const recentEmojis = useMemo(() => {
+    migrateRecentEmojisKey();
     try {
       const stored = localStorage.getItem(RECENT_EMOJIS_KEY);
       return stored ? JSON.parse(stored) : [];
@@ -470,6 +485,7 @@ const EmojiPicker: React.FC<EmojiPickerProps> = ({
   }, [visible]); // Refresh when popover opens
 
   const saveRecentEmoji = useCallback((emoji: string) => {
+    migrateRecentEmojisKey();
     try {
       const stored = localStorage.getItem(RECENT_EMOJIS_KEY);
       let recent: string[] = stored ? JSON.parse(stored) : [];

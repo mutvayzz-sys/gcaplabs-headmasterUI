@@ -33,14 +33,14 @@ export function initRuntimeDetectionBridge(hermesBootstrap: HermesBootstrap): vo
     // Show dialog to user
     const result = await dialog.showMessageBox({
       type: 'info',
-      title: 'Hermes Runtime Not Found',
-      message: 'Headmaster requires the Hermes Python runtime to function.',
+      title: 'Runtime Not Found',
+      message: 'Headmaster requires the Python runtime to function.',
       detail:
-        'Hermes Python was not detected at the expected location.\n\n' +
+        'The Python runtime was not detected at the expected location.\n\n' +
         'Would you like to:\n' +
-        '• Specify a custom Hermes installation path\n' +
+        '• Specify a custom runtime installation path\n' +
         '• Launch without runtime (limited functionality)\n' +
-        '• Quit and install Hermes',
+        '• Quit and install the runtime',
       buttons: ['Specify Path', 'Launch Without Runtime', 'Quit'],
       defaultId: 2,
       cancelId: 2,
@@ -49,9 +49,9 @@ export function initRuntimeDetectionBridge(hermesBootstrap: HermesBootstrap): vo
     switch (result.response) {
       case 0: // Specify Path
         const pathResult = await dialog.showOpenDialog({
-          title: 'Select Hermes Installation Directory',
+          title: 'Select Runtime Installation Directory',
           properties: ['openDirectory'],
-          message: 'Select the directory containing your Hermes installation',
+          message: 'Select the directory containing your runtime installation',
         });
         if (!pathResult.canceled && pathResult.filePaths[0]) {
           userRuntimeChoice = { action: 'specify-path', customPath: pathResult.filePaths[0] };

@@ -39,6 +39,7 @@ export interface HermesPaginatedSessions {
 }
 
 export interface HermesSessionMessage {
+  id?: string;
   content: unknown;
   name?: string;
   reasoning?: string | null;
@@ -167,13 +168,7 @@ export async function listUserConversations(params: {
   }
 }
 
-async function isTrackedHermesSession(session: HermesSessionInfo, includeLocallyOpen = false): Promise<boolean> {
-  if (includeLocallyOpen && locallyOpenSessions.has(session.id)) return true;
-  if (locallyOpenSessions.has(session.id)) return true;
-  return session.message_count >= 1;
-}
-
-function isTrackedHermesSessionSync(session: HermesSessionInfo): boolean {
+function isTrackedHermesSession(session: HermesSessionInfo): boolean {
   if (locallyOpenSessions.has(session.id)) return true;
   return session.message_count >= 1;
 }
@@ -250,7 +245,10 @@ const contentToText = (content: unknown): string => {
 
 export function fromHermesMessage(message: HermesSessionMessage, conversationId: string, index: number): TMessage[] {
   const createdAt = toMilliseconds(message.timestamp);
-  const idBase = `${conversationId}:${index}`;
+  const idBase =
+    typeof message.id === 'string' && message.id.trim().length > 0
+      ? message.id.trim()
+      : `${conversationId}:${index}`;
   const mapped: TMessage[] = [];
   const reasoning = message.reasoning_content || message.reasoning;
 
@@ -303,7 +301,7 @@ export function fromHermesMessage(message: HermesSessionMessage, conversationId:
         description: String(fn.name ?? call.name ?? 'Tool'),
         name: String(fn.name ?? call.name ?? 'tool'),
         render_output_as_markdown: true,
-        status: 'Success' as const,
+        status: 'Executing' as const,
         result_display: JSON.stringify(args, null, 2),
       };
     });
@@ -384,7 +382,7 @@ export async function listHermesConversations(params: {
     if (page.sessions.length === 0 || rawOffset >= page.total) break;
   }
 
-  const tracked = candidates.filter(isTrackedHermesSessionSync);
+  const tracked = candidates.filter(isTrackedHermesSession);
   const visible = tracked.slice(visibleOffset, visibleOffset + limit);
   return {
     items: visible.map(fromHermesSession),
@@ -411,7 +409,7 @@ export async function getHermesConversation(id: string): Promise<TChatConversati
     throw error;
   }
   if (!session) return localConversations.get(id) ?? null;
-  if (!(await isTrackedHermesSession(session, true))) return localConversations.get(id) ?? null;
+  if (!isTrackedHermesSession(session)) return localConversations.get(id) ?? null;
   return fromHermesSession(session);
 }
 

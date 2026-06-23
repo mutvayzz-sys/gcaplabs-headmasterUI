@@ -88,3 +88,7 @@ for (const channel of trayEvents) {
     window.dispatchEvent(new CustomEvent(channel, { detail: args[0] }));
   });
 }
+
+ipcRenderer.on('hermes:runtime-changed', () => {
+  window.dispatchEvent(new CustomEvent('hermes:runtime-changed'));
+});

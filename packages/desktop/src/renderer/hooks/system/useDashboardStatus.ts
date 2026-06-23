@@ -25,6 +25,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { ipcBridge } from '@/common';
 import { resolveBackendHost } from '@/common/adapter/backendUrl';
+import { resetHttpBridgeConnections } from '@/common/adapter/httpBridge';
 
 declare global {
   interface Window {
@@ -57,6 +58,51 @@ const POLL_BOOT_MS = 500;
 /** Poll interval once the dashboard is ready (heartbeat — cheap). */
 const POLL_READY_MS = 5_000;
 
+const DEGRADED_STATUSES = new Set<HermesDashboardStatusSnapshot['status']>([
+  'restarting',
+  'starting',
+  'stopped',
+  'failed',
+  'not-installed',
+  'installing',
+]);
+
+/** Keep renderer HTTP/WS globals aligned with the live bootstrap snapshot. */
+export function mirrorHermesDashboardGlobals(snapshot: HermesDashboardStatusSnapshot): {
+  portChanged: boolean;
+  tokenChanged: boolean;
+} {
+  if (typeof window === 'undefined') {
+    return { portChanged: false, tokenChanged: false };
+  }
+
+  const prevPort = window.__backendPort ?? 0;
+  const prevToken = window.__hermesSessionToken ?? '';
+  window.__hermesHome = snapshot.hermesHome;
+
+  if (snapshot.status === 'ready' && snapshot.port > 0) {
+    window.__hermesPort = snapshot.port;
+    window.__backendPort = snapshot.port;
+    if (snapshot.sessionToken) {
+      window.__hermesSessionToken = snapshot.sessionToken;
+    }
+  } else if (DEGRADED_STATUSES.has(snapshot.status)) {
+    // Upstream Hermes Desktop: never serve REST/WS against a dead dashboard.
+    window.__backendPort = 0;
+    window.__hermesPort = 0;
+    // Keep the latest spawn token so the next ready cycle does not reuse a stale secret.
+    if (snapshot.sessionToken) {
+      window.__hermesSessionToken = snapshot.sessionToken;
+    }
+  }
+
+  const nextToken = window.__hermesSessionToken ?? '';
+  return {
+    portChanged: (window.__backendPort ?? 0) !== prevPort,
+    tokenChanged: nextToken !== prevToken,
+  };
+}
+
 export function useDashboardStatus(): HermesDashboardStatusSnapshot {
   const [snapshot, setSnapshot] = useState<HermesDashboardStatusSnapshot>(IDLE_SNAPSHOT);
   const snapshotRef = useRef(snapshot);
@@ -66,27 +112,20 @@ export function useDashboardStatus(): HermesDashboardStatusSnapshot {
     let cancelled = false;
     let timer: ReturnType<typeof setTimeout> | null = null;
 
+    const applySnapshot = (next: HermesDashboardStatusSnapshot) => {
+      setSnapshot(next);
+      const { portChanged, tokenChanged } = mirrorHermesDashboardGlobals(next);
+      if (portChanged || tokenChanged) {
+        resetHttpBridgeConnections();
+      }
+    };
+
     const poll = async () => {
       if (cancelled) return;
       try {
         const next = await ipcBridge.hermes.getDashboardStatus.invoke();
         if (cancelled) return;
-        setSnapshot(next);
-        // Mirror to window globals so existing httpBridge.ts keep working.
-        // Guard: don't overwrite a non-zero port with 0 (aioncore path may have
-        // already set __backendPort via preload before the hook mounts).
-        if (typeof window !== 'undefined') {
-          if (next.port || !window.__hermesPort) {
-            window.__hermesPort = next.port;
-          }
-          if (next.port || !window.__backendPort) {
-            window.__backendPort = next.port;
-          }
-          if (next.sessionToken || !window.__hermesSessionToken) {
-            window.__hermesSessionToken = next.sessionToken;
-          }
-          window.__hermesHome = next.hermesHome;
-        }
+        applySnapshot(next);
       } catch (err) {
         if (cancelled) return;
         setSnapshot((prev) => ({ ...prev, lastError: (err as Error)?.message ?? String(err) }));
@@ -95,11 +134,23 @@ export function useDashboardStatus(): HermesDashboardStatusSnapshot {
       timer = setTimeout(poll, nextMs);
     };
 
+    const onRuntimeChanged = () => {
+      void ipcBridge.hermes.getDashboardStatus
+        .invoke()
+        .then((next) => {
+          if (!cancelled) applySnapshot(next);
+        })
+        .catch((): void => undefined);
+    };
+
+    window.addEventListener('hermes:runtime-changed', onRuntimeChanged);
+
     // Kick off immediately so we don't wait POLL_BOOT_MS for the first read.
     void poll();
 
     return () => {
       cancelled = true;
+      window.removeEventListener('hermes:runtime-changed', onRuntimeChanged);
       if (timer) clearTimeout(timer);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps

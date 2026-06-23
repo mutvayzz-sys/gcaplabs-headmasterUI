@@ -9,7 +9,21 @@ import { DEEPGRAM_SPEECH_MODEL_PRESETS, OPENAI_SPEECH_MODEL_PRESETS } from './sp
 
 export type StreamCapability = 'supported' | 'unsupported' | 'unknown';
 
-const STORAGE_KEY = 'aionui.sttStreamUnsupported';
+const LEGACY_STORAGE_KEY = 'aionui.sttStreamUnsupported';
+const STORAGE_KEY = 'headmaster.sttStreamUnsupported';
+
+const migrateStreamMemoryKey = (): void => {
+  try {
+    if (localStorage.getItem(STORAGE_KEY) != null) return;
+    const legacy = localStorage.getItem(LEGACY_STORAGE_KEY);
+    if (legacy != null) {
+      localStorage.setItem(STORAGE_KEY, legacy);
+      localStorage.removeItem(LEGACY_STORAGE_KEY);
+    }
+  } catch {
+    // Silently no-op (SSR, locked storage, quota exceeded).
+  }
+};
 
 // ---------------------------------------------------------------------------
 // Capability matrix
@@ -90,6 +104,7 @@ const streamMemoryEntry = (config: SpeechToTextConfig): string => {
 };
 
 const readMemory = (): string[] => {
+  migrateStreamMemoryKey();
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return [];

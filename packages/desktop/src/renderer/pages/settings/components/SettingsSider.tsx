@@ -3,7 +3,7 @@ import { resolveExtensionAssetUrl } from '@/renderer/utils/platform';
 import { type IExtensionSettingsTab } from '@/common/adapter/ipcBridge';
 import { useExtI18n } from '@/renderer/hooks/system/useExtI18n';
 import { useExtensionSettingsTabs } from '@/renderer/hooks/system/useExtensionSettingsTabs';
-import { Api, Computer, Info, Lightning, LinkCloud, MemoryOne, Puzzle, Robot, Speed, System } from '@icon-park/react';
+import { Api, Computer, Earth, Info, Lightning, LinkCloud, MemoryOne, Puzzle, Robot, Speed, System } from '@icon-park/react';
 import classNames from 'classnames';
 import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -125,13 +125,13 @@ const SettingsSider: React.FC<{ collapsed?: boolean; tooltipEnabled?: boolean }>
       integrations: {
         id: 'integrations',
         label: t('settings.integrations', { defaultValue: 'Integrations' }),
-        icon: <LinkCloud />,
+        icon: <Api />,
         path: 'integrations',
       },
       channels: {
         id: 'channels',
         label: t('settings.channels', { defaultValue: 'Channels' }),
-        icon: <LinkCloud />,
+        icon: <Earth />,
         path: 'channels',
       },
       appearance: { id: 'appearance', label: t('settings.appearancePanel'), icon: <Computer />, path: 'appearance' },

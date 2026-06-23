@@ -4,12 +4,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import coworkSvg from '@/renderer/assets/icons/cowork.svg';
+import workAlongSvg from '@/renderer/assets/icons/work-along.svg';
 
 /**
  * Map custom avatar identifiers to their resolved image URLs.
  */
 export const CUSTOM_AVATAR_IMAGE_MAP: Record<string, string> = {
-  'cowork.svg': coworkSvg,
-  '\u{1F6E0}\u{FE0F}': coworkSvg,
+  'work-along.svg': workAlongSvg,
+  'cowork.svg': workAlongSvg,
+  '\u{1F6E0}\u{FE0F}': workAlongSvg,
 };

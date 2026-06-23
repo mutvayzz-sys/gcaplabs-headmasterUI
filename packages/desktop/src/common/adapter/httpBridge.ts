@@ -424,7 +424,13 @@ export function callbackProvider<Data, Params = undefined>(
 
 type WsCallback = (data: unknown) => void;
 const wsListeners = new Map<string, Set<WsCallback>>();
-bindAioncoreWsListeners(wsListeners);
+let aioncoreListenersBound = false;
+
+function ensureAioncoreListenersBound(): void {
+  if (aioncoreListenersBound) return;
+  bindAioncoreWsListeners(wsListeners);
+  aioncoreListenersBound = true;
+}
 type GatewayEventCallback = (event: { type: string; session_id?: string; payload?: unknown }) => void;
 const gatewayEventListeners = new Set<GatewayEventCallback>();
 let ws: WebSocket | null = null;
@@ -440,6 +446,9 @@ type PendingRpc = {
 
 let rpcWs: WebSocket | null = null;
 let rpcConnectPromise: Promise<void> | null = null;
+let rpcReconnectTimer: ReturnType<typeof setTimeout> | null = null;
+let rpcReconnectAttempt = 0;
+const RPC_RECONNECT_MAX_ATTEMPTS = 12;
 let rpcNextId = 0;
 const rpcPending = new Map<RpcId, PendingRpc>();
 
@@ -461,7 +470,20 @@ function rejectAllRpc(error: Error): void {
   }
 }
 
+function scheduleRpcReconnect(): void {
+  if (typeof window === 'undefined') return;
+  if (rpcReconnectTimer) return;
+  if (rpcReconnectAttempt >= RPC_RECONNECT_MAX_ATTEMPTS) return;
+  const delay = Math.min(1000 * 2 ** rpcReconnectAttempt, 30_000);
+  rpcReconnectAttempt += 1;
+  rpcReconnectTimer = setTimeout(() => {
+    rpcReconnectTimer = null;
+    void connectRpcWs().catch(() => scheduleRpcReconnect());
+  }, delay);
+}
+
 function connectRpcWs(): Promise<void> {
+  ensureAioncoreListenersBound();
   if (rpcWs?.readyState === WebSocket.OPEN) return Promise.resolve();
   if (rpcConnectPromise) return rpcConnectPromise;
 
@@ -477,6 +499,11 @@ function connectRpcWs(): Promise<void> {
     const onOpen = () => {
       cleanup();
       rpcConnectPromise = null;
+      rpcReconnectAttempt = 0;
+      if (rpcReconnectTimer) {
+        clearTimeout(rpcReconnectTimer);
+        rpcReconnectTimer = null;
+      }
       emitGatewayEvent({ type: 'gateway.connected' });
       resolve();
     };
@@ -492,11 +519,13 @@ function connectRpcWs(): Promise<void> {
     socket.addEventListener('error', onError, { once: true });
     socket.addEventListener('close', () => {
       if (rpcWs === socket) rpcWs = null;
+      rpcConnectPromise = null;
       rejectAllRpc(new Error('Headmaster runtime connection closed'));
       emitGatewayEvent({
         type: 'gateway.disconnected',
         payload: { message: 'Headmaster runtime connection closed' },
       });
+      scheduleRpcReconnect();
     });
     socket.addEventListener('message', (event) => {
       let frame: {
@@ -604,6 +633,7 @@ export function resetHttpBridgeConnections(): void {
 }
 
 function ensureWs(): void {
+  ensureAioncoreListenersBound();
   if (typeof window === 'undefined') {
     console.debug('[ensureWs] skipped: no window');
     return;
