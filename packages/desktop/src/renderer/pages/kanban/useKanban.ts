@@ -118,9 +118,7 @@ function normalizeTask(raw: HermesKanbanTask): KanbanTask {
 }
 
 function buildColumnsFromBoard(data: HermesKanbanBoardResponse): KanbanColumn[] {
-  const buckets = new Map<KanbanColumnId, KanbanTask[]>(
-    COLUMN_ORDER.map((id) => [id, [] as KanbanTask[]])
-  );
+  const buckets = new Map<KanbanColumnId, KanbanTask[]>(COLUMN_ORDER.map((id) => [id, [] as KanbanTask[]]));
 
   for (const column of data.columns ?? []) {
     for (const task of column.tasks ?? []) {
@@ -161,32 +159,27 @@ export function useKanban() {
     }
   }, []);
 
-  const moveTask = useCallback(
-    async (taskId: string, targetColumn: KanbanColumnId) => {
-      const status = mapColumnToHermesStatus(targetColumn);
-      await httpPatch<{ task?: HermesKanbanTask }, { status: string }>(
-        `/api/plugins/kanban/tasks/${encodeURIComponent(taskId)}`
-      ).invoke({ status });
-      setColumns((prev) => {
-        let moved: KanbanTask | undefined;
-        const next = prev.map((col) => {
-          const remaining = col.tasks.filter((task) => {
-            if (task.id === taskId) {
-              moved = { ...task, status: targetColumn };
-              return false;
-            }
-            return true;
-          });
-          return { ...col, tasks: remaining };
+  const moveTask = useCallback(async (taskId: string, targetColumn: KanbanColumnId) => {
+    const status = mapColumnToHermesStatus(targetColumn);
+    await httpPatch<{ task?: HermesKanbanTask }, { status: string }>(
+      `/api/plugins/kanban/tasks/${encodeURIComponent(taskId)}`
+    ).invoke({ status });
+    setColumns((prev) => {
+      let moved: KanbanTask | undefined;
+      const next = prev.map((col) => {
+        const remaining = col.tasks.filter((task) => {
+          if (task.id === taskId) {
+            moved = { ...task, status: targetColumn };
+            return false;
+          }
+          return true;
         });
-        if (!moved) return prev;
-        return next.map((col) =>
-          col.id === targetColumn ? { ...col, tasks: [...col.tasks, moved!] } : col
-        );
+        return { ...col, tasks: remaining };
       });
-    },
-    []
-  );
+      if (!moved) return prev;
+      return next.map((col) => (col.id === targetColumn ? { ...col, tasks: [...col.tasks, moved!] } : col));
+    });
+  }, []);
 
   useEffect(() => {
     void refresh();

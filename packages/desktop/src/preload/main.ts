@@ -54,6 +54,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
   restartRuntime: () => ipcRenderer.invoke('runtime:restart'),
   // Runtime detection for startup
   checkHermesRuntime: () => ipcRenderer.invoke('runtime:check-and-prompt'),
+  // HermesHQ server config — URL and stored JWT for multi-user auth
+  getHermeshqConfig: () => ipcRenderer.invoke('hermeshq:get-config'),
+  setHermeshqUrl: (url: string) => ipcRenderer.invoke('hermeshq:set-url', url),
+  setHermeshqToken: (token: string) => ipcRenderer.invoke('hermeshq:set-token', token),
+  clearHermeshqToken: () => ipcRenderer.invoke('hermeshq:clear-token'),
 });
 
 // Synchronously fetch the backend port/session token and expose it to the renderer

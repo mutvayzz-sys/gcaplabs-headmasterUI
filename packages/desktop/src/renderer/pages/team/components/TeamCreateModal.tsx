@@ -199,8 +199,7 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
       if (isCouncilSidecarUnavailableError(error)) {
         Message.error(
           t('team.sidecar.required', {
-            defaultValue:
-              'Council requires the local runtime sidecar. Restart Headmaster or check logs in AppData.',
+            defaultValue: 'Council requires the local runtime sidecar. Restart Headmaster or check logs in AppData.',
           })
         );
         return;

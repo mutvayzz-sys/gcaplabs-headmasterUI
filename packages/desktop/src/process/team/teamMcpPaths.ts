@@ -9,10 +9,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 export function resolveTeamMcpStdioScriptPath(): string {
-  const devPath = path.join(
-    app.getAppPath(),
-    'packages/desktop/src/process/team/teamMcpStdio.js'
-  );
+  const devPath = path.join(app.getAppPath(), 'packages/desktop/src/process/team/teamMcpStdio.js');
   if (!app.isPackaged) {
     return devPath;
   }

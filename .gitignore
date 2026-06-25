@@ -95,6 +95,7 @@ build/Release
 .cursor/
 
 # AI tool local config (may contain sensitive information)
+CLAUDE.local.md
 .claude/settings.local.json
 **/.claude/settings.local.json
 **/.claude/settings.json

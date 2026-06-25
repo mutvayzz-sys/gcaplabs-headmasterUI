@@ -98,7 +98,13 @@ const MemoryModalContent: React.FC = () => {
       <Card
         title={t('settings.memory.providerTitle', { defaultValue: 'Active memory provider' })}
         extra={
-          <Button type='text' size='small' icon={<Refresh theme='outline' size={14} />} onClick={refresh} disabled={loading}>
+          <Button
+            type='text'
+            size='small'
+            icon={<Refresh theme='outline' size={14} />}
+            onClick={refresh}
+            disabled={loading}
+          >
             {t('common.refresh', { defaultValue: 'Refresh' })}
           </Button>
         }
@@ -184,7 +190,12 @@ const MemoryModalContent: React.FC = () => {
       <Card title={t('settings.memory.connectionsTitle', { defaultValue: 'Connection URLs' })} bordered>
         <Form layout='vertical'>
           <Form.Item label={t('settings.memory.memoryUrlLabel', { defaultValue: 'OpenConcho URL' })}>
-            <Input value={memoryUrl} onChange={setMemoryUrl} placeholder={DEFAULT_OPENCONCHO_URL} disabled={savingUrls} />
+            <Input
+              value={memoryUrl}
+              onChange={setMemoryUrl}
+              placeholder={DEFAULT_OPENCONCHO_URL}
+              disabled={savingUrls}
+            />
           </Form.Item>
           <Form.Item label={t('settings.memory.honchoUrlLabel', { defaultValue: 'Honcho dashboard URL' })}>
             <Input value={honchoUrl} onChange={setHonchoUrl} placeholder={HONCHO_DEFAULT_URL} disabled={savingUrls} />

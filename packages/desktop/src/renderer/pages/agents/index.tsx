@@ -57,10 +57,7 @@ const AgentsPage: React.FC = () => {
             </span>
           }
         />
-        <Tabs.TabPane
-          key='specialists'
-          title={t('settings.specialists', { defaultValue: 'Specialists' })}
-        />
+        <Tabs.TabPane key='specialists' title={t('settings.specialists', { defaultValue: 'Specialists' })} />
         <Tabs.TabPane key='automations' title={t('sidebar.automations', { defaultValue: 'Automations' })} />
       </Tabs>
 

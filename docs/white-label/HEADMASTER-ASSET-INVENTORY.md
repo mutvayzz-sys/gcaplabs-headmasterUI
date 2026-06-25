@@ -61,7 +61,7 @@
 | C3  | `packages/desktop/src/renderer/assets/icons/icon-catalogue.svg` | Catalogue icon    | REPLACE | Headmaster-themed (e.g., wizard hat)         |
 | C4  | `packages/desktop/src/renderer/assets/icons/icon-message.svg`   | Message icon      | KEEP    | Universal                                    |
 | C5  | `packages/desktop/src/renderer/assets/icons/file-icon.svg`      | File icon         | KEEP    | Universal                                    |
-| C6  | `packages/desktop/src/renderer/assets/icons/add-chat.svg`       | Add chat button   | REPLACE | "+ New Chat" themed (e.g., scroll + plus) |
+| C6  | `packages/desktop/src/renderer/assets/icons/add-chat.svg`       | Add chat button   | REPLACE | "+ New Chat" themed (e.g., scroll + plus)    |
 | C7  | `packages/desktop/src/renderer/assets/icons/cowork.svg`         | Cowork icon       | REPLACE | "Work Along" icon (e.g., two people walking) |
 
 **Total: 7 UI icons. 4 keep, 3 replace.**

@@ -149,9 +149,14 @@ export async function resolveConversationRoute(conversationId: string): Promise<
 
   if (isAioncoreAvailable()) {
     try {
-      const raw = await aioncoreHttpRequest<unknown>('GET', `/api/conversations/${encodeURIComponent(conversationId)}`, undefined, {
-        silentStatuses: [404],
-      });
+      const raw = await aioncoreHttpRequest<unknown>(
+        'GET',
+        `/api/conversations/${encodeURIComponent(conversationId)}`,
+        undefined,
+        {
+          silentStatuses: [404],
+        }
+      );
       if (isAcpConversationRecord(raw)) {
         conversationRouteCache.set(conversationId, 'aioncore');
         return 'aioncore';

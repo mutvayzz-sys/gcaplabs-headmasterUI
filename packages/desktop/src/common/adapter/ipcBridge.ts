@@ -358,7 +358,11 @@ export const assistants = {
         if (isMissingHermesRoute(error)) {
           const existing = (await buildAssistantsFromHermes()).find((item) => item.id === params.id);
           if (!existing) throw error;
-          return { ...existing, enabled: params.enabled ?? existing.enabled, sort_order: params.sort_order ?? existing.sort_order };
+          return {
+            ...existing,
+            enabled: params.enabled ?? existing.enabled,
+            sort_order: params.sort_order ?? existing.sort_order,
+          };
         }
         throw error;
       }
@@ -522,8 +526,7 @@ export const conversation = {
     invoke: async (params: IConfirmMessageParams): Promise<void> => {
       try {
         await httpPost<void, IConfirmMessageParams>(
-          (p) =>
-            `/api/conversations/${p.conversation_id}/confirmations/${encodeURIComponent(p.call_id)}/confirm`,
+          (p) => `/api/conversations/${p.conversation_id}/confirmations/${encodeURIComponent(p.call_id)}/confirm`,
           (p) => ({ msg_id: p.msg_id, data: p.confirm_key, always_allow: p.always_allow ?? false })
         ).invoke(params);
       } catch {
@@ -616,8 +619,7 @@ export const conversation = {
           ...(p.search ? { search: p.search } : {}),
         } as { dir: string; root: string; search?: string });
         if (p.search && files.length > 0) {
-          const match =
-            files.find((entry) => entry.name.toLowerCase().includes(p.search!.toLowerCase())) ?? files[0];
+          const match = files.find((entry) => entry.name.toLowerCase().includes(p.search!.toLowerCase())) ?? files[0];
           await responseSearchWorkSpace.invoke({ file: 0, dir: 0, match });
         }
         return files;
@@ -973,7 +975,9 @@ export const fs = {
     invoke: async () => {
       return invokeWithMissingRouteFallback(
         () =>
-          httpGet<Array<{ name: string; description: string; location: string }>, void>('/api/skills/builtin-auto').invoke(),
+          httpGet<Array<{ name: string; description: string; location: string }>, void>(
+            '/api/skills/builtin-auto'
+          ).invoke(),
         async () => {
           const raw = await httpRequest<unknown>('GET', '/api/skills');
           const skills = normalizeHermesList<{ name?: string; description?: string; location?: string }>(raw, 'skills');
@@ -1105,9 +1109,9 @@ export const googleAuth = {
         // try auth-status next
       }
       try {
-        return await httpGet<IBridgeResponse<{ account: string }>, { proxy?: string }>('/api/google/auth-status').invoke(
-          params
-        );
+        return await httpGet<IBridgeResponse<{ account: string }>, { proxy?: string }>(
+          '/api/google/auth-status'
+        ).invoke(params);
       } catch (error) {
         return {
           success: false,
@@ -1175,31 +1179,31 @@ async function buildProvidersFromHermes(): Promise<IProvider[]> {
   return (result.providers ?? [])
     .filter((provider) => provider.authenticated !== false && (provider.models?.length ?? 0) > 0)
     .map(
-    (provider) =>
-      ({
-        id: provider.slug,
-        platform: provider.slug,
-        name: provider.name,
-        base_url: '',
-        api_key: '',
-        models: provider.models ?? [],
-        enabled: true,
-        authenticated: true,
-        authentication_label:
-          provider.auth_type === 'oauth'
-            ? 'OAuth'
-            : provider.auth_type === 'aws_sdk'
-              ? 'AWS environment or profile'
-              : provider.auth_type === 'api_key'
-                ? 'Runtime API key'
-                : provider.source === 'hermes'
-                  ? 'Runtime or OAuth credentials'
-                  : 'Runtime environment credentials',
-        managed_by_runtime: true,
-        inventory_source: provider.source,
-        is_user_defined: provider.is_user_defined === true,
-      }) as IProvider
-  );
+      (provider) =>
+        ({
+          id: provider.slug,
+          platform: provider.slug,
+          name: provider.name,
+          base_url: '',
+          api_key: '',
+          models: provider.models ?? [],
+          enabled: true,
+          authenticated: true,
+          authentication_label:
+            provider.auth_type === 'oauth'
+              ? 'OAuth'
+              : provider.auth_type === 'aws_sdk'
+                ? 'AWS environment or profile'
+                : provider.auth_type === 'api_key'
+                  ? 'Runtime API key'
+                  : provider.source === 'hermes'
+                    ? 'Runtime or OAuth credentials'
+                    : 'Runtime environment credentials',
+          managed_by_runtime: true,
+          inventory_source: provider.source,
+          is_user_defined: provider.is_user_defined === true,
+        }) as IProvider
+    );
 }
 
 const upstreamProvidersList = httpGet<IProvider[], void>('/api/providers');
@@ -1239,10 +1243,10 @@ export const mode = {
           (p) => ({ try_fix: p.try_fix })
         ).invoke(params);
       } catch {
-        return httpPost<FetchModelsResponse, { id: string; try_fix?: boolean }>(
-          '/api/providers/validate',
-          (p) => ({ id: p.id, try_fix: p.try_fix })
-        ).invoke(params);
+        return httpPost<FetchModelsResponse, { id: string; try_fix?: boolean }>('/api/providers/validate', (p) => ({
+          id: p.id,
+          try_fix: p.try_fix,
+        })).invoke(params);
       }
     },
   },
@@ -1436,7 +1440,9 @@ export const acpConversation = {
         const cached = acpModelStateByConversation.get(params.conversation_id);
         if (cached) return cached;
         const conversationInfo = await getHermesConversation(params.conversation_id).catch((): null => null);
-        const extra = conversationInfo?.extra as { current_model_id?: string; current_model_label?: string } | undefined;
+        const extra = conversationInfo?.extra as
+          | { current_model_id?: string; current_model_label?: string }
+          | undefined;
         const conversationModel = conversationInfo as { model?: TProviderWithModel } | null;
         const current_model_id = extra?.current_model_id?.trim() || conversationModel?.model?.use_model?.trim() || null;
         if (!current_model_id) return { model_info: null };
@@ -1528,9 +1534,7 @@ export const mcpService = {
   >('/api/mcp/servers/import'),
   getAgentMcpConfigs: {
     provider: () => {},
-    invoke: async (
-      params: Array<{ agent_type: string; backend?: string; name: string; cli_path?: string }>
-    ) => {
+    invoke: async (params: Array<{ agent_type: string; backend?: string; name: string; cli_path?: string }>) => {
       void params;
       return invokeWithMissingRouteFallback(
         () =>
@@ -1642,9 +1646,11 @@ export const database = {
   ),
   deleteMessage: async (msgId: string) => {
     try {
-      await httpDelete<void, { message_id: string }>((p) => `/api/messages/${encodeURIComponent(p.message_id)}`).invoke({
-        message_id: msgId,
-      });
+      await httpDelete<void, { message_id: string }>((p) => `/api/messages/${encodeURIComponent(p.message_id)}`).invoke(
+        {
+          message_id: msgId,
+        }
+      );
     } catch (error) {
       console.warn('[headmaster] deleteMessage:', error instanceof Error ? error.message : String(error));
     }

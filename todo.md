@@ -17,7 +17,7 @@ The **v0.2.1 release branch** includes the audit implementation pass (branch
 - IPC/route fixes (`conversation.get` / `warmup` / `reset`, `/council` →
   `/team/default`, runtime settings canonical path).
 - Gateway resilience, runtime globals sync (upstream-aligned port/token mirroring
-  + `hermes:runtime-changed` push).
+  - `hermes:runtime-changed` push).
 - Settings IA (Tools / Skills / Integrations / Channels), English-only i18n.
 - White-label sweep, storage/event renames, build hygiene (`out/` cleanup,
   `legalTrademarks`, electronRebuild sync).

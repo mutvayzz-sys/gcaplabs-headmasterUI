@@ -16,15 +16,25 @@ export interface RemoteConnectionConfig {
   token: string;
 }
 
+export interface HermeshqConfig {
+  /** Base URL of the HermesHQ server, e.g. "https://yourserver.com" or "http://192.168.1.x:3420" */
+  url: string;
+  /** Stored JWT from the last successful login — used for auto-login on next launch */
+  token: string;
+}
+
 interface ConnectionConfigFile {
   mode: ConnectionMode;
   remote: RemoteConnectionConfig;
+  hermeshq: HermeshqConfig;
 }
 
 const DEFAULT_REMOTE_CONFIG: RemoteConnectionConfig = { host: '', port: 9119, token: '' };
+const DEFAULT_HERMESHQ_CONFIG: HermeshqConfig = { url: '', token: '' };
 const DEFAULT_CONFIG: ConnectionConfigFile = {
   mode: 'local',
   remote: DEFAULT_REMOTE_CONFIG,
+  hermeshq: DEFAULT_HERMESHQ_CONFIG,
 };
 
 function getConfigPath(): string {
@@ -48,18 +58,26 @@ function normalizeRemoteConfig(config: Partial<RemoteConnectionConfig> | undefin
   };
 }
 
+function normalizeHermeshqConfig(config: Partial<HermeshqConfig> | undefined): HermeshqConfig {
+  return {
+    url: typeof config?.url === 'string' ? config.url.trim().replace(/\/$/, '') : '',
+    token: typeof config?.token === 'string' ? config.token : '',
+  };
+}
+
 function readConfig(): ConnectionConfigFile {
   try {
     const path = getConfigPath();
-    if (!existsSync(path)) return { ...DEFAULT_CONFIG, remote: { ...DEFAULT_REMOTE_CONFIG } };
+    if (!existsSync(path)) return { ...DEFAULT_CONFIG, remote: { ...DEFAULT_REMOTE_CONFIG }, hermeshq: { ...DEFAULT_HERMESHQ_CONFIG } };
     const parsed = JSON.parse(readFileSync(path, 'utf-8')) as Partial<ConnectionConfigFile>;
     return {
       mode: parsed.mode === 'remote' ? 'remote' : 'local',
       remote: normalizeRemoteConfig(parsed.remote),
+      hermeshq: normalizeHermeshqConfig(parsed.hermeshq),
     };
   } catch (err) {
     console.warn('[connection-config] failed to read config, using defaults', err);
-    return { ...DEFAULT_CONFIG, remote: { ...DEFAULT_REMOTE_CONFIG } };
+    return { ...DEFAULT_CONFIG, remote: { ...DEFAULT_REMOTE_CONFIG }, hermeshq: { ...DEFAULT_HERMESHQ_CONFIG } };
   }
 }
 
@@ -86,4 +104,23 @@ export function getRemoteConfig(): RemoteConnectionConfig {
 export function setRemoteConfig(remote: RemoteConnectionConfig): void {
   const config = readConfig();
   writeConfig({ ...config, remote: normalizeRemoteConfig(remote) });
+}
+
+export function getHermeshqConfig(): HermeshqConfig {
+  return readConfig().hermeshq;
+}
+
+export function setHermeshqUrl(url: string): void {
+  const config = readConfig();
+  writeConfig({ ...config, hermeshq: { ...config.hermeshq, url: url.trim().replace(/\/$/, '') } });
+}
+
+export function setHermeshqToken(token: string): void {
+  const config = readConfig();
+  writeConfig({ ...config, hermeshq: { ...config.hermeshq, token } });
+}
+
+export function clearHermeshqToken(): void {
+  const config = readConfig();
+  writeConfig({ ...config, hermeshq: { ...config.hermeshq, token: '' } });
 }

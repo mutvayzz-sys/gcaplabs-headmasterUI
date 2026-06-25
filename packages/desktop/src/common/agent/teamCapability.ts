@@ -15,8 +15,8 @@ function hasMcpTransportCapability(handshake: unknown): boolean {
   if (!handshake || typeof handshake !== 'object') return false;
   const caps = (handshake as { agent_capabilities?: unknown }).agent_capabilities;
   if (!caps || typeof caps !== 'object') return false;
-  const mcp = (caps as { mcp_capabilities?: unknown; mcpCapabilities?: unknown; mcp?: unknown })
-    .mcp_capabilities ??
+  const mcp =
+    (caps as { mcp_capabilities?: unknown; mcpCapabilities?: unknown; mcp?: unknown }).mcp_capabilities ??
     (caps as { mcpCapabilities?: unknown }).mcpCapabilities ??
     (caps as { mcp?: unknown }).mcp;
   return mcp !== undefined && mcp !== null;

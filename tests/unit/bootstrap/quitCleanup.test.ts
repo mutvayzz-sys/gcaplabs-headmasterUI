@@ -52,12 +52,7 @@ describe('installQuitCleanup', () => {
 
     expect(preventDefault).toHaveBeenCalledTimes(1);
     expect(quitApp).not.toHaveBeenCalled();
-    expect(calls).toEqual([
-      'set-quitting:true',
-      'mark-explicit-quit',
-      'destroy-tray',
-      'stop-backend-start',
-    ]);
+    expect(calls).toEqual(['set-quitting:true', 'mark-explicit-quit', 'destroy-tray', 'stop-backend-start']);
 
     resolveStopBackend?.();
     await flushMicrotasks();

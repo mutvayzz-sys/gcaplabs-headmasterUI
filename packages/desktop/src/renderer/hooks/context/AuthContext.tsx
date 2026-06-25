@@ -49,6 +49,40 @@ const AUTH_USER_ENDPOINT = '/api/auth/user';
 
 const isDesktopRuntime = typeof window !== 'undefined' && Boolean(window.electronAPI);
 
+// Build-time server URL — set VITE_HERMESHQ_URL in .env before building
+const HERMESHQ_URL = (import.meta.env.VITE_HERMESHQ_URL as string | undefined ?? '').replace(/\/$/, '');
+
+async function fetchHermeshqUser(serverUrl: string, token: string): Promise<AuthUser | null> {
+  try {
+    const response = await fetch(`${serverUrl}/api/auth/me`, {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!response.ok) return null;
+    const data = (await response.json()) as { id: string; username: string; display_name?: string | null };
+    if (data.id && data.username) {
+      return { id: data.id, username: data.display_name || data.username };
+    }
+  } catch {
+    // network error or token expired
+  }
+  return null;
+}
+
+async function refreshHermeshqToken(serverUrl: string, token: string): Promise<string | null> {
+  try {
+    const response = await fetch(`${serverUrl}/api/auth/refresh`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!response.ok) return null;
+    const data = (await response.json()) as { access_token: string };
+    return data.access_token || null;
+  } catch {
+    return null;
+  }
+}
+
 // Clear expired auth cache including cookies and localStorage
 // 清除过期的认证缓存，包括 Cookie 和 localStorage
 function clearAuthCache(): void {
@@ -110,12 +144,39 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
 
   const refresh = useCallback(async () => {
     if (isDesktopRuntime) {
-      setStatus('authenticated');
-      setUser(null);
+      // Desktop mode: validate stored HermesHQ JWT against the baked-in server URL
+      const config = await window.electronAPI?.getHermeshqConfig?.();
+      const token = config?.token ?? '';
+
+      if (!HERMESHQ_URL || !token) {
+        setUser(null);
+        setStatus('unauthenticated');
+        setReady(true);
+        return;
+      }
+
+      // Try to refresh the token first so sessions stay alive silently
+      const freshToken = await refreshHermeshqToken(HERMESHQ_URL, token);
+      const activeToken = freshToken ?? token;
+      if (freshToken) {
+        await window.electronAPI?.setHermeshqToken?.(freshToken);
+      }
+
+      const currentUser = await fetchHermeshqUser(HERMESHQ_URL, activeToken);
+      if (currentUser) {
+        setUser(currentUser);
+        setStatus('authenticated');
+      } else {
+        // Token expired and refresh failed — require re-login
+        await window.electronAPI?.clearHermeshqToken?.();
+        setUser(null);
+        setStatus('unauthenticated');
+      }
       setReady(true);
       return;
     }
 
+    // WebUI mode: use cookie-based session
     abortRef.current?.abort();
     const controller = new AbortController();
     abortRef.current = controller;
@@ -139,29 +200,68 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
     };
   }, [refresh]);
 
-  const login = useCallback(async ({ username, password, remember }: LoginParams): Promise<LoginResult> => {
-    try {
-      if (isDesktopRuntime) {
-        setReady(true);
-        return { success: true };
+  const login = useCallback(async ({ username, password }: LoginParams): Promise<LoginResult> => {
+    if (isDesktopRuntime) {
+      if (!HERMESHQ_URL) {
+        return { success: false, message: 'Server not configured. Please contact your administrator.', code: 'serverError' };
       }
 
-      // Check CSRF token availability before login
-      // If token is missing, clear cache and inform user
+      try {
+        const response = await fetch(`${HERMESHQ_URL}/api/auth/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password }),
+        });
+
+        const data = (await response.json()) as {
+          access_token?: string;
+          mfa_required?: boolean;
+          detail?: string;
+        };
+
+        if (!response.ok) {
+          let code: LoginErrorCode = 'unknown';
+          const message = data?.detail ?? 'Login failed';
+          if (response.status === 401) code = 'invalidCredentials';
+          else if (response.status === 429) code = 'tooManyAttempts';
+          else if (response.status >= 500) code = 'serverError';
+          return { success: false, message, code };
+        }
+
+        if (data.mfa_required) {
+          return {
+            success: false,
+            message: 'MFA is required. Please contact your administrator.',
+            code: 'serverError',
+          };
+        }
+
+        if (!data.access_token) {
+          return { success: false, message: 'Unexpected server response.', code: 'serverError' };
+        }
+
+        await window.electronAPI?.setHermeshqToken?.(data.access_token);
+        const currentUser = await fetchHermeshqUser(HERMESHQ_URL, data.access_token);
+        setUser(currentUser);
+        setStatus('authenticated');
+        setReady(true);
+
+        return { success: true };
+      } catch {
+        return { success: false, message: 'Could not reach server. Check your connection.', code: 'networkError' };
+      }
+    }
+
+    // WebUI mode: cookie-based login (unchanged)
+    try {
       const csrfTokenValid = hasValidCsrfToken();
       if (!csrfTokenValid) {
-        console.warn('CSRF token missing or invalid, clearing cache');
         clearAuthCache();
-        // Allow login to proceed anyway - server will set new token
       }
 
-      // P1 安全修复：登录请求需要 CSRF Token / P1 Security fix: Login needs CSRF token
-      // Backend route is /login; web-host's static-server explicitly proxies it.
       const response = await fetch('/login', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify(withCsrfToken({ username, password, remember })),
       });
@@ -180,7 +280,6 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
         if (response.status === 401) {
           code = 'invalidCredentials';
         } else if (response.status === 403) {
-          // CSRF validation failed - clear cache
           code = 'csrfError';
           message = 'Security token expired. Please try again.';
           shouldClearCache = true;
@@ -189,30 +288,19 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
         } else if (response.status >= 500) {
           code = 'serverError';
         } else if (!csrfTokenValid) {
-          // If we knew CSRF was invalid and login failed, suggest cache clear
           code = 'csrfError';
           message = 'Login failed due to cached data. Please clear your browser cache and try again.';
           shouldClearCache = true;
         }
 
-        // Clear cache on CSRF-related errors
-        if (shouldClearCache) {
-          clearAuthCache();
-        }
-
-        return {
-          success: false,
-          message,
-          code,
-          shouldClearCache,
-        };
+        if (shouldClearCache) clearAuthCache();
+        return { success: false, message, code, shouldClearCache };
       }
 
       setUser(data.user);
       setStatus('authenticated');
       setReady(true);
 
-      // Re-enable WebSocket reconnection after successful login (WebUI mode only)
       if (typeof window !== 'undefined' && (window as any).__websocketReconnect) {
         (window as any).__websocketReconnect();
       }
@@ -220,11 +308,8 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
       return { success: true };
     } catch (error) {
       console.error('Login request failed:', error);
-
-      // Check if error is related to CSRF token parsing
       const errorMessage = (error as Error).message;
       if (errorMessage?.includes('parse') || errorMessage?.includes('csrf') || errorMessage?.includes('cookie')) {
-        // CSRF or cookie parsing error - clear cache
         clearAuthCache();
         return {
           success: false,
@@ -233,30 +318,35 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
           shouldClearCache: true,
         };
       }
-
-      return {
-        success: false,
-        message: 'Network error. Please try again.',
-        code: 'networkError',
-      };
+      return { success: false, message: 'Network error. Please try again.', code: 'networkError' };
     }
   }, []);
 
   const logout = useCallback(async () => {
     if (isDesktopRuntime) {
+      const config = await window.electronAPI?.getHermeshqConfig?.();
+      if (config?.url && config?.token) {
+        try {
+          await fetch(`${config.url}/api/auth/logout`, {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${config.token}` },
+          });
+        } catch {
+          // ignore network errors on logout
+        }
+      }
+      await window.electronAPI?.clearHermeshqToken?.();
       setUser(null);
-      setStatus('authenticated');
-      setReady(true);
+      setStatus('unauthenticated');
+      clearAuthCache();
       return;
     }
 
+    // WebUI mode
     try {
       await fetch('/logout', {
         method: 'POST',
-        // Logout also needs CSRF token / 登出同样需要 CSRF Token
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify(withCsrfToken({})),
       });
@@ -265,7 +355,6 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
     } finally {
       setUser(null);
       setStatus('unauthenticated');
-      // Clear cache on logout for security
       clearAuthCache();
     }
   }, []);

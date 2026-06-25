@@ -100,7 +100,16 @@ const AcpSendBox: React.FC<{
   messageState: UseAcpMessageReturn;
   teamSendMessage?: (payload: { input: string; files: string[] }) => Promise<void>;
   teamRuntime?: TeamSendBoxRuntime;
-}> = ({ conversation_id, backend, session_mode, agent_name, workspacePath, messageState, teamSendMessage, teamRuntime }) => {
+}> = ({
+  conversation_id,
+  backend,
+  session_mode,
+  agent_name,
+  workspacePath,
+  messageState,
+  teamSendMessage,
+  teamRuntime,
+}) => {
   const { aiProcessing, setAiProcessing, resetState, hasThinkingMessage, slashCommands, fetchSlashCommands } =
     messageState;
   const { t } = useTranslation();
@@ -348,7 +357,18 @@ Please check your local CLI tool authentication status`,
         emitter.emit('acp.workspace.refresh');
       }
     },
-    [backend, checkAndUpdateTitle, conversation_id, resetState, runtimeView, setAiProcessing, t, teamPermission, teamSendMessage, workspacePath]
+    [
+      backend,
+      checkAndUpdateTitle,
+      conversation_id,
+      resetState,
+      runtimeView,
+      setAiProcessing,
+      t,
+      teamPermission,
+      teamSendMessage,
+      workspacePath,
+    ]
   );
 
   const {
@@ -592,7 +612,10 @@ Please check your local CLI tool authentication status`,
         onRemove={remove}
         onClear={clear}
       />
-      <ThoughtDisplay running={teamRuntime?.loading ?? (aiProcessing && !hasThinkingMessage)} onStop={effectiveHandleStop} />
+      <ThoughtDisplay
+        running={teamRuntime?.loading ?? (aiProcessing && !hasThinkingMessage)}
+        onStop={effectiveHandleStop}
+      />
 
       <SendBox
         onMobilePlusClick={isMobile ? () => setIsMobileSheetOpen(true) : undefined}

@@ -122,7 +122,10 @@ const PanelRoute: React.FC<{ layout: React.ReactElement }> = ({ layout }) => {
           <Route path={SETTINGS_PRIMARY_ROUTES.channels} element={withRouteFallback(ChannelsSettingsPage)} />
           <Route path='/settings/appearance' element={withRouteFallback(AppearanceSettings)} />
           <Route path='/settings/display' element={<Navigate to='/settings/appearance' replace />} />
-          <Route path='/settings/webui' element={<Navigate to={SETTINGS_LEGACY_REDIRECTS['/settings/webui']} replace />} />
+          <Route
+            path='/settings/webui'
+            element={<Navigate to={SETTINGS_LEGACY_REDIRECTS['/settings/webui']} replace />}
+          />
           <Route
             path='/settings/advanced'
             element={<Navigate to={SETTINGS_LEGACY_REDIRECTS['/settings/advanced']} replace />}

@@ -186,11 +186,7 @@ export function resetHermesSessionAdapterStateForTests(): void {
   localConversations.clear();
 }
 
-export function rememberOpenHermesConversation(
-  id: string,
-  profile?: string,
-  conversation?: TChatConversation
-): void {
+export function rememberOpenHermesConversation(id: string, profile?: string, conversation?: TChatConversation): void {
   locallyOpenSessions.add(id);
   if (profile) sessionProfiles.set(id, profile);
   if (conversation) localConversations.set(id, conversation);
@@ -259,9 +255,7 @@ const contentToText = (content: unknown): string => {
 export function fromHermesMessage(message: HermesSessionMessage, conversationId: string, index: number): TMessage[] {
   const createdAt = toMilliseconds(message.timestamp);
   const idBase =
-    typeof message.id === 'string' && message.id.trim().length > 0
-      ? message.id.trim()
-      : `${conversationId}:${index}`;
+    typeof message.id === 'string' && message.id.trim().length > 0 ? message.id.trim() : `${conversationId}:${index}`;
   const mapped: TMessage[] = [];
   const reasoning = message.reasoning_content || message.reasoning;
 

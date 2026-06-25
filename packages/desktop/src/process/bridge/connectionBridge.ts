@@ -10,6 +10,10 @@ import {
   setConnectionMode,
   getRemoteConfig,
   setRemoteConfig,
+  getHermeshqConfig,
+  setHermeshqUrl,
+  setHermeshqToken,
+  clearHermeshqToken,
   type ConnectionMode,
   type RemoteConnectionConfig,
 } from '../connection/connectionConfig';
@@ -30,6 +34,25 @@ export function initConnectionBridge(): void {
 
   ipcMain.handle('connection:set-remote-config', (_event, config: RemoteConnectionConfig) => {
     setRemoteConfig(config);
+    return { success: true };
+  });
+
+  ipcMain.handle('hermeshq:get-config', () => {
+    return getHermeshqConfig();
+  });
+
+  ipcMain.handle('hermeshq:set-url', (_event, url: string) => {
+    setHermeshqUrl(typeof url === 'string' ? url : '');
+    return { success: true };
+  });
+
+  ipcMain.handle('hermeshq:set-token', (_event, token: string) => {
+    setHermeshqToken(typeof token === 'string' ? token : '');
+    return { success: true };
+  });
+
+  ipcMain.handle('hermeshq:clear-token', () => {
+    clearHermeshqToken();
     return { success: true };
   });
 }

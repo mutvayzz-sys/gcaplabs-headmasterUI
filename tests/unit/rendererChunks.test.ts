@@ -17,8 +17,6 @@ describe('getRendererManualChunk', () => {
   });
 
   it('handles Windows paths for Arco modules', () => {
-    expect(getRendererManualChunk('C:\\repo\\node_modules\\@arco-design\\web-react\\es\\index.js')).toBe(
-      'vendor-arco'
-    );
+    expect(getRendererManualChunk('C:\\repo\\node_modules\\@arco-design\\web-react\\es\\index.js')).toBe('vendor-arco');
   });
 });

@@ -367,7 +367,7 @@ describe('gateway edge cases', () => {
       expect.objectContaining({
         type: 'tips',
         data: expect.objectContaining({ content: 'model rate limited' }),
-      }),
+      })
     );
   });
 

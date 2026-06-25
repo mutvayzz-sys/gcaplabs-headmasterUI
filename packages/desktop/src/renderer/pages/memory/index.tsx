@@ -29,7 +29,12 @@ const MemoryPage: React.FC = () => {
   return (
     <div className='size-full flex flex-col relative'>
       <div className='flex items-center justify-end gap-8px px-12px py-8px border-b border-border-2 shrink-0'>
-        <Button type='secondary' size='small' icon={<ArrowCounterClockwise size={14} />} onClick={() => setReloadKey((k) => k + 1)}>
+        <Button
+          type='secondary'
+          size='small'
+          icon={<ArrowCounterClockwise size={14} />}
+          onClick={() => setReloadKey((k) => k + 1)}
+        >
           {t('common.refresh', { defaultValue: 'Refresh' })}
         </Button>
         <Button
@@ -70,9 +75,7 @@ const MemoryPage: React.FC = () => {
             src={memoryUrl}
             className='size-full border-0'
             title={t('memory.title', { defaultValue: 'Memory' })}
-            onError={() =>
-              setLoadError(t('memory.loadFailed', { defaultValue: 'Failed to load Memory screen.' }))
-            }
+            onError={() => setLoadError(t('memory.loadFailed', { defaultValue: 'Failed to load Memory screen.' }))}
           />
         )}
       </div>

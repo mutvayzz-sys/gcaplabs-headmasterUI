@@ -48,9 +48,7 @@ const KanbanPage: React.FC = () => {
       <div className='flex items-center justify-between mb-16px shrink-0'>
         <div className='flex items-center gap-8px'>
           <KanbanIcon size={20} weight='duotone' className='text-t-primary' />
-          <h1 className='text-18px font-semibold text-t-primary'>
-            {t('sidebar.kanban', { defaultValue: 'Kanban' })}
-          </h1>
+          <h1 className='text-18px font-semibold text-t-primary'>{t('sidebar.kanban', { defaultValue: 'Kanban' })}</h1>
         </div>
         <Button
           type='secondary'
@@ -92,10 +90,7 @@ const KanbanPage: React.FC = () => {
               >
                 <div className='px-12px py-10px border-b border-border-2 flex items-center justify-between'>
                   <span
-                    className={classNames(
-                      'px-8px py-3px rd-6px text-11px font-medium',
-                      COLUMN_META[column.id].color
-                    )}
+                    className={classNames('px-8px py-3px rd-6px text-11px font-medium', COLUMN_META[column.id].color)}
                   >
                     {column.label}
                   </span>

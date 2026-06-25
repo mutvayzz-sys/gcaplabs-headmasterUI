@@ -55,9 +55,9 @@ export function useToolsets() {
   }, []);
 
   const toggleToolset = useCallback(async (name: string, enabled: boolean) => {
-    await httpPut<{ ok: boolean }, { enabled: boolean }>(
-      `/api/tools/toolsets/${encodeURIComponent(name)}`
-    ).invoke({ enabled });
+    await httpPut<{ ok: boolean }, { enabled: boolean }>(`/api/tools/toolsets/${encodeURIComponent(name)}`).invoke({
+      enabled,
+    });
     setToolsets((prev) => prev.map((t) => (t.name === name ? { ...t, enabled } : t)));
   }, []);
 
