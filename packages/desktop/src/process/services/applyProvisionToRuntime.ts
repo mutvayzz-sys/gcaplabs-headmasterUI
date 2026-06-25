@@ -14,11 +14,17 @@ function resolveHermesHome(): string {
   if (process.env.HERMES_HOME) return process.env.HERMES_HOME;
   if (process.platform === 'win32') {
     const localAppData = process.env.LOCALAPPDATA || join(homedir(), 'AppData', 'Local');
-    const localPath = join(localAppData, 'hermes');
-    if (existsSync(localPath)) return localPath;
-    return join(app.getPath('appData'), 'hermes');
+    const headmasterPath = join(localAppData, 'Headmaster', 'runtime');
+    if (existsSync(headmasterPath)) return headmasterPath;
+    const legacyPath = join(localAppData, 'hermes');
+    if (existsSync(legacyPath)) return legacyPath;
+    return headmasterPath;
   }
-  return join(homedir(), '.hermes');
+  const headmasterPath = join(homedir(), '.headmaster', 'runtime');
+  if (existsSync(headmasterPath)) return headmasterPath;
+  const legacyPath = join(homedir(), '.hermes');
+  if (existsSync(legacyPath)) return legacyPath;
+  return headmasterPath;
 }
 
 function readJson(filePath: string): Record<string, unknown> {
