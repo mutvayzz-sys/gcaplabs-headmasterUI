@@ -66,5 +66,9 @@
     "yesAlwaysAllowTool": "Yes, always allow tool \"{{toolName}}\" from server \"{{serverName}}\"",
     "yesAlwaysAllowServer": "Yes, always allow all tools from server \"{{serverName}}\"",
     "no": "No (esc)"
-  }
+  },
+  "export.file_nameLabel": "File name",
+  "export.file_namePlaceholder": "Enter file name",
+  "export.conversation_idLabel": "Conversation ID",
+  "export.assistantLabel": "Specialist"
 }

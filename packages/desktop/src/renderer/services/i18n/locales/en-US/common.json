@@ -144,5 +144,8 @@
   "unit": {
     "minute_short": "m",
     "second_short": "s"
-  }
+  },
+  "runtimeUpdateNotice": "Runtime update notice",
+  "all": "All",
+  "skills": "Skills"
 }
