@@ -24,9 +24,7 @@ function isCouncilSidecarAvailable(): boolean {
 export class CouncilSidecarUnavailableError extends Error {
   readonly code = 'COUNCIL_SIDECAR_UNAVAILABLE';
 
-  constructor(
-    message = 'Council requires the local runtime sidecar. Restart Headmaster or check logs in AppData.'
-  ) {
+  constructor(message = 'Council requires the local runtime sidecar. Restart Headmaster or check logs in AppData.') {
     super(message);
     this.name = 'CouncilSidecarUnavailableError';
   }

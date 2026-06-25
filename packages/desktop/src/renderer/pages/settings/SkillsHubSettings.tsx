@@ -2,15 +2,7 @@ import { httpPut, httpRequest } from '@/common/adapter/httpBridge';
 import { normalizeHermesList } from '@/common/adapter/hermesResponse';
 import { Message, Switch } from '@arco-design/web-react';
 import { Info, Puzzle, Search, Refresh } from '@icon-park/react';
-import {
-  Clock,
-  Code,
-  Globe,
-  GraduationCap,
-  PuzzlePiece,
-  Terminal,
-  Wrench,
-} from '@phosphor-icons/react';
+import { Clock, Code, Globe, GraduationCap, PuzzlePiece, Terminal, Wrench } from '@phosphor-icons/react';
 import React, { useCallback, useEffect, useRef, useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router-dom';
@@ -245,7 +237,6 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
               </div>
-
             </div>
           </div>
 

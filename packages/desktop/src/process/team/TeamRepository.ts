@@ -73,9 +73,10 @@ function assignSlotIds(agents: Omit<TeamAgent, 'slot_id' | 'conversation_id'>[])
 export class TeamRepository {
   listByUser(userId: string): TTeam[] {
     const db = getTeamDatabase();
-    const rows = db
-      .prepare('SELECT * FROM teams WHERE user_id = ? ORDER BY updated_at DESC')
-      .all(userId) as Record<string, unknown>[];
+    const rows = db.prepare('SELECT * FROM teams WHERE user_id = ? ORDER BY updated_at DESC').all(userId) as Record<
+      string,
+      unknown
+    >[];
     return rows.map((row) => fromBackendTeam(toBackendRecord(rowToStored(row))));
   }
 

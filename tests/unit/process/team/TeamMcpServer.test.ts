@@ -8,7 +8,10 @@ import * as net from 'node:net';
 import { describe, expect, it } from 'vitest';
 import { TeamMcpServer, findAgentByName, normalizeSpawnBackend } from '@process/team/TeamMcpServer';
 
-function sendFramedRequest(port: number, payload: Record<string, unknown>): Promise<{ result?: string; error?: string }> {
+function sendFramedRequest(
+  port: number,
+  payload: Record<string, unknown>
+): Promise<{ result?: string; error?: string }> {
   return new Promise((resolve, reject) => {
     const socket = net.createConnection({ host: '127.0.0.1', port }, () => {
       const body = Buffer.from(JSON.stringify(payload), 'utf8');
@@ -41,7 +44,17 @@ describe('TeamMcpServer', () => {
 
   it('finds agents by case-insensitive name', () => {
     const found = findAgentByName(
-      [{ slot_id: '1', conversation_id: '', role: 'teammate', backend: 'claude', name: 'Dev1', model: 'claude', status: 'idle' }],
+      [
+        {
+          slot_id: '1',
+          conversation_id: '',
+          role: 'teammate',
+          backend: 'claude',
+          name: 'Dev1',
+          model: 'claude',
+          status: 'idle',
+        },
+      ],
       'dev1'
     );
     expect(found?.name).toBe('Dev1');

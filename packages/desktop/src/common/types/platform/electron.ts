@@ -22,6 +22,10 @@ export interface ElectronBridgeAPI {
   setRemoteConnectionConfig?: (config: { host: string; port: number; token: string }) => Promise<unknown>;
   restartRuntime?: () => Promise<{ ok: boolean; port?: number; error?: string }>;
   checkHermesRuntime?: () => Promise<{ detected: boolean; path?: string; choice?: string; customPath?: string }>;
+  getHermeshqConfig?: () => Promise<{ url: string; token: string }>;
+  setHermeshqUrl?: (url: string) => Promise<{ success: boolean }>;
+  setHermeshqToken?: (token: string) => Promise<{ success: boolean }>;
+  clearHermeshqToken?: () => Promise<{ success: boolean }>;
 }
 
 export type BackendStartupFailureReason =

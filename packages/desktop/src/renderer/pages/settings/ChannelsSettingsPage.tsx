@@ -108,54 +108,54 @@ const ChannelsSettingsPage: React.FC<{ withWrapper?: boolean }> = ({ withWrapper
 
   const content = (
     <div className='flex flex-col gap-20px'>
-        <section className='bg-2 rd-16px p-18px'>
-          <div className='flex items-center justify-between gap-12px mb-14px'>
-            <div>
-              <h1 className='text-20px font-600 text-t-primary m-0'>
-                {t('settings.channels.title', { defaultValue: 'Channels' })}
-              </h1>
-              <p className='text-13px text-t-secondary mt-4px mb-0'>{t('settings.webui.featureChannelsDesc')}</p>
-            </div>
-            <Button
-              type='secondary'
-              size='small'
-              icon={<ArrowCounterClockwise size={16} />}
-              onClick={refresh}
-              disabled={loading}
-            >
-              {t('common.refresh', { defaultValue: 'Refresh' })}
-            </Button>
+      <section className='bg-2 rd-16px p-18px'>
+        <div className='flex items-center justify-between gap-12px mb-14px'>
+          <div>
+            <h1 className='text-20px font-600 text-t-primary m-0'>
+              {t('settings.channels.title', { defaultValue: 'Channels' })}
+            </h1>
+            <p className='text-13px text-t-secondary mt-4px mb-0'>{t('settings.webui.featureChannelsDesc')}</p>
           </div>
+          <Button
+            type='secondary'
+            size='small'
+            icon={<ArrowCounterClockwise size={16} />}
+            onClick={refresh}
+            disabled={loading}
+          >
+            {t('common.refresh', { defaultValue: 'Refresh' })}
+          </Button>
+        </div>
 
-          {error && <div className='text-13px text-danger-6 mb-12px'>{error}</div>}
-          {loading && platforms.length === 0 ? (
-            <div className='flex justify-center py-36px'>
-              <Spin size={24} />
-            </div>
-          ) : platforms.length === 0 ? (
-            <Empty description={t('integrations.noChannels', { defaultValue: 'No channels available' })} />
-          ) : (
-            <Collapse
-              activeKey={expanded}
-              onChange={(keys) => setExpanded(Array.isArray(keys) ? keys.map(String) : [String(keys)])}
-              bordered={false}
-            >
-              {platforms.map((platform) => (
-                <PlatformRow
-                  key={platform.id}
-                  platform={platform}
-                  onToggle={(enabled) => void updatePlatform(platform.id, { enabled })}
-                  onSaveEnv={(env) => savePlatformEnv(platform.id, env)}
-                />
-              ))}
-            </Collapse>
-          )}
-        </section>
+        {error && <div className='text-13px text-danger-6 mb-12px'>{error}</div>}
+        {loading && platforms.length === 0 ? (
+          <div className='flex justify-center py-36px'>
+            <Spin size={24} />
+          </div>
+        ) : platforms.length === 0 ? (
+          <Empty description={t('integrations.noChannels', { defaultValue: 'No channels available' })} />
+        ) : (
+          <Collapse
+            activeKey={expanded}
+            onChange={(keys) => setExpanded(Array.isArray(keys) ? keys.map(String) : [String(keys)])}
+            bordered={false}
+          >
+            {platforms.map((platform) => (
+              <PlatformRow
+                key={platform.id}
+                platform={platform}
+                onToggle={(enabled) => void updatePlatform(platform.id, { enabled })}
+                onSaveEnv={(env) => savePlatformEnv(platform.id, env)}
+              />
+            ))}
+          </Collapse>
+        )}
+      </section>
 
-        <section className='bg-2 rd-16px p-18px'>
-          <WebuiModalContent webuiOnly />
-        </section>
-      </div>
+      <section className='bg-2 rd-16px p-18px'>
+        <WebuiModalContent webuiOnly />
+      </section>
+    </div>
   );
 
   if (!withWrapper) {

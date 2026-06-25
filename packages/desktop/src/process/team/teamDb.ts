@@ -37,10 +37,12 @@ export function getTeamDatabase(): ISqliteDriver {
     setDatabaseVersion(instance, CURRENT_DB_VERSION);
   }
 
-  instance.prepare(
-    `INSERT OR IGNORE INTO users (id, username, email, password_hash, avatar_path, created_at, updated_at, last_login, jwt_secret)
+  instance
+    .prepare(
+      `INSERT OR IGNORE INTO users (id, username, email, password_hash, avatar_path, created_at, updated_at, last_login, jwt_secret)
      VALUES (?, ?, NULL, ?, NULL, ?, ?, NULL, NULL)`
-  ).run('system_default_user', 'system_default_user', '', Date.now(), Date.now());
+    )
+    .run('system_default_user', 'system_default_user', '', Date.now(), Date.now());
 
   driver = instance;
   return instance;

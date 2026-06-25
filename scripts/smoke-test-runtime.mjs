@@ -70,8 +70,11 @@ async function probe(name, url, token, expectJson = true) {
     let bodyPreview = '';
     if (expectJson && ct.includes('json')) {
       const json = await res.json();
-      bodyPreview =
-        Array.isArray(json) ? `array[${json.length}]` : typeof json === 'object' ? Object.keys(json).slice(0, 8).join(',') : String(json);
+      bodyPreview = Array.isArray(json)
+        ? `array[${json.length}]`
+        : typeof json === 'object'
+          ? Object.keys(json).slice(0, 8).join(',')
+          : String(json);
     } else {
       bodyPreview = (await res.text()).slice(0, 120);
     }
@@ -188,7 +191,10 @@ async function main() {
   let sessionCreate = { ok: false, preview: 'skipped' };
   try {
     const result = await wsRpc(port, token, 'session.create', { profile: 'default' }, 1);
-    sessionCreate = { ok: Boolean(result?.session_id), preview: result?.session_id || JSON.stringify(result).slice(0, 120) };
+    sessionCreate = {
+      ok: Boolean(result?.session_id),
+      preview: result?.session_id || JSON.stringify(result).slice(0, 120),
+    };
   } catch (err) {
     sessionCreate = { ok: false, preview: String(err) };
   }
@@ -197,7 +203,10 @@ async function main() {
   let recruiterCreate = { ok: false, preview: 'skipped' };
   try {
     const result = await wsRpc(port, token, 'session.create', { profile: 'recruiter' }, 2);
-    recruiterCreate = { ok: Boolean(result?.session_id), preview: result?.session_id || JSON.stringify(result).slice(0, 120) };
+    recruiterCreate = {
+      ok: Boolean(result?.session_id),
+      preview: result?.session_id || JSON.stringify(result).slice(0, 120),
+    };
   } catch (err) {
     recruiterCreate = { ok: false, preview: String(err) };
   }
@@ -223,7 +232,14 @@ async function main() {
   debugLog('smoke-test-runtime.mjs:summary', 'smoke complete', summary, 'SUMMARY');
   console.log(JSON.stringify(summary, null, 2));
 
-  const hmLog = join(homedir(), 'AppData', 'Roaming', 'Headmaster', 'logs', `${new Date().toISOString().slice(0, 10)}.log`);
+  const hmLog = join(
+    homedir(),
+    'AppData',
+    'Roaming',
+    'Headmaster',
+    'logs',
+    `${new Date().toISOString().slice(0, 10)}.log`
+  );
   if (existsSync(hmLog)) {
     const tail = readFileSync(hmLog, 'utf8').split('\n').slice(-200).join('\n');
     const errors = (tail.match(/\[error\]|ERROR|Cannot read properties/gi) || []).length;

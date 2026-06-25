@@ -74,7 +74,12 @@ export function artifactKind(value: string): ArtifactKind {
 }
 
 export function artifactHref(value: string): string {
-  if (value.startsWith('http://') || value.startsWith('https://') || value.startsWith('file://') || value.startsWith('data:')) {
+  if (
+    value.startsWith('http://') ||
+    value.startsWith('https://') ||
+    value.startsWith('file://') ||
+    value.startsWith('data:')
+  ) {
     return value;
   }
   if (value.startsWith('/')) return `file://${encodeURI(value)}`;

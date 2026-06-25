@@ -27,9 +27,9 @@ export async function warmupTeamConversation(conversationId: string): Promise<vo
 }
 
 export function initTeamBridge(): void {
-  bridge.buildProvider<TTeam[], { user_id: string }>('team.list').provider(async (params) =>
-    teamService.list(params.user_id)
-  );
+  bridge
+    .buildProvider<TTeam[], { user_id: string }>('team.list')
+    .provider(async (params) => teamService.list(params.user_id));
 
   bridge.buildProvider<TTeam, { id: string }>('team.get').provider(async (params) => teamService.get(params.id));
 
@@ -39,9 +39,9 @@ export function initTeamBridge(): void {
     await teamService.remove(params.id);
   });
 
-  bridge.buildProvider<TeamAgent, IAddTeamAgentParams>('team.addAgent').provider(async (params) =>
-    teamService.addAgent(params)
-  );
+  bridge
+    .buildProvider<TeamAgent, IAddTeamAgentParams>('team.addAgent')
+    .provider(async (params) => teamService.addAgent(params));
 
   bridge.buildProvider<void, { team_id: string; slot_id: string }>('team.removeAgent').provider(async (params) => {
     await teamService.removeAgent(params.team_id, params.slot_id);
@@ -55,19 +55,21 @@ export function initTeamBridge(): void {
     await teamService.stopSession(params.team_id);
   });
 
-  bridge.buildProvider<void, { team_id: string; slot_id: string; new_name: string }>('team.renameAgent').provider(
-    async (params) => {
+  bridge
+    .buildProvider<void, { team_id: string; slot_id: string; new_name: string }>('team.renameAgent')
+    .provider(async (params) => {
       teamService.renameAgent(params.team_id, params.slot_id, params.new_name);
-    }
-  );
+    });
 
   bridge.buildProvider<void, { id: string; name: string }>('team.renameTeam').provider(async (params) => {
     teamService.renameTeam(params.id, params.name);
   });
 
-  bridge.buildProvider<void, { team_id: string; session_mode: string }>('team.setSessionMode').provider(async (params) => {
-    teamService.setSessionMode(params.team_id, params.session_mode);
-  });
+  bridge
+    .buildProvider<void, { team_id: string; session_mode: string }>('team.setSessionMode')
+    .provider(async (params) => {
+      teamService.setSessionMode(params.team_id, params.session_mode);
+    });
 
   bridge.buildProvider<TChatConversation | null, { id: string }>('conversation.get').provider(async (params) => {
     if (isAioncoreAvailable()) {
@@ -105,9 +107,9 @@ export function initTeamBridge(): void {
       return;
     }
     try {
-      await httpPost<void, { conversation_id: string }>(
-        (p) => `/api/conversations/${p.conversation_id}/warmup`
-      ).invoke(params);
+      await httpPost<void, { conversation_id: string }>((p) => `/api/conversations/${p.conversation_id}/warmup`).invoke(
+        params
+      );
     } catch (error) {
       if (!isMissingHermesRoute(error)) throw error;
     }

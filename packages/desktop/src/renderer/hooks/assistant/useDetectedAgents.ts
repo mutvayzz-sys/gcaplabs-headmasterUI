@@ -44,7 +44,9 @@ const resolveBackendModelOptions = (agent: AgentMetadata): AvailableBackendModel
 
 export function buildAvailableBackends(rawAgents: AgentMetadata[]): AvailableBackend[] {
   return rawAgents
-    .filter((a) => a.enabled !== false && a.available !== false && a.agent_type !== 'remote' && a.agent_type !== 'nanobot')
+    .filter(
+      (a) => a.enabled !== false && a.available !== false && a.agent_type !== 'remote' && a.agent_type !== 'nanobot'
+    )
     .map((a) => ({
       id: a.backend || a.agent_type,
       name: a.name,

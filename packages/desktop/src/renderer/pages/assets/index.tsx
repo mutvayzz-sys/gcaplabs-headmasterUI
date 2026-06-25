@@ -7,13 +7,7 @@
 import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button, Empty, Input, Spin, Tabs, Tag } from '@arco-design/web-react';
-import {
-  ArrowCounterClockwise,
-  File,
-  Image as ImageIcon,
-  LinkSimple,
-  Package,
-} from '@phosphor-icons/react';
+import { ArrowCounterClockwise, File, Image as ImageIcon, LinkSimple, Package } from '@phosphor-icons/react';
 import classNames from 'classnames';
 import { useLayoutContext } from '@renderer/hooks/context/LayoutContext';
 import { openExternalUrl } from '@renderer/utils/platform';

@@ -266,8 +266,7 @@ ipcMain.on('get-backend-port', (event) => {
     event.returnValue = hermesBootstrap.port;
     return;
   }
-  event.returnValue =
-    (globalThis as typeof globalThis & { __backendPort?: number }).__backendPort ?? 0;
+  event.returnValue = (globalThis as typeof globalThis & { __backendPort?: number }).__backendPort ?? 0;
 });
 
 ipcMain.on('get-backend-host', (event) => {

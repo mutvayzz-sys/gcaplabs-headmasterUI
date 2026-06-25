@@ -3,7 +3,19 @@ import { resolveExtensionAssetUrl } from '@/renderer/utils/platform';
 import { type IExtensionSettingsTab } from '@/common/adapter/ipcBridge';
 import { useExtI18n } from '@/renderer/hooks/system/useExtI18n';
 import { useExtensionSettingsTabs } from '@/renderer/hooks/system/useExtensionSettingsTabs';
-import { Api, Computer, Earth, Info, Lightning, LinkCloud, MemoryOne, Puzzle, Robot, Speed, System } from '@icon-park/react';
+import {
+  Api,
+  Computer,
+  Earth,
+  Info,
+  Lightning,
+  LinkCloud,
+  MemoryOne,
+  Puzzle,
+  Robot,
+  Speed,
+  System,
+} from '@icon-park/react';
 import classNames from 'classnames';
 import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';

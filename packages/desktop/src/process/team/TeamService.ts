@@ -8,11 +8,7 @@ import type { IAddTeamAgentParams, ICreateTeamParams } from '@/common/adapter/te
 import type { TeamAgent, TTeam } from '@/common/types/team/teamTypes';
 import { teamRepository } from './TeamRepository';
 import { ensureTeamSession, stopTeamSession } from './TeamSessionManager';
-import {
-  emitTeamAgentRenamed,
-  emitTeamCreated,
-  emitTeamListChanged,
-} from './teamEvents';
+import { emitTeamAgentRenamed, emitTeamCreated, emitTeamListChanged } from './teamEvents';
 
 export class TeamService {
   list(userId: string): TTeam[] {

@@ -5,7 +5,10 @@
  */
 
 import { createHermesChatConversation } from '@/common/adapter/hermesChatAdapter';
-import { buildAgentConversationParams, getConversationTypeForBackend } from '@/common/utils/buildAgentConversationParams';
+import {
+  buildAgentConversationParams,
+  getConversationTypeForBackend,
+} from '@/common/utils/buildAgentConversationParams';
 import type { TProviderWithModel } from '@/common/config/storage';
 import { teamRepository } from './TeamRepository';
 import {
@@ -16,11 +19,7 @@ import {
 } from './ConversationStore';
 import { TeamMcpServer, findAgentByName, normalizeSpawnBackend, type TeamMcpHandlers } from './TeamMcpServer';
 import type { StoredTeamAgent, StoredTeamRow } from './types';
-import {
-  emitTeamAgentRemoved,
-  emitTeamAgentSpawned,
-  emitTeamAgentStatus,
-} from './teamEvents';
+import { emitTeamAgentRemoved, emitTeamAgentSpawned, emitTeamAgentStatus } from './teamEvents';
 import { httpRequest } from '@/common/adapter/httpBridge';
 
 const emptyModel = {} as TProviderWithModel;
@@ -57,7 +56,11 @@ class TeamSession {
 
     for (const agent of agents) {
       if (agent.conversation_id) continue;
-      const conversation = await this.createConversationForAgent(stored, agent, agent.role === 'lead' ? stdioConfig : undefined);
+      const conversation = await this.createConversationForAgent(
+        stored,
+        agent,
+        agent.role === 'lead' ? stdioConfig : undefined
+      );
       agent.conversation_id = conversation.id;
       agent.status = 'idle';
       changed = true;

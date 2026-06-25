@@ -17,8 +17,7 @@ export function persistLocalConversation(conversation: TChatConversation, userId
   rememberOpenHermesConversation(conversation.id, undefined, conversation);
   const db = getTeamDatabase();
   const now = Date.now();
-  const modelValue =
-    'model' in conversation && conversation.model != null ? JSON.stringify(conversation.model) : null;
+  const modelValue = 'model' in conversation && conversation.model != null ? JSON.stringify(conversation.model) : null;
   db.prepare(
     `INSERT OR REPLACE INTO conversations (id, user_id, name, type, extra, model, status, created_at, updated_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`

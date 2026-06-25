@@ -232,10 +232,7 @@ describe('Hermes session adapter', () => {
   });
 
   it('paginates over visible chats rather than raw Hermes sessions', async () => {
-    const sessions = [
-      session({ id: 'tracked-1', message_count: 3 }),
-      session({ id: 'tracked-2', message_count: 3 }),
-    ];
+    const sessions = [session({ id: 'tracked-1', message_count: 3 }), session({ id: 'tracked-2', message_count: 3 })];
 
     mocks.httpRequest.mockImplementation(async (_method: string, url: string) => {
       if (url.startsWith('/api/sessions?')) {

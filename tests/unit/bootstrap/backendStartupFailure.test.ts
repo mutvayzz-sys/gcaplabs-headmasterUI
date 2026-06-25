@@ -202,4 +202,3 @@ describe('detectStartupArchitectureMismatch', () => {
     expect(mismatch).toBeNull();
   });
 });
-
