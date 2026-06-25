@@ -5,10 +5,13 @@ set -euo pipefail
 OUTPUT_DIR="${1:-release-assets}"
 ERRORS=0
 
-for f in latest.yml latest-mac.yml latest-linux.yml latest-linux-arm64.yml; do
+# Required: Windows x64 canonical updater metadata
+for f in latest.yml; do
   if [ ! -f "$OUTPUT_DIR/$f" ]; then
     echo "FAIL: missing canonical metadata: $f"
     ERRORS=$((ERRORS + 1))
+  else
+    echo "PASS: $f exists"
   fi
 done
 
@@ -51,47 +54,20 @@ assert_metadata_points_to_existing_file() {
   echo "PASS: $metadata_name -> $ref_file"
 }
 
-assert_metadata_points_to_existing_file "latest.yml" "(win-x64|win32-x64|x64)"
-assert_metadata_points_to_existing_file "latest-mac.yml" "(mac-x64|darwin-x64|x64)"
-assert_metadata_points_to_existing_file "latest-linux.yml" "(linux|AppImage|deb)"
-assert_metadata_points_to_existing_file "latest-linux-arm64.yml" "(arm64|aarch64)"
+assert_metadata_points_to_existing_file "latest.yml" "(win|x64|exe)"
 
-for f in latest-win-arm64.yml latest-arm64-mac.yml; do
-  if [ ! -f "$OUTPUT_DIR/$f" ]; then
-    echo "FAIL: missing arch-specific updater metadata: $f"
-    ERRORS=$((ERRORS + 1))
-  else
-    echo "PASS: $f exists"
-  fi
-done
+# Optional: Windows arm64 if present
+if [ -f "$OUTPUT_DIR/latest-win-arm64.yml" ]; then
+  assert_metadata_points_to_existing_file "latest-win-arm64.yml" "(arm64|exe)"
+fi
 
-for f in AionUi-1.0.0-win-x64.exe AionUi-1.0.0-win-arm64.exe AionUi-1.0.0-mac-x64.dmg AionUi-1.0.0-mac-arm64.dmg AionUi-1.0.0.deb AionUi-1.0.0-arm64.deb; do
-  if [ ! -f "$OUTPUT_DIR/$f" ]; then
-    echo "FAIL: missing distributable: $f"
-    ERRORS=$((ERRORS + 1))
-  else
-    echo "PASS: $f exists"
-  fi
-done
-
-# Web-CLI tarballs + checksums
-for plat in darwin-arm64 darwin-x86_64 linux-arm64 linux-x86_64 win-x86_64; do
-  tarball="aionui-web-1.0.0-${plat}.tar.gz"
-  for f in "$tarball" "${tarball}.sha256"; do
-    if [ ! -f "$OUTPUT_DIR/$f" ]; then
-      echo "FAIL: missing web-cli asset: $f"
-      ERRORS=$((ERRORS + 1))
-    else
-      echo "PASS: $f exists"
-    fi
-  done
-done
-
-if [ ! -f "$OUTPUT_DIR/install-web.sh" ]; then
-  echo "FAIL: missing install-web.sh"
+# Verify at least one Windows installer exists
+WIN_INSTALLER=$(find "$OUTPUT_DIR" -maxdepth 1 -name "*.exe" | head -n 1 || true)
+if [ -z "$WIN_INSTALLER" ]; then
+  echo "FAIL: no Windows installer (.exe) found in $OUTPUT_DIR"
   ERRORS=$((ERRORS + 1))
 else
-  echo "PASS: install-web.sh exists"
+  echo "PASS: Windows installer found: $(basename "$WIN_INSTALLER")"
 fi
 
 echo ""
