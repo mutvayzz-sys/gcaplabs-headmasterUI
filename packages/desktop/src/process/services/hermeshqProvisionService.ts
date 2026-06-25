@@ -8,6 +8,8 @@ import {
   clearHermeshqProvision,
   getHermeshqConfig,
   setHermeshqProvision,
+  setConnectionMode,
+  setRemoteConfig,
   type HermeshqProvisionSnapshot,
 } from '../connection/connectionConfig';
 
@@ -108,6 +110,24 @@ export async function provisionHermeshqDesktop(request: HermeshqProvisionRequest
       refreshed_at: new Date().toISOString(),
     };
     setHermeshqProvision(provision);
+
+    // Phase 3: If cloud container is provisioned, switch to remote mode
+    const cloudContainer = (provision as Record<string, unknown>).cloud_container_config as Record<string, unknown> | undefined;
+    if (cloudContainer?.endpoint_url) {
+      const endpointUrl = String(cloudContainer.endpoint_url);
+      try {
+        const url = new URL(endpointUrl);
+        setConnectionMode('remote');
+        setRemoteConfig({
+          host: url.hostname,
+          port: parseInt(url.port, 10) || (url.protocol === 'https:' ? 443 : 80),
+          token: config.token,
+        });
+      } catch {
+        // Invalid URL — keep local mode
+      }
+    }
+
     return { success: true, provision };
   } catch (error) {
     return { success: false, error: error instanceof Error ? error.message : String(error) };

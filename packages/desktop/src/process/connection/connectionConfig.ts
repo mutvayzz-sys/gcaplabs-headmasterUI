@@ -36,6 +36,15 @@ export interface HermeshqProvisionSnapshot {
     validate_url: string;
     ttl_seconds: number;
   };
+  local_container_config?: {
+    endpoint_url: string;
+    container_id: string;
+  } | null;
+  cloud_container_config?: {
+    endpoint_url: string;
+    container_id: string;
+  } | null;
+  system_prompt_override?: string | null;
   client?: string;
   version?: string;
   platform?: string;
@@ -98,7 +107,7 @@ function normalizeProvisionSnapshot(snapshot: Partial<HermeshqProvisionSnapshot>
   if (!runtime || typeof runtime.validate_url !== 'string') {
     return null;
   }
-  return {
+  const normalized: HermeshqProvisionSnapshot = {
     mode: typeof snapshot.mode === 'string' ? snapshot.mode : 'headmaster_local',
     user: {
       id: user.id,
@@ -115,6 +124,23 @@ function normalizeProvisionSnapshot(snapshot: Partial<HermeshqProvisionSnapshot>
     platform: typeof snapshot.platform === 'string' ? snapshot.platform : undefined,
     refreshed_at: typeof snapshot.refreshed_at === 'string' ? snapshot.refreshed_at : undefined,
   };
+  // Optional new fields from Phase 1+2 provision contract
+  if (snapshot.local_container_config && typeof snapshot.local_container_config === 'object') {
+    const lcc = snapshot.local_container_config as Record<string, unknown>;
+    if (typeof lcc.endpoint_url === 'string' && typeof lcc.container_id === 'string') {
+      normalized.local_container_config = { endpoint_url: lcc.endpoint_url, container_id: lcc.container_id };
+    }
+  }
+  if (snapshot.cloud_container_config && typeof snapshot.cloud_container_config === 'object') {
+    const ccc = snapshot.cloud_container_config as Record<string, unknown>;
+    if (typeof ccc.endpoint_url === 'string' && typeof ccc.container_id === 'string') {
+      normalized.cloud_container_config = { endpoint_url: ccc.endpoint_url, container_id: ccc.container_id };
+    }
+  }
+  if (typeof snapshot.system_prompt_override === 'string') {
+    normalized.system_prompt_override = snapshot.system_prompt_override;
+  }
+  return normalized;
 }
 
 function readConfig(): ConnectionConfigFile {

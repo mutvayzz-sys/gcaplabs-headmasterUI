@@ -32,6 +32,8 @@ declare global {
     __hermesSessionToken?: string;
     __hermesHome?: string;
     __aioncorePort?: number;
+    /** Cloud container endpoint URL when in headmaster_remote mode. */
+    __cloudContainerEndpoint?: string;
   }
 }
 
@@ -101,7 +103,30 @@ function getBackendHost(): string {
   return g.__backendHost ?? '127.0.0.1';
 }
 
+/**
+ * Check if the app is running in remote container mode.
+ * When the provision response includes cloud_container_config, the renderer
+ * should route all HTTP/WS traffic to the cloud container endpoint.
+ */
+function isRemoteContainerMode(): boolean {
+  if (typeof window !== 'undefined' && window.__cloudContainerEndpoint) {
+    return true;
+  }
+  return false;
+}
+
+function getCloudContainerEndpoint(): string {
+  if (typeof window !== 'undefined' && window.__cloudContainerEndpoint) {
+    return window.__cloudContainerEndpoint;
+  }
+  const g = globalThis as typeof globalThis & { __cloudContainerEndpoint?: string };
+  return g.__cloudContainerEndpoint ?? '';
+}
+
 export function getBaseUrl(): string {
+  if (isRemoteContainerMode()) {
+    return getCloudContainerEndpoint();
+  }
   if (isWebUiBrowserMode()) {
     // Same-origin: calls like fetch(`${baseUrl}/api/foo`) resolve to `/api/foo`
     // on whatever host the page was served from.
@@ -111,6 +136,16 @@ export function getBaseUrl(): string {
 }
 
 function getWsUrl(): string {
+  if (isRemoteContainerMode()) {
+    const endpoint = getCloudContainerEndpoint();
+    // Convert http:// to ws:// for WebSocket
+    const wsEndpoint = endpoint.replace(/^http/, 'ws');
+    const token = getSessionToken();
+    const params = new URLSearchParams();
+    if (token) params.set('token', token);
+    const qs = params.toString();
+    return `${wsEndpoint}/api/ws${qs ? `?${qs}` : ''}`;
+  }
   if (isWebUiBrowserMode()) {
     const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     return `${proto}//${window.location.host}/ws`;

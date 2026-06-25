@@ -210,6 +210,10 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
       } else {
         setUser(provisionUserToAuthUser(provision.user));
         setStatus('authenticated');
+        // Phase 3: Set cloud container endpoint for remote mode
+        if (typeof window !== 'undefined' && (provision as any).cloud_container_config?.endpoint_url) {
+          window.__cloudContainerEndpoint = (provision as any).cloud_container_config.endpoint_url;
+        }
       }
       setReady(true);
       return;
@@ -302,6 +306,11 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
         setUser(provisionUserToAuthUser(provision.user));
         setStatus('authenticated');
         setReady(true);
+
+        // Phase 3: Set cloud container endpoint for remote mode
+        if (typeof window !== 'undefined' && provision.cloud_container_config?.endpoint_url) {
+          window.__cloudContainerEndpoint = provision.cloud_container_config.endpoint_url;
+        }
 
         return { success: true };
       } catch {
