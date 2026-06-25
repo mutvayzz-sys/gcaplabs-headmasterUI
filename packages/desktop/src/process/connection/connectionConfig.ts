@@ -21,6 +21,25 @@ export interface HermeshqConfig {
   url: string;
   /** Stored JWT from the last successful login — used for auto-login on next launch */
   token: string;
+  provision?: HermeshqProvisionSnapshot | null;
+}
+
+export interface HermeshqProvisionSnapshot {
+  mode: string;
+  user: {
+    id: string;
+    username: string;
+    role: string;
+  };
+  capabilities: string[];
+  runtime: {
+    validate_url: string;
+    ttl_seconds: number;
+  };
+  client?: string;
+  version?: string;
+  platform?: string;
+  refreshed_at?: string;
 }
 
 interface ConnectionConfigFile {
@@ -62,6 +81,39 @@ function normalizeHermeshqConfig(config: Partial<HermeshqConfig> | undefined): H
   return {
     url: typeof config?.url === 'string' ? config.url.trim().replace(/\/$/, '') : '',
     token: typeof config?.token === 'string' ? config.token : '',
+    provision: normalizeProvisionSnapshot(config?.provision),
+  };
+}
+
+function normalizeProvisionSnapshot(snapshot: Partial<HermeshqProvisionSnapshot> | null | undefined): HermeshqProvisionSnapshot | null {
+  if (!snapshot || typeof snapshot !== 'object') return null;
+  const user = snapshot.user;
+  const runtime = snapshot.runtime;
+  const capabilities = Array.isArray(snapshot.capabilities)
+    ? snapshot.capabilities.filter((capability): capability is string => typeof capability === 'string' && capability.length > 0)
+    : [];
+  if (!user || typeof user.id !== 'string' || typeof user.username !== 'string' || typeof user.role !== 'string') {
+    return null;
+  }
+  if (!runtime || typeof runtime.validate_url !== 'string') {
+    return null;
+  }
+  return {
+    mode: typeof snapshot.mode === 'string' ? snapshot.mode : 'headmaster_local',
+    user: {
+      id: user.id,
+      username: user.username,
+      role: user.role,
+    },
+    capabilities,
+    runtime: {
+      validate_url: runtime.validate_url,
+      ttl_seconds: Number.isFinite(Number(runtime.ttl_seconds)) ? Number(runtime.ttl_seconds) : 0,
+    },
+    client: typeof snapshot.client === 'string' ? snapshot.client : undefined,
+    version: typeof snapshot.version === 'string' ? snapshot.version : undefined,
+    platform: typeof snapshot.platform === 'string' ? snapshot.platform : undefined,
+    refreshed_at: typeof snapshot.refreshed_at === 'string' ? snapshot.refreshed_at : undefined,
   };
 }
 
@@ -123,4 +175,18 @@ export function setHermeshqToken(token: string): void {
 export function clearHermeshqToken(): void {
   const config = readConfig();
   writeConfig({ ...config, hermeshq: { ...config.hermeshq, token: '' } });
+}
+
+export function getHermeshqProvision(): HermeshqProvisionSnapshot | null {
+  return readConfig().hermeshq.provision ?? null;
+}
+
+export function setHermeshqProvision(provision: HermeshqProvisionSnapshot): void {
+  const config = readConfig();
+  writeConfig({ ...config, hermeshq: { ...config.hermeshq, provision: normalizeProvisionSnapshot(provision) } });
+}
+
+export function clearHermeshqProvision(): void {
+  const config = readConfig();
+  writeConfig({ ...config, hermeshq: { ...config.hermeshq, provision: null } });
 }

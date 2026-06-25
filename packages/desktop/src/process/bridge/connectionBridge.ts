@@ -14,6 +14,7 @@ import {
   setHermeshqUrl,
   setHermeshqToken,
   clearHermeshqToken,
+  clearHermeshqProvision,
   type ConnectionMode,
   type RemoteConnectionConfig,
 } from '../connection/connectionConfig';
@@ -53,6 +54,7 @@ export function initConnectionBridge(): void {
 
   ipcMain.handle('hermeshq:clear-token', () => {
     clearHermeshqToken();
+    clearHermeshqProvision();
     return { success: true };
   });
 }

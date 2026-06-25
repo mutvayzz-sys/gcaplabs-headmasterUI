@@ -75,6 +75,7 @@ import {
 } from './process/utils/tray';
 import { readCloseToTraySetting } from './process/utils/closeToTraySetting';
 import { getConnectionMode, getRemoteConfig } from './process/connection/connectionConfig';
+import { validateHermeshqRuntimeAccess } from './process/services/hermeshqProvisionService';
 // @ts-expect-error - electron-squirrel-startup doesn't have types
 import electronSquirrelStartup from 'electron-squirrel-startup';
 
@@ -416,6 +417,19 @@ async function startAioncoreSidecar(): Promise<void> {
 // ---------------------------------------------------------------------------
 ipcMain.handle('runtime:restart', async () => {
   try {
+    if (getConnectionMode() !== 'remote') {
+      const validation = await validateHermeshqRuntimeAccess({
+        runtime_id: 'local-hermes',
+        requested_capability: 'runtime_settings',
+      });
+      if (!validation.success || validation.validation?.allowed !== true) {
+        return {
+          ok: false,
+          error: validation.error || 'HermesHQ denied runtime restart.',
+        };
+      }
+    }
+
     hermesBootstrap.stop();
     await aioncoreBootstrap.stop();
     clearAioncorePort();

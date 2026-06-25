@@ -22,11 +22,30 @@ export interface ElectronBridgeAPI {
   setRemoteConnectionConfig?: (config: { host: string; port: number; token: string }) => Promise<unknown>;
   restartRuntime?: () => Promise<{ ok: boolean; port?: number; error?: string }>;
   checkHermesRuntime?: () => Promise<{ detected: boolean; path?: string; choice?: string; customPath?: string }>;
-  getHermeshqConfig?: () => Promise<{ url: string; token: string }>;
+  getHermeshqConfig?: () => Promise<{ url: string; token: string; provision?: unknown | null }>;
+  getHermeshqProvision?: () => Promise<unknown | null>;
   setHermeshqUrl?: (url: string) => Promise<{ success: boolean }>;
   setHermeshqToken?: (token: string) => Promise<{ success: boolean }>;
   clearHermeshqToken?: () => Promise<{ success: boolean }>;
+  clearHermeshqProvision?: () => Promise<{ success: boolean }>;
+  provisionHermeshq?: (request: { client: 'headmaster_desktop'; version: string; platform: NodeJS.Platform }) => Promise<{
+    success: boolean;
+    provision?: unknown;
+    status?: number;
+    error?: string;
+  }>;
+  validateHermeshqRuntime?: (request: {
+    runtime_id: string;
+    requested_capability: string;
+  }) => Promise<{
+    success: boolean;
+    validation?: unknown;
+    status?: number;
+    error?: string;
+  }>;
 }
+
+export type ElectronAPI = ElectronBridgeAPI;
 
 export type BackendStartupFailureReason =
   | 'backend_incompatible_runtime'

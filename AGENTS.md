@@ -8,12 +8,12 @@
 
 | Path                                              | What it is                                                                                                                                                                                                                     | When to use it                                                                                             | When to ignore it                                                                    |
 | ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
-| `gcaplabs-headmaster/repo/gcaplabs-headmasterUI/` | **The actual app.** Electron + Vite + React + TypeScript. This is the build target. Pushed to `gcaplabs-headmasterUI` (private) on GitHub.                                                                                     | Always — unless explicitly told otherwise.                                                                 | Never.                                                                               |
+| `gcaplabs-headmasterUI/`                         | **The actual app.** Electron + Vite + React + TypeScript. This is the build target. Pushed to `gcaplabs-headmasterUI` (private) on GitHub.                                                                                     | Always — unless explicitly told otherwise.                                                                 | Never.                                                                               |
 | `headmaster-hub/`                                 | The "Headmaster Hub" web frontend (separate product). Has its own `.git`.                                                                                                                                                      | When the user asks about the Headmaster Hub web app.                                                       | For desktop work, ignore entirely.                                                   |
 | `gcaplabs-site/`                                  | The GCAP Labs marketing site. Next.js 15 App Router. **Live on gcaplabs.com.** Pushed to `mutvayzz-sys/gcaplabs-site` (private) on GitHub.                                                                                     | When the user asks to change gcaplabs.com / Headmaster HQ copy or pages.                                   | For desktop work, ignore entirely.                                                   |
-| `runtime/hermes-agent/`                           | The Python runtime (NousResearch). The actual agent code that runs in the background. Spawned by the desktop app via `hermes dashboard`. This is the **canonical** checkout.                                                   | When the user asks about runtime behavior, dashboard endpoints, or the `hermes_bootstrap.py` install flow. | For UI / frontstuff work — that's `gcaplabs-headmaster/repo/gcaplabs-headmasterUI/`. |
+| `runtime/hermes-agent/`                           | The Python runtime (NousResearch). The actual agent code that runs in the background. Spawned by the desktop app via `hermes dashboard`. This is the **canonical** checkout.                                                   | When the user asks about runtime behavior, dashboard endpoints, or the `hermes_bootstrap.py` install flow. | For UI / frontstuff work — that's `gcaplabs-headmasterUI/`. |
 | `runtime-recon/`                                  | Hermes recon workspace. Has `RECON.md` (Task 0) and `reconcile.md` (Task 1) plus a **recon copy** of `hermes-agent` (27 files more than the canonical, with local recon edits).                                                | When you need to verify a Hermes runtime assumption before writing app code, or to read the recon notes.   | Don't ship anything from here.                                                       |
-| `_support/upstream/aionui/`                       | The original Apache-2.0 source repo (`iOfficeAI/AionUi`). This is **what `gcaplabs-headmaster/repo/gcaplabs-headmasterUI/` is forked from**.                                                                                   | When the user asks "what was the original code" or to compare.                                             | For active build work, use `gcaplabs-headmaster/repo/gcaplabs-headmasterUI/`.        |
+| `_support/upstream/aionui/`                       | The original Apache-2.0 source repo (`iOfficeAI/AionUi`). This is **what `gcaplabs-headmasterUI/` is forked from**.                                                                                   | When the user asks "what was the original code" or to compare.                                             | For active build work, use `gcaplabs-headmasterUI/`.        |
 | `_support/upstream/hermes-desktop/`               | Reference clone of `fathah/hermes-desktop`.                                                                                                                                                                                    | When the user wants to crib UI from fathah's fork (12-screen grid layout, installer).                      | Don't edit — treat as reference. Run `git pull` to track upstream.                   |
 | `_support/upstream/hermes-workspace/`             | Reference clone of `outsourc-e/hermes-workspace`. Multi-agent Swarm, terminal, memory, cron, skills marketplace.                                                                                                               | When the user wants to crib Workspace features (Kanban, Runs, Skills, Cron).                               | Don't edit — treat as reference. Run `git pull` to track upstream.                   |
 | `_support/upstream/hermes-agent-desktop/`         | **The official Hermes Desktop** from `NousResearch/hermes-agent` at `apps/desktop/`. 518 files, 13MB. Exposed via a directory junction to `runtime-recon/hermes-agent/apps/desktop/` so it stays live with the upstream clone. | When the user wants the **canonical** Hermes Desktop reference (vs the fathah fork).                       | Don't edit — it's a junction.                                                        |
@@ -29,9 +29,9 @@
 
 ## What's actually shipping
 
-**One product**: Headmaster Desktop (Electron). Its source is `gcaplabs-headmaster/repo/gcaplabs-headmasterUI/`. Everything else is upstream / reference / scratch.
+**One product**: Headmaster Desktop (Electron). Its source is `gcaplabs-headmasterUI/`. Everything else is upstream / reference / scratch.
 
-**The build target:** run from `gcaplabs-headmaster/repo/gcaplabs-headmasterUI/`. Build commands:
+**The build target:** run from `gcaplabs-headmasterUI/`. Build commands:
 
 ```bash
 # Typecheck
@@ -46,7 +46,7 @@ node scripts/build-with-builder.js auto --win
 
 **Version:** `0.2.1` (release candidate; final packaged validation remains in `todo.md`). Output filenames track this version.
 
-Output lands in `gcaplabs-headmaster/repo/gcaplabs-headmasterUI/out/`:
+Output lands in `gcaplabs-headmasterUI/out/`:
 
 - `out/win-unpacked/Headmaster.exe` — portable (run this for testing)
 - `out/Headmaster-<version>-win-x64.exe` — NSIS installer
@@ -62,9 +62,9 @@ For a quick iteration that only produces the runnable portable exe (skips the sl
 
 ## How to work in this tree
 
-1. **Read** `gcaplabs-headmaster/repo/gcaplabs-headmasterUI/docs/white-label/HEADMASTER-VOCABULARY.csv` before naming anything user-facing. **Do not** ship AionUi / aionui / aionrs / Cowork / Hermes in the UI. Use the Headmaster column.
-2. **Read** `gcaplabs-headmaster/repo/gcaplabs-headmasterUI/docs/white-label/WHITE-LABEL-AUDIT.md` before touching anything in `gcaplabs-headmaster/repo/gcaplabs-headmasterUI/packages/desktop/src/process/`. `HERMES_DESKTOP_*` env vars and the `hermes-media://` protocol are off-limits.
-3. **Edit** in `gcaplabs-headmaster/repo/gcaplabs-headmasterUI/` only. Do not edit `runtime/hermes-agent/`, `_support/upstream/`, or `_support/staging/`. Those are reference clones.
+1. **Read** `gcaplabs-headmasterUI/docs/white-label/HEADMASTER-VOCABULARY.csv` before naming anything user-facing. **Do not** ship AionUi / aionui / aionrs / Cowork / Hermes in the UI. Use the Headmaster column.
+2. **Read** `gcaplabs-headmasterUI/docs/white-label/WHITE-LABEL-AUDIT.md` before touching anything in `gcaplabs-headmasterUI/packages/desktop/src/process/`. `HERMES_DESKTOP_*` env vars and the `hermes-media://` protocol are off-limits.
+3. **Edit** in `gcaplabs-headmasterUI/` only. Do not edit `runtime/hermes-agent/`, `_support/upstream/`, or `_support/staging/`. Those are reference clones.
 4. **Pull fresh upstream** for `_support/upstream/hermes-desktop/` and `_support/upstream/hermes-workspace/` before relying on their content: `cd _support/upstream/hermes-... && git pull --ff-only`.
 5. **Don't introduce new port numbers or endpoint paths** without checking `runtime-recon/RECON.md` (real Hermes endpoint map) first.
 6. **Knowledge base:** real product + runtime state lives in `G:\Vault\KBs\headmasterui-kb\` (Honcho memory is auto-injected; vault is human-readable).
@@ -77,7 +77,7 @@ For a quick iteration that only produces the runnable portable exe (skips the sl
 - **There is no legacy desktop backend fallback.** Don't restore the removed binary resolver, bundled binary preparation, or fallback startup path. Hermes is the only desktop runtime.
 - **"Hermes" is allowed in some places, forbidden in others.** Allowed in: env var names (`HERMES_HOME`, `HERMES_DESKTOP_*`), the `hermes-media://` URL scheme, the Python venv directory `~/.hermes/hermes-agent/`, the `hermes` console script name, the `hermes dashboard` spawn command. Forbidden in: any user-visible UI string, app name, About panel, window title, marketing copy. See WHITE-LABEL-AUDIT.md for the full list.
 - **The Headmaster icon (the Sorting Hat) doesn't exist yet.** All icon assets are PLACEHOLDER per `HEADMASTER-ASSET-INVENTORY.md`. Don't reference them as if they exist.
-- **`gcaplabs-site/` is the website, not the desktop.** Different stack, different product surface. If the user says "change the website", that's `gcaplabs-site/`. If they say "change the app", that's `gcaplabs-headmaster/repo/gcaplabs-headmasterUI/`.
+- **`gcaplabs-site/` is the website, not the desktop.** Different stack, different product surface. If the user says "change the website", that's `gcaplabs-site/`. If they say "change the app", that's `gcaplabs-headmasterUI/`.
 - **`headmaster-hub/` is the Headmaster Hub web app.** Not the same as the marketing site (`gcaplabs-site/`) and not the same as the desktop app.
 - **Local dev can't run Docker on this machine** (Hyper-V/WSL2 disabled for WoW kernel-level cheats). Anything that needs Docker (OpenConcho) has to be external or native.
 - **`_support/upstream/aionui/` is the Apache-2.0 upstream source.** Don't edit it; if you want to compare, that's what it's for.
@@ -88,10 +88,10 @@ For a quick iteration that only produces the runnable portable exe (skips the sl
 
 - **Knowledge base:** `G:\Vault\KBs\headmasterui-kb\` (the file index lives at `G:\Vault\KBs\headmasterui-kb\_MOC.md`).
 - **Honcho memory** is auto-injected — long-term facts about the user, project, and decisions.
-- **White-label audit:** `gcaplabs-headmaster/repo/gcaplabs-headmasterUI/docs/white-label/WHITE-LABEL-AUDIT.md` (read before any rename work).
-- **Vocab mapping:** `gcaplabs-headmaster/repo/gcaplabs-headmasterUI/docs/white-label/HEADMASTER-VOCABULARY.csv` (read before any naming work).
+- **White-label audit:** `gcaplabs-headmasterUI/docs/white-label/WHITE-LABEL-AUDIT.md` (read before any rename work).
+- **Vocab mapping:** `gcaplabs-headmasterUI/docs/white-label/HEADMASTER-VOCABULARY.csv` (read before any naming work).
 - **Hermes runtime recon:** `runtime-recon/RECON.md` (read before any runtime/backend work).
-- **The plan:** `gcaplabs-headmaster/repo/gcaplabs-headmasterUI/docs/white-label/WHAT-WE-TAKE.md` (high-level; likely out of date, the recon wins).
+- **The plan:** `gcaplabs-headmasterUI/docs/white-label/WHAT-WE-TAKE.md` (high-level; likely out of date, the recon wins).
 - **Active backlog:** `todo.md` — read this first when resuming desktop work. The v0.2.1 implementation is assembled; remaining work is final automated validation, installed-runtime smoke testing, debugging, and release closeout.
 - **Update check architecture:** `updateBridge.ts` calls `https://gcaplabs.com/api/release` (Vercel proxy, 5-min cache) which proxies `mutvayzz-sys/gcaplabs-headmasterUI` GitHub releases with a server-side `GITHUB_TOKEN`. Needs `GITHUB_TOKEN` set in Vercel env vars. Downloads rewritten to CDN via `static.gcaplabs.com/releases/{version}/{filename}`.
 - **Full history:** `DEVLOG.md` (workspace root, newest first).

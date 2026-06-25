@@ -9,6 +9,19 @@ Ship Headmaster as a two-mode platform:
 
 Both modes are provisioned by `HermesHQ`, and both use the same unified auth system.
 
+## Status Key
+
+- `[x]` done
+- `[~]` in progress
+- `[ ]` pending
+
+## Progress Log
+
+- [x] Pushed the current `HeadmasterUI` worktree to `origin/codex/headmaster-v0.2.0`
+- [x] Created and pushed private `HermesHQ` repo `mutvayzz-sys/gcapslab-hermeshq`
+- [x] Implemented the desktop HermesHQ provision snapshot path: connection config persistence, IPC bridge, renderer auth gating, and restart validation
+- [ ] Continue the implementation plan below and update this file after each completed task
+
 ## Delivery Priority
 
 Full deployment is the primary build path.
@@ -215,6 +228,11 @@ This does not stop someone with local admin/Docker access from inspecting Hermes
 
 ### Phase 0: Lock the provisioning contract
 
+- [ ] Define the `HermesHQ` response contract
+- [ ] Finalize the initial mode list
+- [ ] Finalize the initial capability list
+- [ ] Verify one fake provision payload can drive the full local, staff, and student cases
+
 Define the `HermesHQ` response before changing the desktop runtime code.
 
 The contract should include:
@@ -246,6 +264,13 @@ Acceptance check: one fake provision payload can drive a full local user, a staf
 
 ### Phase 1: `HermesHQ` auth and provisioning
 
+- [ ] Keep `POST /api/auth/login` as the single login path
+- [ ] Add `POST /api/provision`
+- [ ] Add `GET /api/provision/current`
+- [ ] Store provision decisions server-side
+- [ ] Add audit logging for login, provision, container start, terminal enablement, and mode changes
+- [ ] Verify changing a user from `student` to `staff` changes returned capabilities without changing the app build
+
 Keep `POST /api/auth/login` as the single login path. After login, clients call `POST /api/provision`.
 
 Backend work:
@@ -261,6 +286,14 @@ Backend work:
 Acceptance check: changing a user from `student` to `staff` server-side changes their returned capabilities without changing the app build.
 
 ### Phase 2: Redesign `AgentContainerSupervisor`
+
+- [ ] Manage per-user cloud containers on the Mac Mini
+- [ ] Track container states and health checks
+- [ ] Isolate per-user volumes for memory/session data
+- [ ] Return only HermesHQ-mediated endpoint/token data
+- [ ] Add cleanup and restart logic for failed containers
+- [ ] Expose logs per container and per user
+- [ ] Verify Demo1 and Demo2 cannot fetch each other's provision or runtime token
 
 This is the backend core for cloud continuity and later managed deployments.
 
@@ -278,6 +311,13 @@ Backend work:
 Acceptance check: Demo1 and Demo2 get separate cloud containers and cannot fetch each other's provision or runtime token.
 
 ### Phase 3: Desktop provision client
+
+- [ ] Add shared provision types
+- [ ] Add main-process provision service
+- [ ] Add IPC bridge and preload exposure
+- [ ] Store non-secret config separately from the JWT
+- [ ] Make `AuthContext` call provision after successful login
+- [ ] Verify the renderer can read the provisioned mode and capability set after login
 
 Add a small provision client in the Electron main process.
 
@@ -302,6 +342,10 @@ Acceptance check: after login, the renderer can ask Electron for the provisioned
 
 ### Phase 4: HeadmasterUI runtime bootstrap
 
+- [ ] Refactor startup into provision-driven runtime selection
+- [ ] Keep existing runtime globals working
+- [ ] Verify conversation, Settings, model loading, and status polling still work
+
 Refactor the current startup branch in `packages/desktop/src/index.ts` into provision-driven runtime selection.
 
 Runtime behavior:
@@ -318,6 +362,13 @@ Compatibility rule:
 Acceptance check: Conversation, Settings, model loading, and status polling still work because the existing bridges see the same runtime globals.
 
 ### Phase 4.5: Make Hermes an internal sidecar
+
+- [ ] Bind local Hermes to loopback only
+- [ ] Use provisioned dashboard basic auth
+- [ ] Tighten CORS
+- [ ] Require HermesHQ runtime validation for privileged local actions
+- [ ] Cache validation briefly and fail closed after revoke or expiry
+- [ ] Verify direct dashboard access fails without provisioned credentials
 
 Do this before broader demo distribution.
 
@@ -350,6 +401,14 @@ Acceptance check: opening the Hermes dashboard URL directly without provisioned 
 
 ### Phase 5: Local Docker runtime for full deployment
 
+- [ ] Detect Docker Desktop availability
+- [ ] Pull or verify the runtime image
+- [ ] Create per-user local containers
+- [ ] Mount only approved folders
+- [ ] Inject dashboard basic auth into local Hermes config
+- [ ] Report clear container states
+- [ ] Verify mounted-folder access works and is visible to the user
+
 This is the main product priority.
 
 Desktop work:
@@ -374,6 +433,12 @@ Acceptance check: "organize my local folders" works only for mounted folders, an
 
 ### Phase 6: Renderer bootstrap UI
 
+- [ ] Add a post-login bootstrap state
+- [ ] Show a minimal preparing screen
+- [ ] Hide or disable UI by capability
+- [ ] Keep existing routes and pages intact once bootstrap is ready
+- [ ] Verify staff and student capability differences are reflected in the UI
+
 Keep this small.
 
 Likely files:
@@ -393,6 +458,13 @@ Renderer work:
 Acceptance check: a staff account can see terminal-enabled workflows, while a student-style provision cannot.
 
 ### Phase 7: School capability controls inside full deployment
+
+- [ ] Create staff/student capability presets
+- [ ] Make terminal access server-controlled
+- [ ] Make model selection server-controlled
+- [ ] Make system prompt and policy server-controlled
+- [ ] Add audit views for school admins
+- [ ] Verify the same provisioning system can return staff and student roles
 
 Do this before building a separate `HeadMaster+` client.
 
@@ -414,6 +486,12 @@ Acceptance check: a school demo user can be shown both staff and student roles f
 
 ### Phase 8: `HeadMaster+` on-demand thin client
 
+- [ ] Ship it first as a provisioned mode inside the same app
+- [ ] Split branding/build target later if needed
+- [ ] Route all chat/task operations through HermesHQ or the cloud adapter
+- [ ] Keep local process supervision out of the thin build
+- [ ] Verify a student can use chat without Docker, local Hermes, or local filesystem access
+
 Only start this when a managed school deployment explicitly needs no local runtime.
 
 Implementation path:
@@ -426,6 +504,12 @@ Implementation path:
 Acceptance check: a student can use chat from a managed device without Docker, local Hermes, or local filesystem access.
 
 ### Phase 9: iOS adapter path
+
+- [ ] Make iOS log in to HermesHQ
+- [ ] Make iOS call provision
+- [ ] Return the cloud container endpoint/session token
+- [ ] Build the chat UX and attachment flow
+- [ ] Verify the same user can continue a cloud conversation from desktop and iOS
 
 Treat iOS as a client of the same provisioning system.
 

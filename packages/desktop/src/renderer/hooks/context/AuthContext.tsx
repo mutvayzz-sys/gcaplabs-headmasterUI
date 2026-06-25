@@ -4,6 +4,7 @@ const withCsrfToken = <T extends Record<string, unknown>>(data: T): T => data;
 const hasValidCsrfToken = (): boolean => true;
 const clearCookie = (_name: string, _path?: string): void => {};
 const CSRF_COOKIE_NAME = 'csrf-token';
+declare const __APP_VERSION__: string;
 
 type AuthStatus = 'checking' | 'authenticated' | 'unauthenticated';
 
@@ -33,6 +34,28 @@ interface LoginResult {
   shouldClearCache?: boolean;
 }
 
+interface DesktopHermeshqUser {
+  id: string;
+  username: string;
+  role: string;
+}
+
+interface DesktopHermeshqProvision {
+  mode: string;
+  user: DesktopHermeshqUser;
+  capabilities: string[];
+  runtime: {
+    validate_url: string;
+    ttl_seconds: number;
+  };
+}
+
+interface DesktopHermeshqConfig {
+  url: string;
+  token: string;
+  provision?: DesktopHermeshqProvision | null;
+}
+
 interface AuthContextValue {
   ready: boolean;
   user: AuthUser | null;
@@ -50,24 +73,11 @@ const AUTH_USER_ENDPOINT = '/api/auth/user';
 const isDesktopRuntime = typeof window !== 'undefined' && Boolean(window.electronAPI);
 
 // Build-time server URL — set VITE_HERMESHQ_URL in .env before building
-const HERMESHQ_URL = (import.meta.env.VITE_HERMESHQ_URL as string | undefined ?? '').replace(/\/$/, '');
-
-async function fetchHermeshqUser(serverUrl: string, token: string): Promise<AuthUser | null> {
-  try {
-    const response = await fetch(`${serverUrl}/api/auth/me`, {
-      method: 'GET',
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    if (!response.ok) return null;
-    const data = (await response.json()) as { id: string; username: string; display_name?: string | null };
-    if (data.id && data.username) {
-      return { id: data.id, username: data.display_name || data.username };
-    }
-  } catch {
-    // network error or token expired
-  }
-  return null;
-}
+const HERMESHQ_URL = (
+  ((import.meta as ImportMeta & { env?: Record<string, string | undefined> }).env?.VITE_HERMESHQ_URL as
+    | string
+    | undefined) ?? ''
+).replace(/\/$/, '');
 
 async function refreshHermeshqToken(serverUrl: string, token: string): Promise<string | null> {
   try {
@@ -136,6 +146,31 @@ async function fetchCurrentUser(signal?: AbortSignal): Promise<AuthUser | null> 
   return null;
 }
 
+function resolveDesktopServerUrl(configUrl?: string): string {
+  return (configUrl || HERMESHQ_URL).trim().replace(/\/$/, '');
+}
+
+async function provisionDesktopSession(): Promise<DesktopHermeshqProvision | null> {
+  const result = await window.electronAPI?.provisionHermeshq?.({
+    client: 'headmaster_desktop',
+    version: __APP_VERSION__,
+    platform: process.platform as NodeJS.Platform,
+  });
+
+  if (!result?.success || !result.provision) {
+    return null;
+  }
+
+  return result.provision as DesktopHermeshqProvision;
+}
+
+function provisionUserToAuthUser(user: DesktopHermeshqUser): AuthUser {
+  return {
+    id: user.id,
+    username: user.username,
+  };
+}
+
 export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) => {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [status, setStatus] = useState<AuthStatus>('checking');
@@ -145,10 +180,11 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
   const refresh = useCallback(async () => {
     if (isDesktopRuntime) {
       // Desktop mode: validate stored HermesHQ JWT against the baked-in server URL
-      const config = await window.electronAPI?.getHermeshqConfig?.();
+      const config = (await window.electronAPI?.getHermeshqConfig?.()) as DesktopHermeshqConfig | undefined;
+      const serverUrl = resolveDesktopServerUrl(config?.url);
       const token = config?.token ?? '';
 
-      if (!HERMESHQ_URL || !token) {
+      if (!serverUrl || !token) {
         setUser(null);
         setStatus('unauthenticated');
         setReady(true);
@@ -156,21 +192,24 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
       }
 
       // Try to refresh the token first so sessions stay alive silently
-      const freshToken = await refreshHermeshqToken(HERMESHQ_URL, token);
-      const activeToken = freshToken ?? token;
+      const freshToken = await refreshHermeshqToken(serverUrl, token);
       if (freshToken) {
         await window.electronAPI?.setHermeshqToken?.(freshToken);
       }
 
-      const currentUser = await fetchHermeshqUser(HERMESHQ_URL, activeToken);
-      if (currentUser) {
-        setUser(currentUser);
-        setStatus('authenticated');
-      } else {
-        // Token expired and refresh failed — require re-login
+      if (!config?.url && serverUrl) {
+        await window.electronAPI?.setHermeshqUrl?.(serverUrl);
+      }
+
+      const provision = await provisionDesktopSession();
+      if (!provision) {
         await window.electronAPI?.clearHermeshqToken?.();
+        await window.electronAPI?.clearHermeshqProvision?.();
         setUser(null);
         setStatus('unauthenticated');
+      } else {
+        setUser(provisionUserToAuthUser(provision.user));
+        setStatus('authenticated');
       }
       setReady(true);
       return;
@@ -200,14 +239,17 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
     };
   }, [refresh]);
 
-  const login = useCallback(async ({ username, password }: LoginParams): Promise<LoginResult> => {
+  const login = useCallback(async ({ username, password, remember }: LoginParams): Promise<LoginResult> => {
     if (isDesktopRuntime) {
-      if (!HERMESHQ_URL) {
+      const config = (await window.electronAPI?.getHermeshqConfig?.()) as DesktopHermeshqConfig | undefined;
+      const serverUrl = resolveDesktopServerUrl(config?.url);
+
+      if (!serverUrl) {
         return { success: false, message: 'Server not configured. Please contact your administrator.', code: 'serverError' };
       }
 
       try {
-        const response = await fetch(`${HERMESHQ_URL}/api/auth/login`, {
+        const response = await fetch(`${serverUrl}/api/auth/login`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ username, password }),
@@ -240,9 +282,24 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
           return { success: false, message: 'Unexpected server response.', code: 'serverError' };
         }
 
+        await window.electronAPI?.setHermeshqUrl?.(serverUrl);
         await window.electronAPI?.setHermeshqToken?.(data.access_token);
-        const currentUser = await fetchHermeshqUser(HERMESHQ_URL, data.access_token);
-        setUser(currentUser);
+
+        const provision = await provisionDesktopSession();
+        if (!provision) {
+          await window.electronAPI?.clearHermeshqToken?.();
+          await window.electronAPI?.clearHermeshqProvision?.();
+          setUser(null);
+          setStatus('unauthenticated');
+          setReady(true);
+          return {
+            success: false,
+            message: 'Provisioning was rejected by HermesHQ.',
+            code: 'serverError',
+          };
+        }
+
+        setUser(provisionUserToAuthUser(provision.user));
         setStatus('authenticated');
         setReady(true);
 
@@ -336,6 +393,7 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
         }
       }
       await window.electronAPI?.clearHermeshqToken?.();
+      await window.electronAPI?.clearHermeshqProvision?.();
       setUser(null);
       setStatus('unauthenticated');
       clearAuthCache();
