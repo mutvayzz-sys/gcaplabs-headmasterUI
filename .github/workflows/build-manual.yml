@@ -30,8 +30,8 @@ on:
         required: false
         type: boolean
         default: false
-      aioncore_run_id:
-        description: 'Optional Adonis Core Manual Build workflow run id to bundle instead of the pinned release'
+      hermes_runtime_ref:
+        description: 'Optional Hermes runtime ref to bundle instead of the pinned release'
         required: false
         type: string
         default: ''
@@ -87,7 +87,7 @@ jobs:
       matrix: ${{ needs.prepare-matrix.outputs.matrix }}
       ref: ${{ inputs.branch }}
       skip_code_quality: ${{ inputs.skip_code_quality }}
-      aioncore_run_id: ${{ inputs.aioncore_run_id }}
+      hermes_runtime_ref: ${{ inputs.hermes_runtime_ref }}
       append_commit_hash: true
       upload_installers_only: true
     secrets: inherit
