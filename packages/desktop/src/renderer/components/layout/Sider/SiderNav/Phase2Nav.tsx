@@ -8,6 +8,7 @@ import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ChatCircle, Brain, Clock, Users, Kanban, GearSix, Package } from '@phosphor-icons/react';
 import type { SiderTooltipProps } from '@renderer/utils/ui/siderTooltip';
+import { useCapabilities } from '@renderer/hooks/system/useCapabilities';
 import { SiderNavEntry } from './index';
 
 interface Phase2NavProps {
@@ -17,29 +18,43 @@ interface Phase2NavProps {
   onNavClick?: () => void;
 }
 
-const NAV_ITEMS = [
-  { path: '/guid', icon: ChatCircle, labelKey: 'sidebar.chat', defaultLabel: 'Chat' },
-  { path: '/memory', icon: Brain, labelKey: 'sidebar.memory', defaultLabel: 'Memory' },
-  { path: '/agents', icon: Users, labelKey: 'sidebar.agents', defaultLabel: 'Agents' },
-  { path: '/scheduled', icon: Clock, labelKey: 'sidebar.automations', defaultLabel: 'Automations' },
-  { path: '/kanban', icon: Kanban, labelKey: 'sidebar.kanban', defaultLabel: 'Kanban' },
-  { path: '/assets', icon: Package, labelKey: 'sidebar.deliverables', defaultLabel: 'Deliverables' },
-  { path: '/settings/model', icon: GearSix, labelKey: 'sidebar.settings', defaultLabel: 'Settings' },
+interface NavItem {
+  path: string;
+  icon: React.ComponentType<any>;
+  labelKey: string;
+  defaultLabel: string;
+  requiredCapability?: string;
+}
+
+const NAV_ITEMS: NavItem[] = [
+  { path: '/guid', icon: ChatCircle, labelKey: 'sidebar.chat', defaultLabel: 'Chat', requiredCapability: 'chat' },
+  { path: '/memory', icon: Brain, labelKey: 'sidebar.memory', defaultLabel: 'Memory', requiredCapability: 'chat' },
+  { path: '/agents', icon: Users, labelKey: 'sidebar.agents', defaultLabel: 'Agents', requiredCapability: 'terminal' },
+  { path: '/scheduled', icon: Clock, labelKey: 'sidebar.automations', defaultLabel: 'Automations', requiredCapability: 'cowork' },
+  { path: '/kanban', icon: Kanban, labelKey: 'sidebar.kanban', defaultLabel: 'Kanban', requiredCapability: 'cowork' },
+  { path: '/assets', icon: Package, labelKey: 'sidebar.deliverables', defaultLabel: 'Deliverables', requiredCapability: 'local_files' },
+  { path: '/settings/model', icon: GearSix, labelKey: 'sidebar.settings', defaultLabel: 'Settings', requiredCapability: 'runtime_settings' },
 ];
 
 export default function Phase2Nav({ isMobile, collapsed, siderTooltipProps, onNavClick }: Phase2NavProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const { pathname } = location;
+  const { capabilities } = useCapabilities();
 
   const handleClick = (path: string) => {
     navigate(path);
     onNavClick?.();
   };
 
+  const visibleItems = NAV_ITEMS.filter((item) => {
+    if (!item.requiredCapability) return true;
+    return capabilities.includes(item.requiredCapability as any);
+  });
+
   return (
     <div className='flex flex-col gap-2px shrink-0'>
-      {NAV_ITEMS.map((item) => {
+      {visibleItems.map((item) => {
         const isActive = pathname === item.path || pathname.startsWith(item.path + '/');
         return (
           <SiderNavEntry

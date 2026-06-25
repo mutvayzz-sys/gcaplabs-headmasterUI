@@ -45,6 +45,7 @@ export interface HermeshqProvisionSnapshot {
     container_id: string;
   } | null;
   system_prompt_override?: string | null;
+  session_namespace?: string | null;
   client?: string;
   version?: string;
   platform?: string;
