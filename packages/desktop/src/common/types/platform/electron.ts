@@ -43,6 +43,9 @@ export interface ElectronBridgeAPI {
     status?: number;
     error?: string;
   }>;
+  saveCredentials?: (creds: { username: string; password: string }) => Promise<{ success: boolean; error?: string }>;
+  loadCredentials?: () => Promise<{ success: boolean; credentials: { username: string; password: string } | null }>;
+  clearCredentials?: () => Promise<{ success: boolean }>;
 }
 
 export type ElectronAPI = ElectronBridgeAPI;

@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useMemo } from 'react';
+import { useState, useEffect } from 'react';
 
 const ALL_CAPABILITIES = [
   'chat',
@@ -51,7 +51,13 @@ function readCapabilitiesFromWindow(): CapabilityContext {
 }
 
 export function useCapabilities(): CapabilityContext {
-  return useMemo(() => readCapabilitiesFromWindow(), []);
+  const [caps, setCaps] = useState(() => readCapabilitiesFromWindow());
+  useEffect(() => {
+    const handler = () => setCaps(readCapabilitiesFromWindow());
+    window.addEventListener('hermeshq:provision-updated', handler);
+    return () => window.removeEventListener('hermeshq:provision-updated', handler);
+  }, []);
+  return caps;
 }
 
 export function useCapabilityCheck(capability: DesktopCapability): boolean {

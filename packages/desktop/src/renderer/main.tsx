@@ -91,6 +91,8 @@ import Sider from './components/layout/Sider';
 import { useAuth } from './hooks/context/AuthContext';
 import { ConversationHistoryProvider } from './hooks/context/ConversationHistoryContext';
 import HOC from './utils/ui/HOC';
+import BootstrapScreen from './components/BootstrapScreen';
+import { RuntimeDetectionModal } from './components/RuntimeDetectionModal';
 
 // Patch Korean locale with missing properties from English locale
 const koKRComplete = {
@@ -147,6 +149,7 @@ const Config: React.FC<PropsWithChildren> = ({ children }) => {
 const Main = () => {
   const { ready } = useAuth();
   const [configReady, setConfigReady] = useState(false);
+  const [runtimeChecked, setRuntimeChecked] = useState(false);
 
   useEffect(() => {
     if (!ready) return;
@@ -171,14 +174,12 @@ const Main = () => {
     void repairAllCronJobTimeZonesOnce();
   }, [ready]);
 
+  if (!runtimeChecked) {
+    return <RuntimeDetectionModal onRuntimeSelected={() => setRuntimeChecked(true)} />;
+  }
+
   if (!ready || !configReady) {
-    return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh' }}>
-        <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: '14px', color: '#999' }}>Initializing...</div>
-        </div>
-      </div>
-    );
+    return <BootstrapScreen isVisible={true} />;
   }
 
   return (

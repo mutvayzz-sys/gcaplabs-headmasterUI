@@ -65,6 +65,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('hermeshq:provision', request),
   validateHermeshqRuntime: (request: { runtime_id: string; requested_capability: string }) =>
     ipcRenderer.invoke('hermeshq:validate-runtime', request),
+  // Remembered credentials — stored encrypted via OS safeStorage, never in localStorage
+  saveCredentials: (creds: { username: string; password: string }) =>
+    ipcRenderer.invoke('credentials:save', creds),
+  loadCredentials: () => ipcRenderer.invoke('credentials:load'),
+  clearCredentials: () => ipcRenderer.invoke('credentials:clear'),
 });
 
 // Synchronously fetch the backend port/session token and expose it to the renderer

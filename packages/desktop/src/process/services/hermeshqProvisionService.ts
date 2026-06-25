@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { applyProvisionToRuntime } from './applyProvisionToRuntime';
 import {
   clearHermeshqProvision,
   getHermeshqConfig,
@@ -110,6 +111,7 @@ export async function provisionHermeshqDesktop(request: HermeshqProvisionRequest
       refreshed_at: new Date().toISOString(),
     };
     setHermeshqProvision(provision);
+    applyProvisionToRuntime(provision);
 
     // Phase 3: If cloud container is provisioned, switch to remote mode
     const cloudContainer = (provision as unknown as Record<string, unknown>).cloud_container_config as Record<string, unknown> | undefined;

@@ -213,9 +213,12 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
       } else {
         setUser(provisionUserToAuthUser(provision.user));
         setStatus('authenticated');
-        // Phase 3: Set cloud container endpoint for remote mode
-        if (typeof window !== 'undefined' && (provision as any).cloud_container_config?.endpoint_url) {
-          window.__cloudContainerEndpoint = (provision as any).cloud_container_config.endpoint_url;
+        if (typeof window !== 'undefined') {
+          (window as any).__hermeshqProvision = provision;
+          window.dispatchEvent(new CustomEvent('hermeshq:provision-updated'));
+          if ((provision as any).cloud_container_config?.endpoint_url) {
+            window.__cloudContainerEndpoint = (provision as any).cloud_container_config.endpoint_url;
+          }
         }
       }
       setReady(true);
@@ -314,9 +317,9 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
         if (typeof window !== 'undefined' && provision.cloud_container_config?.endpoint_url) {
           window.__cloudContainerEndpoint = provision.cloud_container_config.endpoint_url;
         }
-        // Phase 5: Store provision snapshot for capability gating
         if (typeof window !== 'undefined') {
           (window as any).__hermeshqProvision = provision;
+          window.dispatchEvent(new CustomEvent('hermeshq:provision-updated'));
         }
 
         return { success: true };

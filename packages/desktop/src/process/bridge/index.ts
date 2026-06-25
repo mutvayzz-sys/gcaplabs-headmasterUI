@@ -19,7 +19,9 @@ import { initConnectionBridge } from './connectionBridge';
 import { initHermeshqProvisionBridge } from './hermeshqProvisionBridge';
 import { initFileSystemBridge } from './fsBridge';
 import { initRuntimeDetectionBridge } from './runtimeDetectionBridge';
+import { initContainerLifecycleBridge } from './containerLifecycleBridge';
 import { initTeamBridge } from './teamBridge';
+import { initCredentialsBridge } from './credentialsBridge';
 import type { HermesBootstrap } from '@process/backend/hermesBootstrap';
 import { disposeAllTeamSessions as disposeTeamSessions } from '@process/team/TeamSessionManager';
 
@@ -46,6 +48,8 @@ export function initAllBridges(deps: BridgeDependencies = {}): void {
   initHermeshqProvisionBridge();
   initFileSystemBridge();
   initTeamBridge();
+  initContainerLifecycleBridge();
+  initCredentialsBridge();
 }
 
 export {

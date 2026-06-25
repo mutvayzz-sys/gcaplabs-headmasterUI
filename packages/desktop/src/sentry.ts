@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 Headmaster (headmaster.com)
+ * Copyright 2025 Headmaster (gcaplabs.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 

@@ -6,7 +6,9 @@
 
 import { existsSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { app } from 'electron';
+import { app, safeStorage } from 'electron';
+
+const SAFE_PREFIX = 'safe:';
 
 export type ConnectionMode = 'local' | 'remote';
 
@@ -46,6 +48,8 @@ export interface HermeshqProvisionSnapshot {
   } | null;
   system_prompt_override?: string | null;
   session_namespace?: string | null;
+  honcho_base_url?: string | null;
+  honcho_api_key?: string | null;
   client?: string;
   version?: string;
   platform?: string;
@@ -87,10 +91,35 @@ function normalizeRemoteConfig(config: Partial<RemoteConnectionConfig> | undefin
   };
 }
 
+function encryptToken(token: string): string {
+  try {
+    if (token && safeStorage.isEncryptionAvailable()) {
+      return SAFE_PREFIX + safeStorage.encryptString(token).toString('base64');
+    }
+  } catch {
+    // fall through to plain text
+  }
+  return token;
+}
+
+function decryptToken(stored: string): string {
+  try {
+    if (stored.startsWith(SAFE_PREFIX) && safeStorage.isEncryptionAvailable()) {
+      const buf = Buffer.from(stored.slice(SAFE_PREFIX.length), 'base64');
+      return safeStorage.decryptString(buf);
+    }
+  } catch {
+    // corrupted — treat as empty so the user gets prompted to log in again
+    return '';
+  }
+  return stored;
+}
+
 function normalizeHermeshqConfig(config: Partial<HermeshqConfig> | undefined): HermeshqConfig {
+  const rawToken = typeof config?.token === 'string' ? config.token : '';
   return {
     url: typeof config?.url === 'string' ? config.url.trim().replace(/\/$/, '') : '',
-    token: typeof config?.token === 'string' ? config.token : '',
+    token: decryptToken(rawToken),
     provision: normalizeProvisionSnapshot(config?.provision),
   };
 }
@@ -140,6 +169,15 @@ function normalizeProvisionSnapshot(snapshot: Partial<HermeshqProvisionSnapshot>
   }
   if (typeof snapshot.system_prompt_override === 'string') {
     normalized.system_prompt_override = snapshot.system_prompt_override;
+  }
+  if (typeof snapshot.session_namespace === 'string') {
+    normalized.session_namespace = snapshot.session_namespace;
+  }
+  if (typeof snapshot.honcho_base_url === 'string') {
+    normalized.honcho_base_url = snapshot.honcho_base_url;
+  }
+  if (typeof snapshot.honcho_api_key === 'string') {
+    normalized.honcho_api_key = snapshot.honcho_api_key;
   }
   return normalized;
 }
@@ -196,7 +234,7 @@ export function setHermeshqUrl(url: string): void {
 
 export function setHermeshqToken(token: string): void {
   const config = readConfig();
-  writeConfig({ ...config, hermeshq: { ...config.hermeshq, token } });
+  writeConfig({ ...config, hermeshq: { ...config.hermeshq, token: encryptToken(token) } });
 }
 
 export function clearHermeshqToken(): void {

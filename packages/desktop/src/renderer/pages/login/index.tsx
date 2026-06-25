@@ -12,25 +12,6 @@ type MessageState = {
   text: string;
 };
 
-const REMEMBER_ME_KEY = 'rememberMe';
-const REMEMBERED_USERNAME_KEY = 'rememberedUsername';
-const REMEMBERED_PASSWORD_KEY = 'rememberedPassword';
-
-// Simple obfuscation for stored credentials (not cryptographically secure, but prevents plain text storage)
-const obfuscate = (text: string): string => {
-  const encoded = btoa(encodeURIComponent(text));
-  return encoded.split('').toReversed().join('');
-};
-
-const deobfuscate = (text: string): string => {
-  try {
-    const reversed = text.split('').toReversed().join('');
-    return decodeURIComponent(atob(reversed));
-  } catch {
-    return '';
-  }
-};
-
 const LoginPage: React.FC = () => {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
@@ -66,17 +47,18 @@ const LoginPage: React.FC = () => {
   }, [i18n.language]);
 
   useEffect(() => {
-    const isRememberMe = localStorage.getItem(REMEMBER_ME_KEY) === 'true';
-    if (isRememberMe) {
-      const storedUsername = localStorage.getItem(REMEMBERED_USERNAME_KEY);
-      const storedPassword = localStorage.getItem(REMEMBERED_PASSWORD_KEY);
-      if (storedUsername) setUsername(deobfuscate(storedUsername));
-      if (storedPassword) setPassword(deobfuscate(storedPassword));
-      setRememberMe(true);
-    }
-    window.setTimeout(() => {
-      usernameRef.current?.focus();
-    }, 0);
+    const loadSaved = async () => {
+      const result = await window.electronAPI?.loadCredentials?.();
+      if (result?.success && result.credentials) {
+        setUsername(result.credentials.username);
+        setPassword(result.credentials.password);
+        setRememberMe(true);
+      }
+      window.setTimeout(() => {
+        usernameRef.current?.focus();
+      }, 0);
+    };
+    void loadSaved();
 
     return () => {
       if (messageTimer.current) {
@@ -147,13 +129,9 @@ const LoginPage: React.FC = () => {
 
       if (result.success) {
         if (rememberMe) {
-          localStorage.setItem(REMEMBER_ME_KEY, 'true');
-          localStorage.setItem(REMEMBERED_USERNAME_KEY, obfuscate(trimmedUsername));
-          localStorage.setItem(REMEMBERED_PASSWORD_KEY, obfuscate(password));
+          void window.electronAPI?.saveCredentials?.({ username: trimmedUsername, password });
         } else {
-          localStorage.removeItem(REMEMBER_ME_KEY);
-          localStorage.removeItem(REMEMBERED_USERNAME_KEY);
-          localStorage.removeItem(REMEMBERED_PASSWORD_KEY);
+          void window.electronAPI?.clearCredentials?.();
         }
 
         const successText = t('login.success');
