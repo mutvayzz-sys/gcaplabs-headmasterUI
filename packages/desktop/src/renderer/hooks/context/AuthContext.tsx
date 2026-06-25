@@ -311,6 +311,10 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
         if (typeof window !== 'undefined' && provision.cloud_container_config?.endpoint_url) {
           window.__cloudContainerEndpoint = provision.cloud_container_config.endpoint_url;
         }
+        // Phase 5: Store provision snapshot for capability gating
+        if (typeof window !== 'undefined') {
+          (window as any).__hermeshqProvision = provision;
+        }
 
         return { success: true };
       } catch {
