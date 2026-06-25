@@ -42,7 +42,9 @@
     "selectFolder": "Select folder",
     "recentLabel": "Recent",
     "chooseDifferentFolder": "Choose a different folder",
-    "error": "Failed to create Council"
+    "error": "Failed to create Council",
+    "searchPlaceholder": "Search specialists...",
+    "noSearchResults": "No specialists found"
   },
   "removeAgent": {
     "confirmTitle": "Remove Council Member",
@@ -59,5 +61,6 @@
       "interview": "Spawn interviewer and expert Specialists, then run a structured Q&A on the topic I describe.",
       "expert_review": "Spawn multiple expert Specialists with different specialties, have each review the problem, then synthesize their findings."
     }
-  }
+  },
+  "stopAgentFailed": "Failed to stop specialist"
 }

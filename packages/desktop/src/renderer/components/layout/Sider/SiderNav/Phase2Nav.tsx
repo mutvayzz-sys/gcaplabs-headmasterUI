@@ -7,6 +7,7 @@
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ChatCircle, Brain, Clock, Users, Kanban, GearSix, Package } from '@phosphor-icons/react';
+import type { Icon } from '@phosphor-icons/react';
 import type { SiderTooltipProps } from '@renderer/utils/ui/siderTooltip';
 import { useCapabilities } from '@renderer/hooks/system/useCapabilities';
 import { SiderNavEntry } from './index';
@@ -20,7 +21,7 @@ interface Phase2NavProps {
 
 interface NavItem {
   path: string;
-  icon: React.ComponentType<any>;
+  icon: Icon;
   labelKey: string;
   defaultLabel: string;
   requiredCapability?: string;

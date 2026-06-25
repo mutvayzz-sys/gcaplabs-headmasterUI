@@ -21,7 +21,10 @@
     "quickActionStar": "Like us? Give us a star!",
     "agencyMarket": "The Agency",
     "agencyMarketDesc": "Search and activate community Agencies on demand. Configure once, available for all specialists.",
-    "agencyMarketDetails": "View More >>"
+    "agencyMarketDetails": "View More >>",
+    "skillsMarket": "Skills Market",
+    "skillsMarketDesc": "Discover and install skills",
+    "skillsMarketDetails": "Browse the marketplace for new skills"
   },
   "history": {
     "recents": "Recents",
@@ -75,7 +78,8 @@
     "removeProjectTitle": "Remove project",
     "removeProject": "Remove project",
     "removeProjectConfirm": "Remove project \"{{name}}\"? Its {{count}} conversation(s) will be removed too.",
-    "newConversationInProject": "New Chat in this project"
+    "newConversationInProject": "New Chat in this project",
+    "deleting": "Deleting..."
   },
   "historySearch": {
     "tooltip": "Search messages",
@@ -90,7 +94,8 @@
   },
   "dropdown": {
     "cliAgents": "CLI Specialists",
-    "presetSpecialists": "Your Council"
+    "presetSpecialists": "Your Council",
+    "presetAssistants": "Preset Specialists"
   },
   "noAgentsAvailable": "No specialists available",
   "noModelConfigured": "No model configured. Please configure in settings.",
@@ -357,7 +362,8 @@
       "vscode": "VS Code",
       "terminal": "Terminal",
       "explorer": "File Explorer"
-    }
+    },
+    "pasteConfirm_file_name": "File name"
   },
   "minimap": {
     "searchAria": "Search conversation",
@@ -500,5 +506,11 @@
       }
     }
   },
-  "notFound": "Conversation not found or has been deleted"
+  "notFound": "Conversation not found or has been deleted",
+  "skills": {
+    "loaded": "Skills loaded"
+  },
+  "context_usage": {
+    "contextUsed": "Context used"
+  }
 }

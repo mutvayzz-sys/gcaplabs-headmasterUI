@@ -112,7 +112,7 @@ export async function provisionHermeshqDesktop(request: HermeshqProvisionRequest
     setHermeshqProvision(provision);
 
     // Phase 3: If cloud container is provisioned, switch to remote mode
-    const cloudContainer = (provision as Record<string, unknown>).cloud_container_config as Record<string, unknown> | undefined;
+    const cloudContainer = (provision as unknown as Record<string, unknown>).cloud_container_config as Record<string, unknown> | undefined;
     if (cloudContainer?.endpoint_url) {
       const endpointUrl = String(cloudContainer.endpoint_url);
       try {

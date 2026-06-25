@@ -48,6 +48,9 @@ interface DesktopHermeshqProvision {
     validate_url: string;
     ttl_seconds: number;
   };
+  cloud_container_config?: {
+    endpoint_url: string;
+  };
 }
 
 interface DesktopHermeshqConfig {

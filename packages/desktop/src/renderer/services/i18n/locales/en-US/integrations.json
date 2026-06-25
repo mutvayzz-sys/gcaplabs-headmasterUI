@@ -1,0 +1,10 @@
+{
+  "title": "Integrations",
+  "webhooksHint": "Configure webhooks and external integrations",
+  "noWebhooks": "No webhooks configured",
+  "active": "Active",
+  "inactive": "Inactive",
+  "connected": "Connected",
+  "disconnected": "Disconnected",
+  "noChannels": "No channels configured"
+}

@@ -32,11 +32,12 @@ function readCapabilitiesFromWindow(): CapabilityContext {
     const caps = Array.isArray(provision.capabilities)
       ? provision.capabilities.filter((c): c is string => typeof c === 'string')
       : [];
+    const user = provision.user as Record<string, unknown> | undefined;
     return {
       capabilities: caps.filter((c): c is DesktopCapability =>
         ALL_CAPABILITIES.includes(c as DesktopCapability)
       ),
-      role: typeof provision.user?.role === 'string' ? provision.user.role : 'user',
+      role: typeof user?.role === 'string' ? user.role : 'user',
       mode: typeof provision.mode === 'string' ? provision.mode : 'headmaster_local',
     };
   }

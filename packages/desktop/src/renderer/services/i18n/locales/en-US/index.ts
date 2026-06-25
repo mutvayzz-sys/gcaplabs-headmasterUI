@@ -22,6 +22,16 @@ import starOffice from './starOffice.json';
 import guid from './guid.json';
 import agent from './agent.json';
 import team from './team.json';
+import activity from './activity.json';
+import agents from './agents.json';
+import deliverables from './deliverables.json';
+import browser from './browser.json';
+import documents from './documents.json';
+import integrations from './integrations.json';
+import kanban from './kanban.json';
+import memory from './memory.json';
+import workflows from './workflows.json';
+import sidebar from './sidebar.json';
 
 export default {
   common,
@@ -43,4 +53,14 @@ export default {
   guid,
   agent,
   team,
+  sidebar,
+  activity,
+  agents,
+  deliverables,
+  browser,
+  documents,
+  integrations,
+  kanban,
+  memory,
+  workflows,
 };
