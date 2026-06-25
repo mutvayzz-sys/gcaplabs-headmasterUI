@@ -28,7 +28,7 @@
  */
 
 import { spawn, type ChildProcess } from 'node:child_process';
-import { existsSync } from 'node:fs';
+import { existsSync, mkdirSync, writeFileSync, unlinkSync } from 'node:fs';
 import { randomBytes } from 'node:crypto';
 import { delimiter, join } from 'node:path';
 import { homedir } from 'node:os';
@@ -74,18 +74,10 @@ const PLATFORM_HERMES_BIN = (platform: NodeJS.Platform): string => {
   return 'hermes';
 };
 
-const HERMES_HOME_POSIX = (): string => process.env.HERMES_HOME || join(homedir(), '.hermes');
+const HERMES_HOME_POSIX = (): string => join(homedir(), '.headmaster', 'runtime');
 const HERMES_HOME_WIN32 = (): string => {
-  if (process.env.HERMES_HOME) return process.env.HERMES_HOME;
-  // Headmaster isolation: use a dedicated runtime directory so the app
-  // never mutates the user's existing Hermes installation.
   const localAppData = process.env.LOCALAPPDATA || join(homedir(), 'AppData', 'Local');
-  const headmasterPath = join(localAppData, 'Headmaster', 'runtime');
-  if (existsSync(headmasterPath)) return headmasterPath;
-  // Fallback to legacy Hermes path only if it already exists (migration).
-  const legacyPath = join(localAppData, 'hermes');
-  if (existsSync(legacyPath)) return legacyPath;
-  return headmasterPath;
+  return join(localAppData, 'Headmaster', 'runtime');
 };
 
 const generateSessionToken = (): string => randomBytes(32).toString('base64url');
@@ -255,67 +247,151 @@ export class HermesBootstrap {
   /** Returns absolute path to the hermes console script, or null if not present. */
   private resolveHermesBin(): string | null {
     const bin = PLATFORM_HERMES_BIN(process.platform);
+    // Only check the Headmaster-isolated venv. install.ps1 creates 'venv' (not '.venv'),
+    // but we check both variants to be safe against future installer changes.
     const candidates =
       process.platform === 'win32'
         ? [
-            // Current Hermes Windows installer path.
-            join(this.hermesHome, 'bin', bin),
-            // Git/source checkout venv path used by Hermes One / desktop dev installs.
             join(this.hermesHome, 'hermes-agent', 'venv', 'Scripts', bin),
-            // Older experimental layout.
-            join(this.hermesHome, 'venv', 'Scripts', bin),
+            join(this.hermesHome, 'hermes-agent', '.venv', 'Scripts', bin),
           ]
         : [
-            join(this.hermesHome, 'bin', bin),
             join(this.hermesHome, 'hermes-agent', 'venv', 'bin', bin),
-            join(this.hermesHome, 'venv', 'bin', bin),
+            join(this.hermesHome, 'hermes-agent', '.venv', 'bin', bin),
           ];
 
     return candidates.find((candidate) => existsSync(candidate)) ?? null;
   }
 
   /**
-   * Run the Hermes bootstrap installer. Spawns the Python interpreter with
-   * `hermes_bootstrap.py` so the venv is created and the console script
-   * installed. Resolves with true on success.
-   *
-   * NOTE: this is a placeholder — the actual installer (clone + venv +
-   * pip install) lives in the Python repo. The full implementation will be
-   * ported in Task 2.1 (the implementation follows the existing
-   * `hermes_bootstrap.py` flow in `headmaster-hermes/hermes-agent/`).
+   * Download install.ps1 from the official Hermes repo and run individual
+   * stages with -HermesHome and -InstallDir pointing at the Headmaster-
+   * isolated directory. The 'path' stage is NEVER run — hermes must not
+   * appear on the user's PATH. 'configure', 'gateway', and 'desktop' are
+   * also skipped (interactive / not needed for desktop embedding).
    */
   private async runBootstrapInstaller(): Promise<boolean> {
     this._status = 'installing';
     const home = this.hermesHome;
-    const hermesAgentSrc = join(home, 'hermes-agent');
-    const bootstrapPy = join(hermesAgentSrc, 'hermes_bootstrap.py');
-    if (!existsSync(bootstrapPy)) {
-      // The user hasn't cloned the Python repo yet. Surface a clear error.
-      this._lastError = `Python runtime not found at ${hermesAgentSrc}. Install the runtime from Headmaster settings or your system administrator.`;
+    const installDir = join(home, 'hermes-agent');
+
+    const STAGES_TO_RUN = [
+      'uv',
+      'python',
+      'git',
+      'node',
+      'system-packages',
+      'repository',
+      'venv',
+      'dependencies',
+      'node-deps',
+      'config-templates',
+      'platform-sdks',
+      'bootstrap-marker',
+    ];
+
+    const installPs1Url = 'https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.ps1';
+    const installPs1Path = join(home, 'install.ps1');
+
+    try {
+      mkdirSync(home, { recursive: true });
+
+      const response = await fetch(installPs1Url);
+      if (!response.ok) {
+        this._lastError = `Failed to download install.ps1: ${response.status} ${response.statusText}`;
+        console.error('[hermes-bootstrap]', this._lastError);
+        return false;
+      }
+      writeFileSync(installPs1Path, await response.text(), 'utf-8');
+
+      console.log('[hermes-bootstrap] running install.ps1 stages...');
+      console.log(`[hermes-bootstrap] HermesHome=${home}`);
+      console.log(`[hermes-bootstrap] InstallDir=${installDir}`);
+      console.log(`[hermes-bootstrap] Stages: ${STAGES_TO_RUN.join(', ')}`);
+      console.log('[hermes-bootstrap] SKIPPING: path, configure, gateway, desktop');
+    } catch (err) {
+      this._lastError = `Failed to prepare installer: ${err instanceof Error ? err.message : String(err)}`;
       console.error('[hermes-bootstrap]', this._lastError);
       return false;
     }
-    const py = process.platform === 'win32' ? 'python' : 'python3';
-    return new Promise<boolean>((resolve) => {
-      const proc = spawn(py, [bootstrapPy, '--home', home], {
-        cwd: hermesAgentSrc,
-        stdio: 'inherit', // surface installer output to the user
+
+    for (const stageName of STAGES_TO_RUN) {
+      console.log(`[hermes-bootstrap] stage: ${stageName}`);
+      const stageResult = await this.runInstallStage(installPs1Path, home, installDir, stageName);
+      if (!stageResult.ok) {
+        this._lastError = `Stage '${stageName}' failed: ${stageResult.reason}`;
+        console.error('[hermes-bootstrap]', this._lastError);
+        try {
+          unlinkSync(installPs1Path);
+        } catch {
+          /* best effort */
+        }
+        return false;
+      }
+      if (stageResult.skipped) {
+        console.log(`[hermes-bootstrap] stage '${stageName}' skipped: ${stageResult.reason}`);
+      }
+    }
+
+    try {
+      unlinkSync(installPs1Path);
+    } catch {
+      /* best effort */
+    }
+    console.log('[hermes-bootstrap] runtime installed successfully');
+    return true;
+  }
+
+  private runInstallStage(
+    installPs1Path: string,
+    home: string,
+    installDir: string,
+    stageName: string
+  ): Promise<{ ok: boolean; skipped: boolean; reason: string | null }> {
+    return new Promise((resolve) => {
+      const args = [
+        '-ExecutionPolicy',
+        'Bypass',
+        '-NoProfile',
+        '-File',
+        installPs1Path,
+        '-HermesHome',
+        home,
+        '-InstallDir',
+        installDir,
+        '-NonInteractive',
+        '-Json',
+        '-Stage',
+        stageName,
+      ];
+
+      let stdout = '';
+      const proc = spawn('powershell.exe', args, {
+        cwd: home,
+        stdio: ['ignore', 'pipe', 'inherit'],
         env: { ...process.env, HERMES_HOME: home },
+        windowsHide: true,
       });
+
+      proc.stdout?.on('data', (chunk: Buffer) => {
+        stdout += chunk.toString('utf-8');
+      });
+
       proc.on('exit', (code) => {
-        if (code === 0) {
-          console.log('[hermes-bootstrap] installer succeeded');
-          resolve(true);
-        } else {
-          this._lastError = `Hermes installer exited with code ${code}`;
-          console.error('[hermes-bootstrap]', this._lastError);
-          resolve(false);
+        try {
+          const result = JSON.parse(stdout.trim()) as { ok?: boolean; skipped?: boolean; reason?: string };
+          resolve({
+            ok: Boolean(result.ok),
+            skipped: Boolean(result.skipped),
+            reason: result.reason ?? null,
+          });
+        } catch {
+          resolve({ ok: code === 0, skipped: false, reason: code !== 0 ? `exit code ${code}` : null });
         }
       });
+
       proc.on('error', (err) => {
-        this._lastError = `Hermes installer failed to spawn: ${err.message}`;
-        console.error('[hermes-bootstrap]', this._lastError);
-        resolve(false);
+        resolve({ ok: false, skipped: false, reason: `spawn error: ${err.message}` });
       });
     });
   }

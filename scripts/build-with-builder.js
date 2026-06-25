@@ -222,7 +222,7 @@ function createDmgWithPrepackaged(appDir, targetArch) {
   const appPath = path.join(appDir, appName);
 
   execSync(
-    `bunx electron-builder --config packages/desktop/electron-builder.yml --mac dmg --${targetArch} --prepackaged "${appPath}" --publish=never`,
+    `node ./node_modules/electron-builder/cli.js --config packages/desktop/electron-builder.yml --mac dmg --${targetArch} --prepackaged "${appPath}" --publish=never`,
     {
       stdio: 'inherit',
       shell: process.platform === 'win32',
@@ -574,9 +574,26 @@ try {
     cleanupWindowsPackOutput();
   }
 
-  const builderCommand = `bunx electron-builder --config packages/desktop/electron-builder.yml ${builderArgs} ${archFlag} ${nsisInclude} ${publishArg}`;
+  const packOutputDir = process.env.HEADMASTER_PACK_OUTPUT
+    ? path.resolve(process.env.HEADMASTER_PACK_OUTPUT)
+    : outDir;
+  const packOutputOverride = process.env.HEADMASTER_PACK_OUTPUT
+    ? ` --config.directories.output="${packOutputDir.replace(/\\/g, '/')}"`
+    : '';
+
+  const builderCommand = `node ./node_modules/electron-builder/cli.js --config packages/desktop/electron-builder.yml ${builderArgs} ${archFlag} ${nsisInclude} ${publishArg}${packOutputOverride}`;
   try {
     buildWithDmgRetry(builderCommand, targetArch);
+
+    if (process.env.HEADMASTER_PACK_OUTPUT) {
+      const packedWinDir = path.join(packOutputDir, 'win-unpacked');
+      const targetWinDir = path.join(outDir, 'win-unpacked');
+      if (fs.existsSync(packedWinDir) && packedWinDir !== targetWinDir) {
+        console.log(`📦 Copying packaged app to ${targetWinDir}...`);
+        fs.rmSync(targetWinDir, { recursive: true, force: true });
+        fs.cpSync(packedWinDir, targetWinDir, { recursive: true });
+      }
+    }
   } catch (error) {
     const winExePath = path.join(outDir, 'win-unpacked', 'Headmaster.exe');
     const firstError = formatExecError(error);

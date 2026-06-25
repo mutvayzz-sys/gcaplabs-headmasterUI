@@ -8,7 +8,7 @@ import { ipcMain, dialog, app } from 'electron';
 import type { HermesBootstrap } from '@process/backend/hermesBootstrap';
 
 export interface RuntimeChoice {
-  action: 'use-detected' | 'specify-path' | 'skip' | 'quit';
+  action: 'use-detected' | 'specify-path' | 'skip' | 'quit' | 'retry';
   customPath?: string;
 }
 
@@ -30,24 +30,28 @@ export function initRuntimeDetectionBridge(hermesBootstrap: HermesBootstrap): vo
       };
     }
 
-    // Show dialog to user
+    // Show dialog only when auto-install has already failed
     const result = await dialog.showMessageBox({
-      type: 'info',
-      title: 'Runtime Not Found',
-      message: 'Headmaster requires the Python runtime to function.',
+      type: 'warning',
+      title: 'Runtime Installation Failed',
+      message: 'Headmaster could not install its runtime automatically.',
       detail:
-        'The Python runtime was not detected at the expected location.\n\n' +
+        'The Headmaster runtime failed to install. This may be due to network issues or missing system prerequisites.\n\n' +
         'Would you like to:\n' +
+        '• Retry the installation\n' +
         '• Specify a custom runtime installation path\n' +
-        '• Launch without runtime (limited functionality)\n' +
-        '• Quit and install the runtime',
-      buttons: ['Specify Path', 'Launch Without Runtime', 'Quit'],
-      defaultId: 2,
+        '• Quit',
+      buttons: ['Retry', 'Specify Path', 'Quit'],
+      defaultId: 0,
       cancelId: 2,
     });
 
     switch (result.response) {
-      case 0: // Specify Path
+      case 0: // Retry
+        userRuntimeChoice = { action: 'retry' };
+        return { detected: false, choice: 'retry' };
+
+      case 1: // Specify Path
         const pathResult = await dialog.showOpenDialog({
           title: 'Select Runtime Installation Directory',
           properties: ['openDirectory'],
@@ -57,13 +61,8 @@ export function initRuntimeDetectionBridge(hermesBootstrap: HermesBootstrap): vo
           userRuntimeChoice = { action: 'specify-path', customPath: pathResult.filePaths[0] };
           return { detected: false, choice: 'specify-path', customPath: pathResult.filePaths[0] };
         }
-        // Fall through to skip if user cancels
-        userRuntimeChoice = { action: 'skip' };
-        return { detected: false, choice: 'skip' };
-
-      case 1: // Launch Without Runtime
-        userRuntimeChoice = { action: 'skip' };
-        return { detected: false, choice: 'skip' };
+        userRuntimeChoice = { action: 'retry' };
+        return { detected: false, choice: 'retry' };
 
       case 2: // Quit
       default:

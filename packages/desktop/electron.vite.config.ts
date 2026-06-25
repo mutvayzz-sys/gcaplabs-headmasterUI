@@ -205,6 +205,7 @@ export default defineConfig(({ mode }) => {
       // Make the root explicit so Vite emits page names relative to that directory
       // instead of leaking source-relative ../../ paths into HTML asset names.
       root: rendererRoot,
+      envDir: resolve('packages/desktop'),
       base: './',
       publicDir: resolve('public'),
       appType: 'mpa',

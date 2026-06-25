@@ -110,14 +110,26 @@ function prepareManagedResources(binaryPath, targetDir) {
   const bundleOut = path.join(targetDir, 'managed-resources');
   const dataDir = path.join(targetDir, '.prepare-data');
 
+  // Skip if managed-resources already contain content from a previous prep
+  // (no .staging dir = completed cleanly; has node/ or acp/ = ready to use).
+  const stagingDir = path.join(bundleOut, '.staging');
+  const hasContent = fs.existsSync(bundleOut) && !fs.existsSync(stagingDir) &&
+    fs.readdirSync(bundleOut).some(f => !f.startsWith('.'));
+  if (hasContent) {
+    console.log(`  Reusing existing managed resources (${path.relative(process.cwd(), bundleOut)})`);
+    return bundleOut;
+  }
+
   removeDirectorySafe(bundleOut);
   removeDirectorySafe(dataDir);
   ensureDirectory(bundleOut);
   ensureDirectory(dataDir);
 
   console.log(`  Preparing managed resources under ${path.relative(process.cwd(), bundleOut)}`);
+  // 30-minute timeout — aioncore downloads Node.js runtime + ACP packages on first run.
   execFileSync(binaryPath, ['--data-dir', dataDir, 'prepare-managed-resources', '--bundle-out', bundleOut], {
     stdio: 'inherit',
+    timeout: 30 * 60 * 1000,
     env: {
       ...process.env,
       HEADMASTER_BUNDLED_MANAGED_RESOURCES: '',
@@ -448,6 +460,25 @@ function prepareAioncore(options) {
   console.log(
     `Preparing aioncore for ${runtimeKey} (${actionsRunId ? `actions run: ${actionsRunId}` : `version: ${tag}`})`
   );
+
+  // Cache hit: skip download + managed-resource prep if the existing binary
+  // matches the requested version. Actions-artifact mode always re-downloads.
+  if (!actionsRunId && tag && fs.existsSync(targetBinaryPath)) {
+    const manifestPath = path.join(targetDir, 'manifest.json');
+    if (fs.existsSync(manifestPath)) {
+      try {
+        const existing = JSON.parse(fs.readFileSync(manifestPath, 'utf-8'));
+        if (existing.version === tag) {
+          console.log(`  aioncore ${tag} already prepared for ${runtimeKey} — skipping download`);
+          const bundledManagedResourcesDir = prepareManagedResources(targetBinaryPath, targetDir);
+          console.log(`  Bundled managed resources: ${bundledManagedResourcesDir}`);
+          return { prepared: true, dir: targetDir, sourceType: existing.sourceType || 'cached' };
+        }
+      } catch {
+        // corrupt manifest — fall through to re-download
+      }
+    }
+  }
 
   removeDirectorySafe(targetDir);
   ensureDirectory(targetDir);

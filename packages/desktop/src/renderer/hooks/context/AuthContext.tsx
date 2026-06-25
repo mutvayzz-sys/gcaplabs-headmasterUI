@@ -79,7 +79,7 @@ const isDesktopRuntime = typeof window !== 'undefined' && Boolean(window.electro
 const HERMESHQ_URL = (
   ((import.meta as ImportMeta & { env?: Record<string, string | undefined> }).env?.VITE_HERMESHQ_URL as
     | string
-    | undefined) ?? ''
+    | undefined) ?? 'https://hermeshq.gcaplabs.com'
 ).replace(/\/$/, '');
 
 async function refreshHermeshqToken(serverUrl: string, token: string): Promise<string | null> {
@@ -255,7 +255,11 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
       const serverUrl = resolveDesktopServerUrl(config?.url);
 
       if (!serverUrl) {
-        return { success: false, message: 'Server not configured. Please contact your administrator.', code: 'serverError' };
+        return {
+          success: false,
+          message: 'Server not configured. Please contact your administrator.',
+          code: 'serverError',
+        };
       }
 
       try {
