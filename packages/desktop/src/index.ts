@@ -753,30 +753,7 @@ const handleAppReady = async (): Promise<void> => {
     mark('remote.gateway.connect');
   } else {
     (globalThis as typeof globalThis & { __backendHost?: string }).__backendHost = '127.0.0.1';
-
-    // Start the real Hermes dashboard runtime first. Headmaster is a white-label
-    // shell over Hermes Desktop/Workspace surfaces, so packaged builds should not
-    // require the legacy bundled backend binary.
-    const hermesStartup = await hermesBootstrap.start({ installIfMissing: false });
-    if (hermesStartup.ok && hermesStartup.port) {
-      syncHermesGlobalsFromBootstrap({
-        status: hermesBootstrap.status,
-        port: hermesStartup.port,
-        sessionToken: hermesBootstrap.sessionToken,
-      });
-      markBackendReady(hermesStartup.port, 'hermes.dashboard');
-      mark('hermesBootstrap.start');
-      await startAioncoreSidecar();
-    } else {
-      const error = new Error(hermesStartup.error || 'Hermes dashboard failed to start');
-      console.error('[Headmaster] Hermes dashboard bootstrap failed:', error.message);
-      markBackendStartupFailed(error);
-      await captureBackendStartupFailure(error);
-      if (isWebUIMode || isResetPasswordMode) {
-        app.exit(1);
-        return;
-      }
-    }
+    // Backend started after window creation — see below
   }
 
   try {
@@ -901,6 +878,30 @@ const handleAppReady = async (): Promise<void> => {
     createWindow({ showOnReady: showMainWindowOnReady });
     appReadyDone = true;
     mark('createWindow');
+
+    // Start Hermes backend AFTER window is shown so the installer doesn't
+    // block window creation on first launch (install can take several minutes).
+    // installIfMissing: true triggers install.ps1 if the venv is absent.
+    if (!remoteModeActive) {
+      void (async () => {
+        const hermesStartup = await hermesBootstrap.start({ installIfMissing: true });
+        if (hermesStartup.ok && hermesStartup.port) {
+          syncHermesGlobalsFromBootstrap({
+            status: hermesBootstrap.status,
+            port: hermesStartup.port,
+            sessionToken: hermesBootstrap.sessionToken,
+          });
+          markBackendReady(hermesStartup.port, 'hermes.dashboard');
+          mark('hermesBootstrap.start');
+          await startAioncoreSidecar();
+        } else {
+          const error = new Error(hermesStartup.error || 'Hermes dashboard failed to start');
+          console.error('[Headmaster] Hermes dashboard bootstrap failed:', error.message);
+          markBackendStartupFailed(error);
+          await captureBackendStartupFailure(error);
+        }
+      })();
+    }
 
     // 读取语言设置并初始化主进程 i18n，然后刷新托盘菜单
     // Read language setting and initialize main process i18n, then refresh tray menu
