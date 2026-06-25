@@ -13,7 +13,7 @@ import { captureBackendStartupFailure, initSentry, scheduleStartupLogReport, set
 initSentry();
 
 import './process/utils/configureConsoleLog';
-import { app, BrowserWindow, ipcMain, nativeImage } from 'electron';
+import { app, BrowserWindow, ipcMain, nativeImage, session } from 'electron';
 import fixPath from 'fix-path';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -674,6 +674,23 @@ const handleAppReady = async (): Promise<void> => {
   const t0 = performance.now();
   const mark = (label: string) => console.log(`[Headmaster:ready] ${label} +${Math.round(performance.now() - t0)}ms`);
   mark('start');
+
+  // Inject CORS headers for HermesHQ so the renderer (file:// origin) can reach it.
+  // Electron's Chromium enforces CORS even for Electron renderers; the server doesn't
+  // return Access-Control-Allow-Origin for null origins, so we add it here.
+  session.defaultSession.webRequest.onHeadersReceived(
+    { urls: ['https://hermeshq.gcaplabs.com/*'] },
+    (details, callback) => {
+      callback({
+        responseHeaders: {
+          ...details.responseHeaders,
+          'Access-Control-Allow-Origin': ['*'],
+          'Access-Control-Allow-Methods': ['GET, POST, PUT, DELETE, OPTIONS'],
+          'Access-Control-Allow-Headers': ['Content-Type, Authorization'],
+        },
+      });
+    }
+  );
 
   if (!app.isPackaged) {
     try {
