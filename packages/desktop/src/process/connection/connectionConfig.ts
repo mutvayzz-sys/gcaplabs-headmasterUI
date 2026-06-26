@@ -65,13 +65,15 @@ export interface HermeshqProvisionSnapshot {
     container_id: string;
   } | null;
   cloud_container_config?: {
-    endpoint_url: string;
+    endpoint_url: string | null;
     container_id: string;
+    api_server_key?: string | null;
   } | null;
   system_prompt_override?: string | null;
   session_namespace?: string | null;
   honcho_base_url?: string | null;
   honcho_api_key?: string | null;
+  nous_api_key?: string | null;
   providers?: HermeshqProvisionProvider[];
   default_model?: string | null;
   default_provider?: string | null;
@@ -151,12 +153,16 @@ function normalizeHermeshqConfig(config: Partial<HermeshqConfig> | undefined): H
   };
 }
 
-function normalizeProvisionSnapshot(snapshot: Partial<HermeshqProvisionSnapshot> | null | undefined): HermeshqProvisionSnapshot | null {
+function normalizeProvisionSnapshot(
+  snapshot: Partial<HermeshqProvisionSnapshot> | null | undefined
+): HermeshqProvisionSnapshot | null {
   if (!snapshot || typeof snapshot !== 'object') return null;
   const user = snapshot.user;
   const runtime = snapshot.runtime;
   const capabilities = Array.isArray(snapshot.capabilities)
-    ? snapshot.capabilities.filter((capability): capability is string => typeof capability === 'string' && capability.length > 0)
+    ? snapshot.capabilities.filter(
+        (capability): capability is string => typeof capability === 'string' && capability.length > 0
+      )
     : [];
   if (!user || typeof user.id !== 'string' || typeof user.username !== 'string' || typeof user.role !== 'string') {
     return null;
@@ -190,8 +196,12 @@ function normalizeProvisionSnapshot(snapshot: Partial<HermeshqProvisionSnapshot>
   }
   if (snapshot.cloud_container_config && typeof snapshot.cloud_container_config === 'object') {
     const ccc = snapshot.cloud_container_config as Record<string, unknown>;
-    if (typeof ccc.endpoint_url === 'string' && typeof ccc.container_id === 'string') {
-      normalized.cloud_container_config = { endpoint_url: ccc.endpoint_url, container_id: ccc.container_id };
+    if (typeof ccc.container_id === 'string') {
+      normalized.cloud_container_config = {
+        endpoint_url: typeof ccc.endpoint_url === 'string' ? ccc.endpoint_url : null,
+        container_id: ccc.container_id,
+        api_server_key: typeof ccc.api_server_key === 'string' ? ccc.api_server_key : null,
+      };
     }
   }
   if (typeof snapshot.system_prompt_override === 'string') {
@@ -206,11 +216,16 @@ function normalizeProvisionSnapshot(snapshot: Partial<HermeshqProvisionSnapshot>
   if (typeof snapshot.honcho_api_key === 'string') {
     normalized.honcho_api_key = snapshot.honcho_api_key;
   }
+  if (typeof snapshot.nous_api_key === 'string') {
+    normalized.nous_api_key = snapshot.nous_api_key;
+  }
   // Provider catalog + default model from provision response
   if (Array.isArray(snapshot.providers)) {
     normalized.providers = snapshot.providers
-      .filter((p): p is HermeshqProvisionProvider =>
-        p !== null && typeof p === 'object' && typeof p.slug === 'string' && typeof p.name === 'string')
+      .filter(
+        (p): p is HermeshqProvisionProvider =>
+          p !== null && typeof p === 'object' && typeof p.slug === 'string' && typeof p.name === 'string'
+      )
       .map((p) => ({
         slug: p.slug,
         name: p.name,
@@ -218,7 +233,9 @@ function normalizeProvisionSnapshot(snapshot: Partial<HermeshqProvisionSnapshot>
         auth_type: p.auth_type,
         base_url: p.base_url ?? null,
         default_model: p.default_model ?? null,
-        available_models: Array.isArray(p.available_models) ? p.available_models.filter((m) => typeof m === 'string') : [],
+        available_models: Array.isArray(p.available_models)
+          ? p.available_models.filter((m) => typeof m === 'string')
+          : [],
         enabled: p.enabled !== false,
       }));
   }
@@ -237,7 +254,8 @@ function normalizeProvisionSnapshot(snapshot: Partial<HermeshqProvisionSnapshot>
 function readConfig(): ConnectionConfigFile {
   try {
     const path = getConfigPath();
-    if (!existsSync(path)) return { ...DEFAULT_CONFIG, remote: { ...DEFAULT_REMOTE_CONFIG }, hermeshq: { ...DEFAULT_HERMESHQ_CONFIG } };
+    if (!existsSync(path))
+      return { ...DEFAULT_CONFIG, remote: { ...DEFAULT_REMOTE_CONFIG }, hermeshq: { ...DEFAULT_HERMESHQ_CONFIG } };
     const parsed = JSON.parse(readFileSync(path, 'utf-8')) as Partial<ConnectionConfigFile>;
     return {
       mode: parsed.mode === 'remote' ? 'remote' : 'local',

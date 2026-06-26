@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { BrowserWindow } from 'electron';
 import { applyProvisionToRuntime } from './applyProvisionToRuntime';
 import {
   clearHermeshqProvision,
@@ -11,6 +12,13 @@ import {
   setHermeshqProvision,
   type HermeshqProvisionSnapshot,
 } from '../connection/connectionConfig';
+
+function broadcastApiServerKey(key: string): void {
+  (globalThis as typeof globalThis & { __apiServerKey?: string }).__apiServerKey = key;
+  for (const win of BrowserWindow.getAllWindows()) {
+    if (!win.isDestroyed()) win.webContents.send('backend:api-server-key', key);
+  }
+}
 
 export interface HermeshqProvisionRequest {
   client: 'headmaster_desktop';
@@ -48,11 +56,12 @@ export interface HermeshqProvisionApiResponse {
   user: { id: string; username: string; role: string };
   capabilities: string[];
   runtime: { validate_url: string; ttl_seconds: number };
-  cloud_container_config?: { endpoint_url: string; container_id: string } | null;
+  cloud_container_config?: { endpoint_url: string | null; container_id: string; api_server_key?: string | null } | null;
   system_prompt_override?: string | null;
   session_namespace?: string | null;
   honcho_base_url?: string | null;
   honcho_api_key?: string | null;
+  nous_api_key?: string | null;
   providers?: Array<{
     slug: string;
     name: string;
@@ -126,6 +135,7 @@ export async function provisionHermeshqDesktop(request: HermeshqProvisionRequest
       session_namespace: data.session_namespace ?? null,
       honcho_base_url: data.honcho_base_url ?? null,
       honcho_api_key: data.honcho_api_key ?? null,
+      nous_api_key: data.nous_api_key ?? null,
       providers: data.providers ?? [],
       default_model: data.default_model ?? null,
       default_provider: data.default_provider ?? null,
@@ -134,7 +144,8 @@ export async function provisionHermeshqDesktop(request: HermeshqProvisionRequest
       refreshed_at: new Date().toISOString(),
     };
     setHermeshqProvision(provision);
-    applyProvisionToRuntime(provision);
+    const apiKey = applyProvisionToRuntime(provision);
+    if (apiKey) broadcastApiServerKey(apiKey);
     return { success: true, provision };
   } catch (error) {
     return { success: false, error: error instanceof Error ? error.message : String(error) };
@@ -168,7 +179,8 @@ async function provisionViaAuthMe(
       refreshed_at: new Date().toISOString(),
     };
     setHermeshqProvision(provision);
-    applyProvisionToRuntime(provision);
+    const apiKey = applyProvisionToRuntime(provision);
+    if (apiKey) broadcastApiServerKey(apiKey);
     return { success: true, provision };
   } catch (error) {
     return { success: false, error: error instanceof Error ? error.message : String(error) };

@@ -13,7 +13,15 @@ import type {
   IResponseMessage,
   ISendMessageResult,
 } from './ipcBridge';
-import { broadcastWsEvent, gatewayRpcRequest, onGatewayEvent } from './httpBridge';
+import {
+  broadcastWsEvent,
+  gatewayRpcRequest,
+  onGatewayEvent,
+  probeCapabilities,
+  stopRun,
+  submitRunAndStream,
+  supportsRunsApi,
+} from './httpBridge';
 import { getHermesConversationProfile, rememberOpenHermesConversation } from './hermesSessionAdapter';
 
 export interface HermesSessionCreateResponse {
@@ -53,6 +61,7 @@ type ActiveTurn = {
   pendingContent: string;
   flushHandle: ReturnType<typeof setTimeout> | null;
   timeout: ReturnType<typeof setTimeout>;
+  runId?: string;
 };
 
 const STREAM_DELTA_FLUSH_MS = 32;
@@ -743,6 +752,71 @@ export async function sendHermesMessage(params: {
     });
   };
 
+  // Probe once (cached 5 min) whether the runtime supports the Runs API.
+  // If yes, stream over HTTP/SSE; if no (or run creation fails), fall back to WS.
+  const caps = await probeCapabilities();
+  const useRunsApi = supportsRunsApi(caps);
+
+  if (useRunsApi) {
+    let toolCallIndex = 0;
+    const runResult = await submitRunAndStream(text, liveSessionId, {
+      onChunk(chunk) {
+        if (!chunk) return;
+        turn.sawContent = true;
+        turn.pendingContent += chunk;
+        if (!turn.flushHandle) {
+          turn.flushHandle = setTimeout(() => {
+            turn.flushHandle = null;
+            if (turn.pendingContent) {
+              emitResponse(turn, 'content', { content: turn.pendingContent });
+              turn.pendingContent = '';
+            }
+          }, STREAM_DELTA_FLUSH_MS);
+        }
+      },
+      onToolEvent(name, status, preview) {
+        emitResponse(turn, 'tool_group', [
+          {
+            call_id: `${liveSessionId}:${name}:${toolCallIndex++}`,
+            name,
+            status,
+            description: preview ?? name,
+            result_display: status === 'completed' ? preview : undefined,
+          },
+        ]);
+      },
+      onReasoning(text: string) {
+        emitResponse(turn, 'thought', { subject: 'reasoning', description: text });
+      },
+      onDone(usage) {
+        if (turn.pendingContent) {
+          emitResponse(turn, 'content', { content: turn.pendingContent });
+          turn.pendingContent = '';
+        }
+        clearTimeout(turn.timeout);
+        emitCompleted(turn, usage ? `tokens: ${usage.input_tokens}+${usage.output_tokens}` : '');
+        turnsByLive.delete(liveSessionId);
+      },
+      onError(message) {
+        clearTimeout(turn.timeout);
+        emitResponse(turn, 'tips', { content: message, type: 'error' });
+        emitCompleted(turn, message);
+        turnsByLive.delete(liveSessionId);
+      },
+      onApprovalRequest() {
+        // Approvals not yet supported via Runs API — fall through to WS path below
+        turnsByLive.delete(liveSessionId);
+      },
+    });
+
+    if (runResult) {
+      turn.runId = runResult.runId;
+      emitUserCreated();
+      return { msg_id: userMsgId, turn_id: turnId, runtime: runningRuntime(turnId) };
+    }
+    // run creation failed — fall through to gateway WS path
+  }
+
   try {
     await gatewayRpcRequest('prompt.submit', { session_id: liveSessionId, text });
   } catch (error) {
@@ -771,14 +845,18 @@ export async function stopHermesConversation(
   conversationId: string
 ): Promise<{ runtime: TConversationRuntimeSummary }> {
   let liveSessionId = await ensureLiveSession(conversationId);
-  try {
-    await gatewayRpcRequest('session.interrupt', { session_id: liveSessionId });
-  } catch (error) {
-    if (!isSessionNotFound(error)) throw error;
-    liveSessionId = await resumeSession(conversationId);
-    await gatewayRpcRequest('session.interrupt', { session_id: liveSessionId });
-  }
   const turn = turnsByLive.get(liveSessionId);
+  if (turn?.runId) {
+    await stopRun(turn.runId);
+  } else {
+    try {
+      await gatewayRpcRequest('session.interrupt', { session_id: liveSessionId });
+    } catch (error) {
+      if (!isSessionNotFound(error)) throw error;
+      liveSessionId = await resumeSession(conversationId);
+      await gatewayRpcRequest('session.interrupt', { session_id: liveSessionId });
+    }
+  }
   if (turn) {
     finishTurn(liveSessionId, 'Interrupted');
   }

@@ -117,3 +117,13 @@ for (const channel of trayEvents) {
 ipcRenderer.on('hermes:runtime-changed', () => {
   window.dispatchEvent(new CustomEvent('hermes:runtime-changed'));
 });
+
+// API server key — set once after provision, then broadcast on re-login.
+// Written directly on window (not via contextBridge) so it stays mutable.
+const _initialApiKey = ipcRenderer.sendSync('get-api-server-key') as string | null;
+if (_initialApiKey) {
+  (window as Window & { __apiServerKey?: string }).__apiServerKey = _initialApiKey;
+}
+ipcRenderer.on('backend:api-server-key', (_event, key: string) => {
+  (window as Window & { __apiServerKey?: string }).__apiServerKey = key;
+});

@@ -274,6 +274,10 @@ ipcMain.on('get-backend-host', (event) => {
   event.returnValue = resolveBackendHost();
 });
 
+ipcMain.on('get-api-server-key', (event) => {
+  event.returnValue = (globalThis as typeof globalThis & { __apiServerKey?: string }).__apiServerKey ?? null;
+});
+
 ipcMain.on('get-hermes-session-token', (event) => {
   event.returnValue =
     hermesBootstrap.sessionToken ||
@@ -689,12 +693,17 @@ const handleAppReady = async (): Promise<void> => {
   session.defaultSession.webRequest.onHeadersReceived(
     { urls: ['https://hermeshq.gcaplabs.com/*'] },
     (details, callback) => {
+      const isPreflight = details.method === 'OPTIONS';
       callback({
+        // Force a 200 on OPTIONS so Chromium accepts the preflight even when
+        // the server returns a non-2xx status for unknown origins (dev mode).
+        statusLine: isPreflight ? 'HTTP/1.1 200 OK' : details.statusLine,
         responseHeaders: {
           ...details.responseHeaders,
           'Access-Control-Allow-Origin': ['*'],
           'Access-Control-Allow-Methods': ['GET, POST, PUT, DELETE, OPTIONS'],
           'Access-Control-Allow-Headers': ['Content-Type, Authorization'],
+          ...(isPreflight ? { 'Access-Control-Max-Age': ['86400'] } : {}),
         },
       });
     }

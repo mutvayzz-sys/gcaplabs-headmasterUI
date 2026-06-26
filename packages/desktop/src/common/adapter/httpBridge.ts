@@ -70,6 +70,149 @@ function getBackendPort(): number {
   return typeof p === 'number' && p > 0 ? p : 9119;
 }
 
+function getApiServerKey(): string | null {
+  if (typeof window !== 'undefined') {
+    const w = (window as Window & { __apiServerKey?: string }).__apiServerKey;
+    if (typeof w === 'string' && w) return w;
+  }
+  const g = globalThis as typeof globalThis & { __apiServerKey?: string };
+  const k = g.__apiServerKey;
+  return typeof k === 'string' && k ? k : null;
+}
+
+// ── Runs API (HTTP/SSE transport) ────────────────────────────────────────────
+
+interface HermesCapabilities {
+  features?: Record<string, boolean>;
+}
+const _capCache = new Map<string, { value: HermesCapabilities | null; exp: number }>();
+const CAP_TTL_MS = 5 * 60 * 1000;
+
+export async function probeCapabilities(): Promise<HermesCapabilities | null> {
+  const url = `http://127.0.0.1:${getBackendPort()}/v1/capabilities`;
+  const cached = _capCache.get(url);
+  if (cached && cached.exp > Date.now()) return cached.value;
+  try {
+    const res = await fetch(url, { signal: AbortSignal.timeout(3000) });
+    const value = res.ok ? ((await res.json()) as HermesCapabilities) : null;
+    _capCache.set(url, { value, exp: Date.now() + CAP_TTL_MS });
+    return value;
+  } catch {
+    return null;
+  }
+}
+
+export function supportsRunsApi(caps: HermesCapabilities | null): boolean {
+  return (
+    caps?.features?.['run_submission'] === true &&
+    caps.features['run_events_sse'] === true &&
+    caps.features['run_stop'] === true
+  );
+}
+
+export interface RunStreamCallbacks {
+  onChunk: (text: string) => void;
+  onToolEvent: (name: string, status: 'running' | 'completed' | 'failed', preview?: string) => void;
+  onReasoning: (text: string) => void;
+  onDone: (usage?: { input_tokens: number; output_tokens: number }) => void;
+  onError: (message: string) => void;
+  onApprovalRequest: () => void;
+}
+
+export async function submitRunAndStream(
+  input: string,
+  sessionId: string,
+  callbacks: RunStreamCallbacks,
+  signal?: AbortSignal
+): Promise<{ runId: string } | null> {
+  const apiUrl = `http://127.0.0.1:${getBackendPort()}`;
+  const apiKey = getApiServerKey();
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (apiKey) headers['Authorization'] = `Bearer ${apiKey}`;
+
+  let runId: string;
+  try {
+    const res = await fetch(`${apiUrl}/v1/runs`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ model: 'hermes-agent', input, session_id: sessionId }),
+      signal,
+    });
+    if (!res.ok) return null;
+    const body = (await res.json()) as { run_id?: string };
+    if (!body.run_id) return null;
+    runId = body.run_id;
+  } catch {
+    return null;
+  }
+
+  try {
+    const evtRes = await fetch(`${apiUrl}/v1/runs/${runId}/events`, { headers, signal });
+    if (!evtRes.ok || !evtRes.body) {
+      callbacks.onError('SSE stream unavailable');
+      return { runId };
+    }
+    const reader = evtRes.body.getReader();
+    const decoder = new TextDecoder();
+    let buf = '';
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buf += decoder.decode(value, { stream: true });
+      const blocks = buf.split('\n\n');
+      buf = blocks.pop() ?? '';
+      for (const block of blocks) {
+        if (!block.trim()) continue;
+        let eventType = '';
+        const dataLines: string[] = [];
+        for (const line of block.split('\n')) {
+          if (line.startsWith('event: ')) eventType = line.slice(7).trim();
+          else if (line.startsWith('data: ')) dataLines.push(line.slice(6));
+        }
+        if (!dataLines.length) continue;
+        try {
+          const evt = JSON.parse(dataLines.join('\n')) as Record<string, unknown>;
+          const type = (evt.event as string) || eventType;
+          if (type === 'assistant.delta' || type === 'message.delta') {
+            callbacks.onChunk((evt.delta as string) || (evt.text as string) || '');
+          } else if (type === 'reasoning.available' || type === 'reasoning.delta') {
+            callbacks.onReasoning((evt.text as string) || (evt.delta as string) || '');
+          } else if (type === 'tool.started') {
+            callbacks.onToolEvent(evt.tool as string, 'running', evt.preview as string | undefined);
+          } else if (type === 'tool.completed') {
+            callbacks.onToolEvent(evt.tool as string, 'completed', evt.preview as string | undefined);
+          } else if (type === 'tool.failed') {
+            callbacks.onToolEvent(evt.tool as string, 'failed');
+          } else if (type === 'approval.request') {
+            callbacks.onApprovalRequest();
+          } else if (type === 'run.completed') {
+            const u = evt.usage as { input_tokens?: number; output_tokens?: number } | undefined;
+            callbacks.onDone(
+              u ? { input_tokens: u.input_tokens ?? 0, output_tokens: u.output_tokens ?? 0 } : undefined
+            );
+          } else if (type === 'run.failed' || type === 'run.error') {
+            callbacks.onError((evt.error as string) || 'Run failed');
+          }
+        } catch {
+          // skip malformed SSE block
+        }
+      }
+    }
+  } catch (err) {
+    if ((err as Error).name !== 'AbortError') callbacks.onError(String(err));
+  }
+
+  return { runId };
+}
+
+export async function stopRun(runId: string): Promise<void> {
+  const apiUrl = `http://127.0.0.1:${getBackendPort()}`;
+  const apiKey = getApiServerKey();
+  const headers: Record<string, string> = {};
+  if (apiKey) headers['Authorization'] = `Bearer ${apiKey}`;
+  await fetch(`${apiUrl}/v1/runs/${runId}/stop`, { method: 'POST', headers }).catch(() => {});
+}
+
 /**
  * Read the per-launch session token that the Hermes dashboard uses to auth
  * REST + WS calls. Set by `useDashboardStatus` once the dashboard is ready.
