@@ -8,7 +8,6 @@ import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from '
 import { randomBytes } from 'node:crypto';
 import { dirname, join } from 'node:path';
 import { homedir } from 'node:os';
-import { app } from 'electron';
 import type { HermeshqProvisionSnapshot } from '../connection/connectionConfig';
 
 function resolveHermesHome(): string {
@@ -49,7 +48,6 @@ function writeJson(filePath: string, data: Record<string, unknown>): void {
 export function applyProvisionToRuntime(provision: HermeshqProvisionSnapshot): string | null {
   try {
     const home = resolveHermesHome();
-    copyNousAuthFromSystemHermes(home);
     applyHonchoConfig(home, provision);
     applyModelConfig(home, provision);
     return applyNousConfig(home, provision);
@@ -57,62 +55,6 @@ export function applyProvisionToRuntime(provision: HermeshqProvisionSnapshot): s
     console.warn('[applyProvisionToRuntime] failed to apply provision to runtime config:', err);
     return null;
   }
-}
-
-/**
- * Nous uses OAuth (device code flow) — there's no static API key.
- * The credentials live in auth.json as a refresh_token that Hermes auto-refreshes.
- * If the Headmaster runtime doesn't have a Nous credential yet, copy it from the
- * system Hermes install (where the user already authenticated via `hermes login`).
- */
-function copyNousAuthFromSystemHermes(hermesHome: string): void {
-  const destAuthPath = join(hermesHome, 'auth.json');
-
-  // Skip if destination already has a valid Nous credential
-  const dest = readJson(destAuthPath) as {
-    credential_pool?: Record<string, unknown[]>;
-    providers?: Record<string, unknown>;
-    active_provider?: string;
-  };
-  if ((dest.credential_pool?.['nous'] as unknown[] | undefined)?.length) return;
-
-  // Locate the system Hermes auth.json (where the user's OAuth session lives)
-  const systemHermesAuth = resolveSystemHermesAuthPath();
-  if (!systemHermesAuth || systemHermesAuth === destAuthPath || !existsSync(systemHermesAuth)) return;
-
-  const src = readJson(systemHermesAuth) as {
-    credential_pool?: Record<string, unknown[]>;
-    providers?: Record<string, unknown>;
-    active_provider?: string;
-  };
-  const nousCredentials = src.credential_pool?.['nous'];
-  if (!nousCredentials?.length) return;
-
-  const merged: Record<string, unknown> = { ...dest };
-  const credPool = (
-    typeof merged['credential_pool'] === 'object' && merged['credential_pool'] !== null ? merged['credential_pool'] : {}
-  ) as Record<string, unknown>;
-  credPool['nous'] = nousCredentials;
-  merged['credential_pool'] = credPool;
-
-  const providers = (
-    typeof merged['providers'] === 'object' && merged['providers'] !== null ? merged['providers'] : {}
-  ) as Record<string, unknown>;
-  if (src.providers?.['nous']) providers['nous'] = src.providers['nous'];
-  merged['providers'] = providers;
-
-  if (!merged['active_provider']) merged['active_provider'] = 'nous';
-
-  writeJson(destAuthPath, merged);
-  console.log('[applyProvisionToRuntime] Nous OAuth credential copied from system Hermes to runtime auth.json');
-}
-
-function resolveSystemHermesAuthPath(): string | null {
-  if (process.platform === 'win32') {
-    const localAppData = process.env.LOCALAPPDATA || join(homedir(), 'AppData', 'Local');
-    return join(localAppData, 'hermes', 'auth.json');
-  }
-  return join(homedir(), '.hermes', 'auth.json');
 }
 
 function applyModelConfig(hermesHome: string, provision: HermeshqProvisionSnapshot): void {
