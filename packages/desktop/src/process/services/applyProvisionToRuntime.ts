@@ -137,6 +137,13 @@ function applyNousConfig(hermesHome: string, provision: HermeshqProvisionSnapsho
     env = patchEnvLine(env, 'NOUS_API_KEY', provision.nous_api_key);
   }
 
+  // Inject any provider API keys shipped by HermesHQ (e.g. KIMI_API_KEY)
+  if (provision.runtime_env) {
+    for (const [key, value] of Object.entries(provision.runtime_env)) {
+      env = patchEnvLine(env, key, value);
+    }
+  }
+
   // API server key — used to authenticate Runs API calls from the desktop
   let apiServerKey: string | null = null;
   if (provision.mode === 'headmaster_remote') {

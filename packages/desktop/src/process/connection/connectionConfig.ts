@@ -74,6 +74,7 @@ export interface HermeshqProvisionSnapshot {
   honcho_base_url?: string | null;
   honcho_api_key?: string | null;
   nous_api_key?: string | null;
+  runtime_env?: Record<string, string> | null;
   providers?: HermeshqProvisionProvider[];
   default_model?: string | null;
   default_provider?: string | null;
@@ -218,6 +219,13 @@ function normalizeProvisionSnapshot(
   }
   if (typeof snapshot.nous_api_key === 'string') {
     normalized.nous_api_key = snapshot.nous_api_key;
+  }
+  if (snapshot.runtime_env && typeof snapshot.runtime_env === 'object' && !Array.isArray(snapshot.runtime_env)) {
+    const env: Record<string, string> = {};
+    for (const [k, v] of Object.entries(snapshot.runtime_env)) {
+      if (typeof k === 'string' && typeof v === 'string') env[k] = v;
+    }
+    if (Object.keys(env).length > 0) normalized.runtime_env = env;
   }
   // Provider catalog + default model from provision response
   if (Array.isArray(snapshot.providers)) {
