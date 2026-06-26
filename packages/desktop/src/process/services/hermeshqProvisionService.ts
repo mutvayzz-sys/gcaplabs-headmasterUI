@@ -20,6 +20,17 @@ function broadcastApiServerKey(key: string): void {
   }
 }
 
+let _runtimeRestarter: (() => Promise<void>) | null = null;
+
+/**
+ * Wire up a Hermes runtime restarter so provision can restart it when new env
+ * vars (e.g. KIMI_API_KEY) are written to .env. The already-running process
+ * won't pick up env var changes without a restart.
+ */
+export function setHermesRuntimeRestarter(fn: () => Promise<void>): void {
+  _runtimeRestarter = fn;
+}
+
 export interface HermeshqProvisionRequest {
   client: 'headmaster_desktop';
   version: string;
@@ -144,8 +155,15 @@ export async function provisionHermeshqDesktop(request: HermeshqProvisionRequest
       refreshed_at: new Date().toISOString(),
     };
     setHermeshqProvision(provision);
-    const apiKey = applyProvisionToRuntime(provision);
-    if (apiKey) broadcastApiServerKey(apiKey);
+    const { apiServerKey, needsRestart } = applyProvisionToRuntime(provision);
+    if (apiServerKey) broadcastApiServerKey(apiServerKey);
+    if (needsRestart && _runtimeRestarter) {
+      // Delay so the provision response IPC completes before we restart the runtime.
+      setTimeout(() => {
+        console.log('[hermeshqProvisionService] restarting Hermes runtime to load new env vars...');
+        void _runtimeRestarter!();
+      }, 2000);
+    }
     return { success: true, provision };
   } catch (error) {
     return { success: false, error: error instanceof Error ? error.message : String(error) };
@@ -179,8 +197,8 @@ async function provisionViaAuthMe(
       refreshed_at: new Date().toISOString(),
     };
     setHermeshqProvision(provision);
-    const apiKey = applyProvisionToRuntime(provision);
-    if (apiKey) broadcastApiServerKey(apiKey);
+    const { apiServerKey } = applyProvisionToRuntime(provision);
+    if (apiServerKey) broadcastApiServerKey(apiServerKey);
     return { success: true, provision };
   } catch (error) {
     return { success: false, error: error instanceof Error ? error.message : String(error) };

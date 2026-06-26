@@ -75,7 +75,7 @@ import {
 } from './process/utils/tray';
 import { readCloseToTraySetting } from './process/utils/closeToTraySetting';
 import { getConnectionMode, getRemoteConfig } from './process/connection/connectionConfig';
-import { validateHermeshqRuntimeAccess } from './process/services/hermeshqProvisionService';
+import { validateHermeshqRuntimeAccess, setHermesRuntimeRestarter } from './process/services/hermeshqProvisionService';
 // @ts-expect-error - electron-squirrel-startup doesn't have types
 import electronSquirrelStartup from 'electron-squirrel-startup';
 
@@ -214,6 +214,19 @@ const aioncoreBootstrap = new AioncoreBootstrap({
 setHermesBootstrap(hermesBootstrap);
 setAioncoreBootstrap(aioncoreBootstrap);
 initBridges({ hermesBootstrap });
+
+// When provision writes new env vars (e.g. KIMI_API_KEY) to .env, the running
+// Hermes process won't pick them up. Inject a restarter so hermeshqProvisionService
+// can restart Hermes after provision completes.
+setHermesRuntimeRestarter(async () => {
+  hermesBootstrap.stop();
+  const result = await hermesBootstrap.start({ installIfMissing: false });
+  console.log(
+    '[Headmaster] Hermes runtime restarted after provision (status=%s, port=%d)',
+    result.status,
+    result.port ?? 0
+  );
+});
 
 function syncHermesGlobalsFromBootstrap(snapshot: HermesRuntimeSnapshot): void {
   if (snapshot.status === 'ready' && snapshot.port > 0) {

@@ -44,8 +44,14 @@ function writeJson(filePath: string, data: Record<string, unknown>): void {
   renameSync(tmp, filePath);
 }
 
-/** Returns the API server key to expose to the renderer via IPC, or null. */
-export function applyProvisionToRuntime(provision: HermeshqProvisionSnapshot): string | null {
+export interface ApplyProvisionResult {
+  apiServerKey: string | null;
+  /** True when runtime_env entries were written — the Hermes process must restart to pick them up. */
+  needsRestart: boolean;
+}
+
+/** Applies provision snapshot to the local Hermes runtime config/env files. */
+export function applyProvisionToRuntime(provision: HermeshqProvisionSnapshot): ApplyProvisionResult {
   try {
     const home = resolveHermesHome();
     applyHonchoConfig(home, provision);
@@ -53,7 +59,7 @@ export function applyProvisionToRuntime(provision: HermeshqProvisionSnapshot): s
     return applyNousConfig(home, provision);
   } catch (err) {
     console.warn('[applyProvisionToRuntime] failed to apply provision to runtime config:', err);
-    return null;
+    return { apiServerKey: null, needsRestart: false };
   }
 }
 
@@ -126,9 +132,9 @@ function patchModelSection(content: string, updates: Record<string, string>): st
  * For headmaster_remote the key comes from the provision snapshot (container
  * generated it); for headmaster_local we generate one ourselves.
  */
-function applyNousConfig(hermesHome: string, provision: HermeshqProvisionSnapshot): string | null {
+function applyNousConfig(hermesHome: string, provision: HermeshqProvisionSnapshot): ApplyProvisionResult {
   const envPath = join(hermesHome, '.env');
-  if (!existsSync(envPath)) return null;
+  if (!existsSync(envPath)) return { apiServerKey: null, needsRestart: false };
 
   let env = readFileSync(envPath, 'utf-8');
 
@@ -138,10 +144,12 @@ function applyNousConfig(hermesHome: string, provision: HermeshqProvisionSnapsho
   }
 
   // Inject any provider API keys shipped by HermesHQ (e.g. KIMI_API_KEY)
-  if (provision.runtime_env) {
-    for (const [key, value] of Object.entries(provision.runtime_env)) {
+  const runtimeEnvKeys = Object.keys(provision.runtime_env ?? {});
+  if (runtimeEnvKeys.length > 0) {
+    for (const [key, value] of Object.entries(provision.runtime_env!)) {
       env = patchEnvLine(env, key, value);
     }
+    console.log('[applyProvisionToRuntime] runtime_env injected:', runtimeEnvKeys.join(', '));
   }
 
   // API server key — used to authenticate Runs API calls from the desktop
@@ -162,9 +170,10 @@ function applyNousConfig(hermesHome: string, provision: HermeshqProvisionSnapsho
   writeFileSync(tmp, env, 'utf-8');
   renameSync(tmp, envPath);
   console.log(
-    '[applyProvisionToRuntime] .env updated (nous_api_key=%s, api_server_key=%s)',
+    '[applyProvisionToRuntime] .env updated (nous_api_key=%s, api_server_key=%s, runtime_env_keys=%d)',
     !!provision.nous_api_key,
-    !!apiServerKey
+    !!apiServerKey,
+    runtimeEnvKeys.length
   );
 
   // Enable tool gateway in config.yaml if NOUS_API_KEY was provided
@@ -181,7 +190,7 @@ function applyNousConfig(hermesHome: string, provision: HermeshqProvisionSnapsho
     }
   }
 
-  return apiServerKey;
+  return { apiServerKey, needsRestart: runtimeEnvKeys.length > 0 };
 }
 
 function patchEnvLine(content: string, key: string, value: string): string {
