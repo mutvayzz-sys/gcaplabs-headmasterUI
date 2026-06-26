@@ -86,10 +86,14 @@ const hermesSessionToken = ipcRenderer.sendSync('get-hermes-session-token') as s
 const initialLanguage = ipcRenderer.sendSync('get-initial-language') as string | null;
 const backendStartupFailed = ipcRenderer.sendSync('get-backend-startup-failed') as boolean;
 const backendStartupFailure = ipcRenderer.sendSync('get-backend-startup-failure') as unknown;
-contextBridge.exposeInMainWorld('__backendPort', backendPort > 0 ? backendPort : 0);
+// IMPORTANT: __backendPort and __hermesSessionToken are NOT exposed via
+// contextBridge.exposeInMainWorld. That API creates read-only, non-configurable
+// properties — the renderer hook (useDashboardStatus.ts) needs to WRITE to these
+// as the dashboard lifecycle changes, so exposing them here would throw
+// "Cannot assign to read only property" on every status update.
+// The renderer creates these as writable properties on first poll.
 contextBridge.exposeInMainWorld('__aioncorePort', aioncorePort > 0 ? aioncorePort : 0);
 contextBridge.exposeInMainWorld('__backendHost', backendHost || '127.0.0.1');
-contextBridge.exposeInMainWorld('__hermesSessionToken', hermesSessionToken || '');
 contextBridge.exposeInMainWorld('__initialLanguage', initialLanguage ?? null);
 contextBridge.exposeInMainWorld('__backendStartupFailed', backendStartupFailed === true);
 contextBridge.exposeInMainWorld('__backendStartupFailure', backendStartupFailure ?? null);

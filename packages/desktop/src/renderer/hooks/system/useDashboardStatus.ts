@@ -80,19 +80,45 @@ export function mirrorHermesDashboardGlobals(snapshot: HermesDashboardStatusSnap
   const prevToken = window.__hermesSessionToken ?? '';
   window.__hermesHome = snapshot.hermesHome;
 
+  // Use defineProperty so we can write even if a stale read-only descriptor
+  // was left by a prior contextBridge.exposeInMainWorld call. Writable +
+  // configurable lets future updates reassign freely.
+  const assignPort = (v: number): void => {
+    try {
+      window.__backendPort = v;
+    } catch {
+      Object.defineProperty(window, '__backendPort', {
+        value: v,
+        writable: true,
+        configurable: true,
+      });
+    }
+  };
+  const assignToken = (v: string): void => {
+    try {
+      window.__hermesSessionToken = v;
+    } catch {
+      Object.defineProperty(window, '__hermesSessionToken', {
+        value: v,
+        writable: true,
+        configurable: true,
+      });
+    }
+  };
+
   if (snapshot.status === 'ready' && snapshot.port > 0) {
     window.__hermesPort = snapshot.port;
-    window.__backendPort = snapshot.port;
+    assignPort(snapshot.port);
     if (snapshot.sessionToken) {
-      window.__hermesSessionToken = snapshot.sessionToken;
+      assignToken(snapshot.sessionToken);
     }
   } else if (DEGRADED_STATUSES.has(snapshot.status)) {
     // Upstream Hermes Desktop: never serve REST/WS against a dead dashboard.
-    window.__backendPort = 0;
+    assignPort(0);
     window.__hermesPort = 0;
     // Keep the latest spawn token so the next ready cycle does not reuse a stale secret.
     if (snapshot.sessionToken) {
-      window.__hermesSessionToken = snapshot.sessionToken;
+      assignToken(snapshot.sessionToken);
     }
   }
 
