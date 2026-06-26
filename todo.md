@@ -9,28 +9,30 @@ This file contains only remaining validation, runtime stability, and release wor
 
 ## Current position
 
-**v0.2.3** (2026-06-26) — packaged exe runtime isolation + login + install UI:
+**v0.2.3** (2026-06-26) — login confirmed working end-to-end + runtime isolation + install UI:
 
-- Runtime always installs to `%LOCALAPPDATA%\Headmaster\runtime` (no PATH mutation, no fallback to existing Hermes)
-- First-run installer runs automatically via `install.ps1` stage protocol; window appears immediately
-- In-app install progress screen with live stage checklist, progress bar, log output
-- Login working: `VITE_HERMESHQ_URL` baked at build time; CORS headers injected for HermesHQ
+- **Login works** — confirmed with `admin/admin123` against `hermeshq.gcaplabs.com`
+- ERR_UNSAFE_PORT on startup fixed (`getBackendPort()` fallback uses `> 0` guard)
+- CORS OPTIONS preflight fixed (`statusLine` override in `onHeadersReceived`)
+- Hermes `--skip-build` now conditional on `web_dist` existence (first-run auto-build works)
+- Provision call replaced with `GET /api/auth/me` (was hanging 15s then 500; now instant)
+- Runtime always installs to `%LOCALAPPDATA%\Headmaster\runtime` (no PATH mutation, no fallback)
+- First-run installer runs automatically; window appears immediately; in-app progress screen
 - F12 opens DevTools in packaged builds
-- Native OS install dialog removed
 
 **v0.2.2** (2026-06-25) — cross-device memory, safeStorage, provision flow, iOS fixes.
 
-**Still open:** end-to-end login + Hermes dashboard startup verify, full installer/zip build, release publication.
+**Still open:** Hermes dashboard stability, full installer/zip build, end-to-end cross-device memory verify, release publication.
 
 ## P0 — Release blockers
 
 ### Hermes runtime stability
 
-- [ ] Capture stderr tail before each `dashboard exited code=1` in
-      `%APPDATA%\Headmaster\logs\`.
-- [ ] Stop crash-restart loops from leaving the UI on stale port/token (regression
-      test + packaged verify after `useDashboardStatus` / `onRuntimeChange`
-      fix).
+- [x] Stop crash-restart loops from leaving the UI on stale port/token — fixed:
+      contextBridge read-only property conflict resolved (`__backendPort` no
+      longer exposed via `contextBridge.exposeInMainWorld`; renderer hook owns
+      it as a writable global with `defineProperty` fallback). HTTP/WS requests
+      now short-circuit when port is 0 instead of hitting the 9119 fallback.
 - [ ] Confirm Settings → Memory, Runtime toolsets, and Runtime status probes
       return 200 (not 401) when the dashboard stays up.
 
@@ -90,8 +92,8 @@ This file contains only remaining validation, runtime stability, and release wor
 - [ ] Re-run affected automated tests after each fix.
 - [ ] Final white-label grep from `docs/white-label/WHITE-LABEL-AUDIT.md` §6.
 - [ ] Verify packaged About, sidebar, installer, zip, and executable metadata
-      report v0.2.1.
+      report v0.2.3.
 - [ ] Record final test results and known limitations in `CHANGELOG.md` if needed.
 - [ ] Commit implementation intentionally.
 - [ ] Push branch and open/update PR.
-- [ ] Tag `v0.2.1` and publish only after packaged smoke test passes.
+- [ ] Tag `v0.2.3` and publish only after packaged smoke test passes.
