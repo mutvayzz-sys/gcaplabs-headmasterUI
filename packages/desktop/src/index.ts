@@ -879,6 +879,16 @@ const handleAppReady = async (): Promise<void> => {
     appReadyDone = true;
     mark('createWindow');
 
+    // Forward install stage progress to all renderer windows so the in-app
+    // InstallScreen can show a live progress bar and log.
+    hermesBootstrap.onInstallProgress((progress) => {
+      for (const win of BrowserWindow.getAllWindows()) {
+        if (!win.isDestroyed()) {
+          win.webContents.send('install:progress', progress);
+        }
+      }
+    });
+
     // Start Hermes backend AFTER window is shown so the installer doesn't
     // block window creation on first launch (install can take several minutes).
     // installIfMissing: true triggers install.ps1 if the venv is absent.

@@ -98,6 +98,18 @@ export interface HermesRuntimeSnapshot {
   sessionToken: string;
 }
 
+export interface HermesInstallProgress {
+  stageNum: number;
+  totalStages: number;
+  stageName: string;
+  /** 'running' while the stage executes, 'ok'/'skipped'/'failed' when done */
+  stageStatus: 'running' | 'ok' | 'skipped' | 'failed';
+  /** Accumulated log lines from stderr of the current stage */
+  log: string;
+  /** Set when the overall install fails */
+  error?: string;
+}
+
 export class HermesBootstrap {
   private childProcess: ChildProcess | null = null;
   private _port = 0;
@@ -108,6 +120,7 @@ export class HermesBootstrap {
   private _readyTimer: NodeJS.Timeout | null = null;
   private _lastError: string | null = null;
   private readonly runtimeListeners = new Set<(snapshot: HermesRuntimeSnapshot) => void>();
+  private readonly installProgressListeners = new Set<(progress: HermesInstallProgress) => void>();
 
   constructor(private readonly appMeta: HermesBootstrapAppMeta) {}
 
@@ -115,6 +128,22 @@ export class HermesBootstrap {
   onRuntimeChange(listener: (snapshot: HermesRuntimeSnapshot) => void): () => void {
     this.runtimeListeners.add(listener);
     return () => this.runtimeListeners.delete(listener);
+  }
+
+  /** Subscribe to stage-by-stage install progress events. */
+  onInstallProgress(listener: (progress: HermesInstallProgress) => void): () => void {
+    this.installProgressListeners.add(listener);
+    return () => this.installProgressListeners.delete(listener);
+  }
+
+  private emitInstallProgress(progress: HermesInstallProgress): void {
+    for (const listener of this.installProgressListeners) {
+      try {
+        listener(progress);
+      } catch {
+        /* ignore listener errors */
+      }
+    }
   }
 
   private notifyRuntimeChange(): void {
@@ -315,12 +344,29 @@ export class HermesBootstrap {
       return false;
     }
 
-    for (const stageName of STAGES_TO_RUN) {
+    const totalStages = STAGES_TO_RUN.length;
+    for (let i = 0; i < STAGES_TO_RUN.length; i++) {
+      const stageName = STAGES_TO_RUN[i];
+      const stageNum = i + 1;
       console.log(`[hermes-bootstrap] stage: ${stageName}`);
-      const stageResult = await this.runInstallStage(installPs1Path, home, installDir, stageName);
+
+      this.emitInstallProgress({ stageNum, totalStages, stageName, stageStatus: 'running', log: '' });
+
+      const stageResult = await this.runInstallStage(installPs1Path, home, installDir, stageName, (logLine) =>
+        this.emitInstallProgress({ stageNum, totalStages, stageName, stageStatus: 'running', log: logLine })
+      );
+
       if (!stageResult.ok) {
         this._lastError = `Stage '${stageName}' failed: ${stageResult.reason}`;
         console.error('[hermes-bootstrap]', this._lastError);
+        this.emitInstallProgress({
+          stageNum,
+          totalStages,
+          stageName,
+          stageStatus: 'failed',
+          log: stageResult.reason ?? '',
+          error: this._lastError,
+        });
         try {
           unlinkSync(installPs1Path);
         } catch {
@@ -328,9 +374,12 @@ export class HermesBootstrap {
         }
         return false;
       }
+
+      const status = stageResult.skipped ? 'skipped' : 'ok';
       if (stageResult.skipped) {
         console.log(`[hermes-bootstrap] stage '${stageName}' skipped: ${stageResult.reason}`);
       }
+      this.emitInstallProgress({ stageNum, totalStages, stageName, stageStatus: status, log: '' });
     }
 
     try {
@@ -346,7 +395,8 @@ export class HermesBootstrap {
     installPs1Path: string,
     home: string,
     installDir: string,
-    stageName: string
+    stageName: string,
+    onLog?: (line: string) => void
   ): Promise<{ ok: boolean; skipped: boolean; reason: string | null }> {
     return new Promise((resolve) => {
       const args = [
@@ -366,18 +416,47 @@ export class HermesBootstrap {
       ];
 
       let stdout = '';
+      let stderr = '';
       const proc = spawn('powershell.exe', args, {
         cwd: home,
-        stdio: ['ignore', 'pipe', 'inherit'],
-        env: { ...process.env, HERMES_HOME: home },
+        stdio: ['ignore', 'pipe', 'pipe'],
+        env: {
+          ...process.env,
+          HERMES_HOME: home,
+          // Force uv installer to place the binary inside our isolated dir,
+          // not the user's ~/.local/bin. Passed explicitly so the nested
+          // sub-PowerShell spawned by Install-Uv also inherits it.
+          UV_INSTALL_DIR: join(home, 'bin'),
+        },
         windowsHide: true,
       });
 
       proc.stdout?.on('data', (chunk: Buffer) => {
-        stdout += chunk.toString('utf-8');
+        const text = chunk.toString('utf-8');
+        stdout += text;
+        // Forward non-JSON stdout lines to the progress listener so the renderer
+        // can show live output (the JSON result line comes last, skip it)
+        for (const line of text.split('\n')) {
+          const trimmed = line.trim();
+          if (trimmed && !trimmed.startsWith('{')) {
+            console.log(`[hermes-bootstrap:${stageName}] ${trimmed}`);
+            onLog?.(trimmed);
+          }
+        }
+      });
+      proc.stderr?.on('data', (chunk: Buffer) => {
+        const text = chunk.toString('utf-8').trim();
+        if (text) {
+          stderr += text + '\n';
+          console.log(`[hermes-bootstrap:${stageName}] ${text}`);
+          onLog?.(text);
+        }
       });
 
       proc.on('exit', (code) => {
+        if (stderr.trim()) {
+          console.error(`[hermes-bootstrap:${stageName}] stderr: ${stderr.trim()}`);
+        }
         try {
           const result = JSON.parse(stdout.trim()) as { ok?: boolean; skipped?: boolean; reason?: string };
           resolve({

@@ -93,6 +93,7 @@ import { ConversationHistoryProvider } from './hooks/context/ConversationHistory
 import HOC from './utils/ui/HOC';
 import BootstrapScreen from './components/BootstrapScreen';
 import { RuntimeDetectionModal } from './components/RuntimeDetectionModal';
+import InstallScreen, { type InstallStageProgress } from './components/InstallScreen';
 
 // Patch Korean locale with missing properties from English locale
 const koKRComplete = {
@@ -150,13 +151,31 @@ const Main = () => {
   const { ready } = useAuth();
   const [configReady, setConfigReady] = useState(false);
   const [runtimeChecked, setRuntimeChecked] = useState(false);
+  const [installing, setInstalling] = useState(false);
+  const [installDone, setInstallDone] = useState(false);
+
+  // Listen for install progress events from the main process.
+  // When we see any progress, show the InstallScreen until all stages finish or fail.
+  useEffect(() => {
+    if (!window.electronAPI?.onInstallProgress) return;
+    const unsub = window.electronAPI.onInstallProgress((raw: unknown) => {
+      const p = raw as InstallStageProgress;
+      setInstalling(true);
+      if (p.stageStatus === 'failed') {
+        setInstallDone(true); // keep screen up to show error + retry
+      } else if (p.stageNum === p.totalStages && p.stageStatus === 'ok') {
+        // Last stage completed — briefly keep screen visible, then clear
+        setTimeout(() => {
+          setInstalling(false);
+          setInstallDone(false);
+        }, 800);
+      }
+    });
+    return unsub;
+  }, []);
 
   useEffect(() => {
     if (!ready) return;
-    // Prefetch `/api/agents` in parallel with configService.initialize() and
-    // seed the shared SWR cache so the Guid page's model/mode selectors can
-    // read `handshake.available_models` on the very first render — without
-    // waiting for a session to be created.
     Promise.all([
       configService.initialize().catch((err) => {
         console.error('Failed to initialize config:', err);
@@ -173,6 +192,20 @@ const Main = () => {
     if (!ready) return;
     void repairAllCronJobTimeZonesOnce();
   }, [ready]);
+
+  // Show install screen while installation is running or has failed
+  if (installing || installDone) {
+    return (
+      <InstallScreen
+        onRetry={() => {
+          // Reset so the screen clears; main process will re-emit progress on retry
+          setInstalling(false);
+          setInstallDone(false);
+          window.electronAPI?.restartRuntime?.();
+        }}
+      />
+    );
+  }
 
   if (!runtimeChecked) {
     return <RuntimeDetectionModal onRuntimeSelected={() => setRuntimeChecked(true)} />;

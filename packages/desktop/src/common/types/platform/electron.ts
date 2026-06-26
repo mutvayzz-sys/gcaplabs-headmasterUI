@@ -28,16 +28,17 @@ export interface ElectronBridgeAPI {
   setHermeshqToken?: (token: string) => Promise<{ success: boolean }>;
   clearHermeshqToken?: () => Promise<{ success: boolean }>;
   clearHermeshqProvision?: () => Promise<{ success: boolean }>;
-  provisionHermeshq?: (request: { client: 'headmaster_desktop'; version: string; platform: NodeJS.Platform }) => Promise<{
+  provisionHermeshq?: (request: {
+    client: 'headmaster_desktop';
+    version: string;
+    platform: NodeJS.Platform;
+  }) => Promise<{
     success: boolean;
     provision?: unknown;
     status?: number;
     error?: string;
   }>;
-  validateHermeshqRuntime?: (request: {
-    runtime_id: string;
-    requested_capability: string;
-  }) => Promise<{
+  validateHermeshqRuntime?: (request: { runtime_id: string; requested_capability: string }) => Promise<{
     success: boolean;
     validation?: unknown;
     status?: number;
@@ -46,6 +47,7 @@ export interface ElectronBridgeAPI {
   saveCredentials?: (creds: { username: string; password: string }) => Promise<{ success: boolean; error?: string }>;
   loadCredentials?: () => Promise<{ success: boolean; credentials: { username: string; password: string } | null }>;
   clearCredentials?: () => Promise<{ success: boolean }>;
+  onInstallProgress?: (callback: (progress: unknown) => void) => () => void;
 }
 
 export type ElectronAPI = ElectronBridgeAPI;
