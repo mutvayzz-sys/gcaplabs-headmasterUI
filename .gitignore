@@ -148,6 +148,13 @@ lint-results.txt
 worktree/
 worktrees/
 
+# HermesHQ backend copy (vendored for co-editing; deploy from remote repo)
+gcaplabs-hermeshq/backend/.venv/
+gcaplabs-hermeshq/frontend/node_modules/
+gcaplabs-hermeshq/backend/__pycache__/
+gcaplabs-hermeshq/**/__pycache__/
+gcaplabs-hermeshq/**/*.pyc
+
 # Test artifacts
 tests/e2e/screenshots/
 tests/e2e/results/
