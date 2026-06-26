@@ -86,6 +86,7 @@ export interface HermeshqProvisionApiResponse {
   default_model?: string | null;
   default_provider?: string | null;
   default_base_url?: string | null;
+  runtime_env?: Record<string, string> | null;
   app_settings?: {
     app_name: string;
     app_short_name: string;
@@ -151,6 +152,7 @@ export async function provisionHermeshqDesktop(request: HermeshqProvisionRequest
       default_model: data.default_model ?? null,
       default_provider: data.default_provider ?? null,
       default_base_url: data.default_base_url ?? null,
+      runtime_env: data.runtime_env ?? null,
       app_settings: data.app_settings ?? null,
       refreshed_at: new Date().toISOString(),
     };
