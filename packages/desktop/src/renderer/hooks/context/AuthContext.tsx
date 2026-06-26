@@ -254,6 +254,10 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
     // TEMPORARILY DISABLED for testing — auto-login via stored token.
     // Re-enable by uncommenting the void refresh() call below.
     // void refresh();
+    // When auto-login is disabled, mark ready immediately so the auth gate
+    // (login screen) renders instead of hanging on BootstrapScreen forever.
+    setReady(true);
+    setStatus('unauthenticated');
     return () => {
       abortRef.current?.abort();
     };
