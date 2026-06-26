@@ -647,8 +647,16 @@ const createWindow = ({ showOnReady = true }: { showOnReady?: boolean } = {}): v
     console.log('[Headmaster] Main window closed');
   });
 
-  // DevTools is no longer auto-opened at startup.
-  // Use the DevTools toggle in Settings > System (dev mode only) to open it.
+  // F12 toggles DevTools in both dev and packaged builds.
+  mainWindow.webContents.on('before-input-event', (_event, input) => {
+    if (input.type === 'keyDown' && input.key === 'F12') {
+      if (mainWindow!.webContents.isDevToolsOpened()) {
+        mainWindow!.webContents.closeDevTools();
+      } else {
+        mainWindow!.webContents.openDevTools();
+      }
+    }
+  });
 
   // Listen to DevTools state changes and notify Renderer
   mainWindow.webContents.on('devtools-opened', () => {

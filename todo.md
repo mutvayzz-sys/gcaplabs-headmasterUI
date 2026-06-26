@@ -1,34 +1,26 @@
 # Headmaster — Active TODO
 
-Updated: **2026-06-23**
+Updated: **2026-06-26**
 
-Current source version: **v0.2.1**
+Current source version: **v0.2.3**
 
 Completed work belongs in `CHANGELOG.md`. Finished audit/plan docs live in `_archive/`.
 This file contains only remaining validation, runtime stability, and release work.
 
 ## Current position
 
-The **v0.2.1 release branch** includes the audit implementation pass (branch
-`codex/headmaster-v0.2.0`):
+**v0.2.3** (2026-06-26) — packaged exe runtime isolation + login + install UI:
 
-- Hermes chat adapter hardening (model fallback, deferred `userCreated`, disconnect
-  grace, RPC reconnect, session profile persistence).
-- IPC/route fixes (`conversation.get` / `warmup` / `reset`, `/council` →
-  `/team/default`, runtime settings canonical path).
-- Gateway resilience, runtime globals sync (upstream-aligned port/token mirroring
-  - `hermes:runtime-changed` push).
-- Settings IA (Tools / Skills / Integrations / Channels), English-only i18n.
-- White-label sweep, storage/event renames, build hygiene (`out/` cleanup,
-  `legalTrademarks`, electronRebuild sync).
-- **Removed from product:** Approvals page stub, Analytics screen, **Dashboard
-  screen** (sidebar + page deleted; `/dashboard` redirects to `/guid`).
-- Automated validation: `bunx tsc --noEmit` clean; `bun run test` — 1,319+
-  passed (3 skipped).
+- Runtime always installs to `%LOCALAPPDATA%\Headmaster\runtime` (no PATH mutation, no fallback to existing Hermes)
+- First-run installer runs automatically via `install.ps1` stage protocol; window appears immediately
+- In-app install progress screen with live stage checklist, progress bar, log output
+- Login working: `VITE_HERMESHQ_URL` baked at build time; CORS headers injected for HermesHQ
+- F12 opens DevTools in packaged builds
+- Native OS install dialog removed
 
-**Still open:** packaged interactive smoke test, Hermes runtime stability (log
-shows repeated `dashboard exited code=1` restarts), full installer/zip build,
-release publication, and a few verification items below.
+**v0.2.2** (2026-06-25) — cross-device memory, safeStorage, provision flow, iOS fixes.
+
+**Still open:** end-to-end login + Hermes dashboard startup verify, full installer/zip build, release publication.
 
 ## P0 — Release blockers
 
