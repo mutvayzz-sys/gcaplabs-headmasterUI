@@ -66,6 +66,16 @@ export interface HermeshqProvisionApiResponse {
   default_model?: string | null;
   default_provider?: string | null;
   default_base_url?: string | null;
+  app_settings?: {
+    app_name: string;
+    app_short_name: string;
+    theme_mode: string;
+    default_locale: string;
+    logo_url?: string | null;
+    favicon_url?: string | null;
+    has_logo?: boolean;
+    has_favicon?: boolean;
+  } | null;
 }
 
 export async function provisionHermeshqDesktop(request: HermeshqProvisionRequest): Promise<{
@@ -120,6 +130,7 @@ export async function provisionHermeshqDesktop(request: HermeshqProvisionRequest
       default_model: data.default_model ?? null,
       default_provider: data.default_provider ?? null,
       default_base_url: data.default_base_url ?? null,
+      app_settings: data.app_settings ?? null,
       refreshed_at: new Date().toISOString(),
     };
     setHermeshqProvision(provision);

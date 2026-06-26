@@ -37,6 +37,17 @@ export interface HermeshqProvisionProvider {
   enabled: boolean;
 }
 
+export interface HermeshqProvisionAppSettings {
+  app_name: string;
+  app_short_name: string;
+  theme_mode: string;
+  default_locale: string;
+  logo_url?: string | null;
+  favicon_url?: string | null;
+  has_logo?: boolean;
+  has_favicon?: boolean;
+}
+
 export interface HermeshqProvisionSnapshot {
   mode: string;
   user: {
@@ -65,6 +76,7 @@ export interface HermeshqProvisionSnapshot {
   default_model?: string | null;
   default_provider?: string | null;
   default_base_url?: string | null;
+  app_settings?: HermeshqProvisionAppSettings | null;
   client?: string;
   version?: string;
   platform?: string;
