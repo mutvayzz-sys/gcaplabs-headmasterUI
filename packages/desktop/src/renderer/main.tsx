@@ -185,7 +185,9 @@ const Main = () => {
         .catch((err) => {
           console.error('Failed to prefetch agents:', err);
         }),
-    ]).finally(() => setConfigReady(true));
+    ]).finally(() => {
+      setConfigReady(true);
+    });
   }, [ready]);
 
   useEffect(() => {

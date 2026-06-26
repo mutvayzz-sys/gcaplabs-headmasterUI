@@ -32,24 +32,25 @@ export const fetchProviders = async (): Promise<IProvider[]> => {
  * providers shipped in the provision response — they take priority over the
  * local runtime's /api/model/options (which only sees local .env keys).
  */
-function readProvisionedProviders(): IProvider[] {
+export function readProvisionedProviders(): IProvider[] {
   if (typeof window === 'undefined') return [];
-  const provision = (window as any).__hermeshqProvision as
-    | { providers?: Array<Record<string, unknown>> }
-    | undefined;
+  const provision = (window as any).__hermeshqProvision as { providers?: Array<Record<string, unknown>> } | undefined;
   if (!provision?.providers || !Array.isArray(provision.providers)) return [];
   return provision.providers
     .filter((p) => p && typeof p.slug === 'string' && typeof p.name === 'string')
-    .map((p) => ({
-      id: p.slug as string,
-      platform: (p.runtime_provider as string) ?? (p.slug as string),
-      name: p.name as string,
-      base_url: (p.base_url as string) ?? '',
-      api_key: '',
-      models: Array.isArray(p.available_models) ? (p.available_models as string[]) : [],
-      enabled: p.enabled !== false,
-      managed_by_runtime: true,
-    } as unknown as IProvider));
+    .map(
+      (p) =>
+        ({
+          id: p.slug as string,
+          platform: (p.runtime_provider as string) ?? (p.slug as string),
+          name: p.name as string,
+          base_url: (p.base_url as string) ?? '',
+          api_key: '',
+          models: Array.isArray(p.available_models) ? (p.available_models as string[]) : [],
+          enabled: p.enabled !== false,
+          managed_by_runtime: true,
+        }) as unknown as IProvider
+    );
 }
 
 /**
@@ -107,9 +108,7 @@ export const useModelProviderList = (): ModelProviderListResult => {
 
   // Track provisioned providers so we re-render when the provision snapshot
   // arrives (dispatched via the 'hermeshq:provision-updated' DOM event).
-  const [provisionedProviders, setProvisionedProviders] = useState<IProvider[]>(() =>
-    readProvisionedProviders()
-  );
+  const [provisionedProviders, setProvisionedProviders] = useState<IProvider[]>(() => readProvisionedProviders());
   useEffect(() => {
     const handler = () => setProvisionedProviders(readProvisionedProviders());
     window.addEventListener('hermeshq:provision-updated', handler);

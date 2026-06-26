@@ -500,7 +500,15 @@ export class HermesBootstrap {
           .join(delimiter),
       };
 
-      const args = ['dashboard', '--no-open', '--port', '0', '--skip-build'];
+      // Only pass --skip-build when web_dist already exists; otherwise let
+      // Hermes build it automatically on first run to avoid an immediate exit.
+      const webDistPath = join(this.hermesHome, 'hermes-agent', 'web_dist');
+      const args = ['dashboard', '--no-open', '--port', '0'];
+      if (existsSync(webDistPath)) {
+        args.push('--skip-build');
+      } else {
+        console.log(`[hermes-bootstrap] web_dist not found at ${webDistPath}; letting Hermes build on first run`);
+      }
 
       console.log(`[hermes-bootstrap] spawning: ${hermesBin} ${args.join(' ')}`);
       console.log(`[hermes-bootstrap] HERMES_HOME=${this.hermesHome}`);

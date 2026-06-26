@@ -8,14 +8,14 @@ import { ipcBridge } from '@/common';
 import type { IProvider } from '@/common/config/storage';
 import { Button, Divider, Message, Popconfirm, Collapse, Tag, Switch, Tooltip } from '@arco-design/web-react';
 import { DeleteFour, Info, Minus, Plus, Write, Heartbeat } from '@icon-park/react';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import AddModelModal from '@/renderer/pages/settings/components/AddModelModal';
 import AddPlatformModal from '@/renderer/pages/settings/components/AddPlatformModal';
 import { isNewApiPlatform, NEW_API_PROTOCOL_OPTIONS } from '@/renderer/utils/model/modelPlatforms';
 import EditModeModal from '@/renderer/pages/settings/components/EditModeModal';
 import AionScrollArea from '@/renderer/components/base/AionScrollArea';
-import { useProvidersQuery } from '@/renderer/hooks/agent/useModelProviderList';
+import { useProvidersQuery, readProvisionedProviders } from '@/renderer/hooks/agent/useModelProviderList';
 import { useSettingsViewMode } from '../settingsViewContext';
 import { consumePendingDeepLink } from '@/renderer/hooks/system/useDeepLink';
 import '../model-provider.css';
@@ -112,6 +112,22 @@ const ModelModalContent: React.FC = () => {
   const [healthCheckLoading, setHealthCheckLoading] = useState<Record<string, boolean>>({});
   const { data, mutate } = useProvidersQuery();
   const [message, messageContext] = Message.useMessage();
+
+  // HermesHQ-managed providers from provision snapshot (read-only)
+  const [hqProviders, setHqProviders] = useState(() => readProvisionedProviders());
+  useEffect(() => {
+    const handler = () => setHqProviders(readProvisionedProviders());
+    window.addEventListener('hermeshq:provision-updated', handler);
+    return () => window.removeEventListener('hermeshq:provision-updated', handler);
+  }, []);
+
+  // Default model info from HQ provision
+  const hqDefault = useMemo(() => {
+    const p = (window as unknown as { __hermeshqProvision?: { default_model?: string; default_provider?: string } })
+      .__hermeshqProvision;
+    if (!p?.default_model) return null;
+    return { model: p.default_model, provider: p.default_provider ?? '' };
+  }, [hqProviders]);
 
   /**
    * Create when the provider id is new, update otherwise.
@@ -383,7 +399,80 @@ const ModelModalContent: React.FC = () => {
 
       {/* Content Area */}
       <AionScrollArea className='flex-1 min-h-0' disableOverflow={isPageMode}>
-        {!data || data.length === 0 ? (
+        {/* HermesHQ-managed providers (read-only) */}
+        {hqProviders.length > 0 && (
+          <div className='mb-20px'>
+            <div className='flex items-center gap-8px mb-10px'>
+              <span className='text-13px font-500 text-t-secondary uppercase tracking-wide'>
+                {t('settings.managedByHQ', { defaultValue: 'Managed by Headmaster Cloud' })}
+              </span>
+              <Tag size='small' color='arcoblue'>
+                HQ
+              </Tag>
+            </div>
+            {hqDefault && (
+              <div
+                className='mb-10px rd-8px px-12px py-8px text-12px border border-solid'
+                style={{
+                  borderColor: 'rgba(var(--primary-6),0.25)',
+                  backgroundColor: 'rgba(var(--primary-6),0.06)',
+                  color: 'rgb(var(--primary-6))',
+                }}
+              >
+                {t('settings.defaultModel', { defaultValue: 'Default model' })}: <strong>{hqDefault.model}</strong>
+                {hqDefault.provider && <span className='ml-6px opacity-70'>via {hqDefault.provider}</span>}
+              </div>
+            )}
+            <div className='space-y-8px'>
+              {hqProviders.map((platform) => (
+                <Collapse
+                  key={platform.id}
+                  activeKey={collapseKey[`hq-${platform.id}`] ? ['models'] : []}
+                  onChange={(_, activeKeys) =>
+                    setCollapseKey((prev) => ({ ...prev, [`hq-${platform.id}`]: activeKeys.includes('models') }))
+                  }
+                  bordered
+                  expandIconPosition='left'
+                  className='[&_.arco-collapse-item]:!border-0 [&_.arco-collapse-item]:!rounded-12px [&_.arco-collapse-item]:!overflow-hidden [&_.arco-collapse-item]:!bg-[var(--color-bg-2)] [&_.arco-collapse-item-header]:!bg-[var(--fill-0)] [&_.arco-collapse-item-header]:!pl-36px [&_.arco-collapse-item-header]:!pr-12px [&_.arco-collapse-item-header]:!py-8px [&_.arco-collapse-item-content]:!bg-fill-1 [&_.arco-collapse-item-content-box]:!px-10px [&_.arco-collapse-item-content-box]:!py-8px [&_.arco-collapse-item-content]:!border-t [&_.arco-collapse-item-content]:!border-[var(--color-border-2)]'
+                >
+                  <Collapse.Item
+                    name='models'
+                    header={
+                      <div className='flex items-center justify-between w-full min-h-32px gap-8px'>
+                        <span className='text-14px font-500 text-2 truncate'>{platform.name}</span>
+                        <div className='flex items-center gap-8px shrink-0'>
+                          <span className='text-12px text-t-secondary'>
+                            {(platform.models ?? []).length} {t('settings.models', { defaultValue: 'models' })}
+                          </span>
+                          <Tag size='small' color='green'>
+                            {t('settings.cloudManaged', { defaultValue: 'Cloud' })}
+                          </Tag>
+                        </div>
+                      </div>
+                    }
+                  >
+                    {(platform.models ?? []).map((model, index, arr) => (
+                      <div key={model}>
+                        <div className='flex items-center justify-between px-8px py-10px'>
+                          <span className='text-14px text-t-primary'>{model}</span>
+                          {hqDefault?.model === model && (
+                            <Tag size='small' color='arcoblue'>
+                              {t('common.default', { defaultValue: 'Default' })}
+                            </Tag>
+                          )}
+                        </div>
+                        {index < arr.length - 1 && <Divider className='!my-0 !border-[var(--color-border-2)]/70' />}
+                      </div>
+                    ))}
+                  </Collapse.Item>
+                </Collapse>
+              ))}
+            </div>
+            {(data ?? []).length > 0 && <Divider className='!my-16px' />}
+          </div>
+        )}
+
+        {(!data || data.length === 0) && hqProviders.length === 0 ? (
           <div className='flex flex-col items-center justify-center py-40px'>
             <Info theme='outline' size='48' className='text-t-secondary mb-16px' />
             <h3 className='text-16px font-500 text-t-primary mb-8px'>{t('settings.noConfiguredModels')}</h3>
@@ -400,7 +489,7 @@ const ModelModalContent: React.FC = () => {
               {t('settings.configGuideSuffix')}
             </p>
           </div>
-        ) : (
+        ) : (data ?? []).length > 0 ? (
           <div className='space-y-16px'>
             {(data || []).map((platform: IProvider) => {
               const key = platform.id;
@@ -625,7 +714,7 @@ const ModelModalContent: React.FC = () => {
               );
             })}
           </div>
-        )}
+        ) : null}
       </AionScrollArea>
     </div>
   );
