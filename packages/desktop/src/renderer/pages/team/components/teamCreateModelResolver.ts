@@ -7,6 +7,7 @@
 import { configService } from '@/common/config/configService';
 import type { AcpModelInfo } from '@/common/types/platform/acpTypes';
 import { getAgents } from '@/renderer/hooks/agent/useAgents';
+import { readProvisionedDefaultModel } from '@/renderer/hooks/agent/useModelProviderList';
 
 /**
  * Resolve the `model` value a team agent should send to `POST /api/teams`.
@@ -67,6 +68,13 @@ async function resolveGeminiDefaultModel(): Promise<string> {
 }
 
 async function resolveAionrsDefaultModel(): Promise<string> {
+  // 1. HermesHQ provisioned default model (admin-assigned per agent)
+  const provisioned = readProvisionedDefaultModel();
+  if (provisioned?.model) {
+    return provisioned.model;
+  }
+
+  // 2. User's saved local preference
   const saved = configService.get('aionrs.defaultModel');
   if (saved && typeof saved === 'object' && typeof saved.use_model === 'string' && saved.use_model.length > 0) {
     return saved.use_model;

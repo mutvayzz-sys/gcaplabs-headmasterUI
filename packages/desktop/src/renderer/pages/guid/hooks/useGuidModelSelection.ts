@@ -7,7 +7,7 @@
 import type { IProvider, TProviderWithModel } from '@/common/config/storage';
 import { configService } from '@/common/config/configService';
 import { useGoogleAuthModels } from '@/renderer/hooks/agent/useGoogleAuthModels';
-import { useProvidersQuery } from '@/renderer/hooks/agent/useModelProviderList';
+import { useProvidersQuery, readProvisionedDefaultModel } from '@/renderer/hooks/agent/useModelProviderList';
 import { hasAvailableModels } from '../utils/modelUtils';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
@@ -98,6 +98,30 @@ export const useGuidModelSelection = (agentKey: ProviderAgentKey = 'aionrs'): Gu
       let defaultModel: IProvider | undefined;
       let resolvedUseModel: string;
 
+      // 1. Check HermesHQ provisioned default model (admin-assigned per agent)
+      const provisionedDefault = readProvisionedDefaultModel();
+      if (provisionedDefault?.model) {
+        const provisionedProvider = modelList.find((m) => m.id === provisionedDefault.provider);
+        if (provisionedProvider) {
+          const availableModels = provisionedProvider.models || [];
+          defaultModel = provisionedProvider;
+          resolvedUseModel = availableModels.includes(provisionedDefault.model)
+            ? provisionedDefault.model
+            : (availableModels[0] ?? '');
+          if (resolvedUseModel) {
+            await setCurrentModel(
+              {
+                ...defaultModel,
+                use_model: resolvedUseModel,
+              },
+              options
+            );
+            return;
+          }
+        }
+      }
+
+      // 2. User's saved local preference
       if (isNewFormat) {
         const { id, use_model } = savedModel;
         const exactMatch = modelList.find((m) => m.id === id);

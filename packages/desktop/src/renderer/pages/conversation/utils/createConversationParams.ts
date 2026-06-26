@@ -21,6 +21,7 @@ import { getAgents } from '@/renderer/hooks/agent/useAgents';
 import type { AcpModelInfo } from '@/common/types/platform/acpTypes';
 import { getAgentModes } from '@/renderer/utils/model/agentModes';
 import { hasSpecificModelCapability } from '@/renderer/utils/model/modelCapabilities';
+import { readProvisionedDefaultModel } from '@/renderer/hooks/agent/useModelProviderList';
 
 type ModePreference = {
   preferredMode?: string;
@@ -110,6 +111,10 @@ function isAionrsCompatibleProvider(provider: IProvider): boolean {
  * Respects the user's saved `aionrs.defaultModel` selection when it still
  * exists in the current provider list, otherwise falls back to the first
  * compatible provider/model pair.
+ *
+ * If HermesHQ provisioned a default model (window.__hermeshqProvision.default_model),
+ * that takes priority over the saved local preference. This ensures the admin-
+ * assigned model per agent is used for new conversations.
  */
 export async function getDefaultAionrsModel(): Promise<TProviderWithModel> {
   const providers = await ipcBridge.mode.listProviders.invoke();
@@ -123,6 +128,29 @@ export async function getDefaultAionrsModel(): Promise<TProviderWithModel> {
     throw new Error('No enabled model provider for the runtime');
   }
 
+  // 1. Check HermesHQ provisioned default model (admin-assigned per agent)
+  const provisionedDefault = readProvisionedDefaultModel();
+  if (provisionedDefault?.model) {
+    const provisionedProvider = compatibleProviders.find(
+      (p) => p.id === provisionedDefault.provider || p.id === provisionedDefault.model.split('/')[0]
+    );
+    if (provisionedProvider) {
+      const availableModels = getAvailableAionrsModels(provisionedProvider);
+      // Exact match first, then any model from the same provider
+      let modelToUse = provisionedDefault.model;
+      if (!availableModels.includes(modelToUse)) {
+        modelToUse = availableModels[0] ?? provisionedProvider.models[0] ?? '';
+      }
+      if (modelToUse) {
+        return {
+          ...provisionedProvider,
+          use_model: modelToUse,
+        };
+      }
+    }
+  }
+
+  // 2. Check user's saved local preference
   const savedDefault = configService.get('aionrs.defaultModel');
   if (savedDefault?.id && savedDefault.use_model) {
     const savedProvider = compatibleProviders.find((provider) => provider.id === savedDefault.id);
