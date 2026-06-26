@@ -149,11 +149,14 @@ worktree/
 worktrees/
 
 # HermesHQ backend copy (vendored for co-editing; deploy from remote repo)
+hermeshq/backend/.venv/
+hermeshq/frontend/node_modules/
+hermeshq/backend/__pycache__/
+hermeshq/**/__pycache__/
+hermeshq/**/*.pyc
+# Keep old paths too in case of leftover dirs
 gcaplabs-hermeshq/backend/.venv/
 gcaplabs-hermeshq/frontend/node_modules/
-gcaplabs-hermeshq/backend/__pycache__/
-gcaplabs-hermeshq/**/__pycache__/
-gcaplabs-hermeshq/**/*.pyc
 
 # Test artifacts
 tests/e2e/screenshots/
