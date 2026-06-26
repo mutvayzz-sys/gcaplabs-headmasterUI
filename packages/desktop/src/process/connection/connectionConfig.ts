@@ -26,6 +26,17 @@ export interface HermeshqConfig {
   provision?: HermeshqProvisionSnapshot | null;
 }
 
+export interface HermeshqProvisionProvider {
+  slug: string;
+  name: string;
+  runtime_provider: string;
+  auth_type: string;
+  base_url: string | null;
+  default_model: string | null;
+  available_models: string[];
+  enabled: boolean;
+}
+
 export interface HermeshqProvisionSnapshot {
   mode: string;
   user: {
@@ -50,6 +61,10 @@ export interface HermeshqProvisionSnapshot {
   session_namespace?: string | null;
   honcho_base_url?: string | null;
   honcho_api_key?: string | null;
+  providers?: HermeshqProvisionProvider[];
+  default_model?: string | null;
+  default_provider?: string | null;
+  default_base_url?: string | null;
   client?: string;
   version?: string;
   platform?: string;
@@ -178,6 +193,31 @@ function normalizeProvisionSnapshot(snapshot: Partial<HermeshqProvisionSnapshot>
   }
   if (typeof snapshot.honcho_api_key === 'string') {
     normalized.honcho_api_key = snapshot.honcho_api_key;
+  }
+  // Provider catalog + default model from provision response
+  if (Array.isArray(snapshot.providers)) {
+    normalized.providers = snapshot.providers
+      .filter((p): p is HermeshqProvisionProvider =>
+        p !== null && typeof p === 'object' && typeof p.slug === 'string' && typeof p.name === 'string')
+      .map((p) => ({
+        slug: p.slug,
+        name: p.name,
+        runtime_provider: p.runtime_provider,
+        auth_type: p.auth_type,
+        base_url: p.base_url ?? null,
+        default_model: p.default_model ?? null,
+        available_models: Array.isArray(p.available_models) ? p.available_models.filter((m) => typeof m === 'string') : [],
+        enabled: p.enabled !== false,
+      }));
+  }
+  if (typeof snapshot.default_model === 'string') {
+    normalized.default_model = snapshot.default_model;
+  }
+  if (typeof snapshot.default_provider === 'string') {
+    normalized.default_provider = snapshot.default_provider;
+  }
+  if (typeof snapshot.default_base_url === 'string') {
+    normalized.default_base_url = snapshot.default_base_url;
   }
   return normalized;
 }
