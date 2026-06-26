@@ -687,27 +687,30 @@ const handleAppReady = async (): Promise<void> => {
   const mark = (label: string) => console.log(`[Headmaster:ready] ${label} +${Math.round(performance.now() - t0)}ms`);
   mark('start');
 
-  // Inject CORS headers for HermesHQ so the renderer (file:// origin) can reach it.
-  // Electron's Chromium enforces CORS even for Electron renderers; the server doesn't
-  // return Access-Control-Allow-Origin for null origins, so we add it here.
-  session.defaultSession.webRequest.onHeadersReceived(
-    { urls: ['https://hermeshq.gcaplabs.com/*'] },
-    (details, callback) => {
-      const isPreflight = details.method === 'OPTIONS';
-      callback({
-        // Force a 200 on OPTIONS so Chromium accepts the preflight even when
-        // the server returns a non-2xx status for unknown origins (dev mode).
-        statusLine: isPreflight ? 'HTTP/1.1 200 OK' : details.statusLine,
-        responseHeaders: {
-          ...details.responseHeaders,
-          'Access-Control-Allow-Origin': ['*'],
-          'Access-Control-Allow-Methods': ['GET, POST, PUT, DELETE, OPTIONS'],
-          'Access-Control-Allow-Headers': ['Content-Type, Authorization'],
-          ...(isPreflight ? { 'Access-Control-Max-Age': ['86400'] } : {}),
-        },
-      });
-    }
-  );
+  // Inject CORS headers so the renderer can reach cross-origin API servers.
+  // In dev mode the renderer loads from localhost:5173 (Vite) rather than app://,
+  // so Chromium enforces CORS for all requests to the local Hermes API server and
+  // to the remote HermesHQ backend.
+  const corsUrls = [
+    'https://hermeshq.gcaplabs.com/*',
+    // Dev mode only: cover the local Hermes API server (dynamic port on 127.0.0.1)
+    ...(!app.isPackaged ? ['http://127.0.0.1/*'] : []),
+  ];
+  session.defaultSession.webRequest.onHeadersReceived({ urls: corsUrls }, (details, callback) => {
+    const isPreflight = details.method === 'OPTIONS';
+    callback({
+      // Force a 200 on OPTIONS so Chromium accepts the preflight even when
+      // the server returns a non-2xx status for unknown origins (dev mode).
+      statusLine: isPreflight ? 'HTTP/1.1 200 OK' : details.statusLine,
+      responseHeaders: {
+        ...details.responseHeaders,
+        'Access-Control-Allow-Origin': ['*'],
+        'Access-Control-Allow-Methods': ['GET, POST, PUT, DELETE, OPTIONS'],
+        'Access-Control-Allow-Headers': ['Content-Type, Authorization'],
+        ...(isPreflight ? { 'Access-Control-Max-Age': ['86400'] } : {}),
+      },
+    });
+  });
 
   if (!app.isPackaged) {
     try {
