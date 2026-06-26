@@ -66,7 +66,8 @@ function getBackendPort(): number {
     if (typeof w === 'number' && w > 0) return w;
   }
   const g = globalThis as typeof globalThis & { __backendPort?: number };
-  return g.__backendPort ?? 9119;
+  const p = g.__backendPort;
+  return typeof p === 'number' && p > 0 ? p : 9119;
 }
 
 /**
@@ -270,6 +271,19 @@ export async function httpRequest<T>(
   options?: HttpRequestOptions
 ): Promise<T> {
   const url = `${getBaseUrl()}${path}`;
+
+  // Guard: in Electron renderer mode, skip requests when the backend port
+  // is 0 (dashboard not ready yet). Prevents ERR_CONNECTION_REFUSED spam
+  // against the 9119 fallback. WebUI and remote-container modes bypass
+  // this (same-origin or cloud endpoint). Node test env has no `window`
+  // so this guard never fires in unit tests.
+  if (typeof window !== 'undefined' && !isWebUiBrowserMode() && !isRemoteContainerMode()) {
+    const port = getBackendPort();
+    if (port <= 0) {
+      throw new Error('Backend not ready (port=0)');
+    }
+  }
+
   const headers: Record<string, string> = {};
 
   if (body !== undefined) {
@@ -681,6 +695,16 @@ function ensureWs(): void {
 }
 
 function connectWs(): void {
+  // Guard: don't attempt WS connection when backend port is 0 (dashboard
+  // not ready). Prevents reconnect storm against the 9119 fallback.
+  if (typeof window !== 'undefined' && !isWebUiBrowserMode() && !isRemoteContainerMode()) {
+    const port = getBackendPort();
+    if (port <= 0) {
+      console.debug('[ensureWs] skipped: backend port is 0 (dashboard not ready)');
+      return;
+    }
+  }
+
   const url = getWsUrl();
   console.debug('[ensureWs] connecting to', url);
   try {
