@@ -27,7 +27,21 @@ export const fetchProviders = async (): Promise<IProvider[]> => {
 };
 
 export const useProvidersQuery = () => {
-  return useSWR<IProvider[]>(PROVIDERS_SWR_KEY, fetchProviders, PROVIDERS_SWR_OPTIONS);
+  const swr = useSWR<IProvider[]>(PROVIDERS_SWR_KEY, fetchProviders, PROVIDERS_SWR_OPTIONS);
+
+  // Re-fetch providers when the Hermes dashboard becomes ready. The initial
+  // fetch often fails because the dashboard hasn't spawned yet (port=0),
+  // and SWR is configured with shouldRetryOnError: false — so it never
+  // retries on its own. Listen for the runtime-changed event and revalidate.
+  useEffect(() => {
+    const handler = () => {
+      swr.mutate();
+    };
+    window.addEventListener('hermes:runtime-changed', handler);
+    return () => window.removeEventListener('hermes:runtime-changed', handler);
+  }, [swr]);
+
+  return swr;
 };
 
 /**
