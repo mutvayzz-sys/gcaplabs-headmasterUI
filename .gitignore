@@ -197,3 +197,6 @@ $RECYCLE.BIN/
 
 # PowerShell accidentally creates a literal file named '$null'
 $null
+
+# Windows shortcuts (created by Explorer / NuGet / user; not source)
+*.lnk

@@ -13,6 +13,11 @@ vi.mock('../../../../packages/desktop/src/common/adapter/httpBridge', () => ({
     mocks.gatewayListener = listener;
     return () => {};
   }),
+  probeCapabilities: vi.fn(async () => null),
+  supportsRunsApi: vi.fn(() => false),
+  submitRunAndStream: vi.fn(async () => null),
+  submitRunApproval: vi.fn(async () => {}),
+  stopRun: vi.fn(async () => {}),
 }));
 
 import {
