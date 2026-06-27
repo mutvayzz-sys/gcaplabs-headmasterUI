@@ -164,6 +164,11 @@ function applyNousConfig(hermesHome: string, provision: HermeshqProvisionSnapsho
     apiServerKey = existingMatch ? existingMatch[1].trim() : randomBytes(32).toString('hex');
     env = patchEnvLine(env, 'API_SERVER_ENABLED', 'true');
     env = patchEnvLine(env, 'API_SERVER_KEY', apiServerKey);
+    // Bind to 0.0.0.0 so the API server is reachable from other devices
+    // on the LAN (e.g., the iOS app on the same network). The dashboard
+    // session token still gates access. For loopback-only mode, omit
+    // this line and the Hermes default (127.0.0.1) applies.
+    env = patchEnvLine(env, 'API_SERVER_HOST', '0.0.0.0');
   }
 
   const tmp = `${envPath}.tmp`;
