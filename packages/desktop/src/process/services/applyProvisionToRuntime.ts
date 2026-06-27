@@ -56,10 +56,27 @@ export function applyProvisionToRuntime(provision: HermeshqProvisionSnapshot): A
     const home = resolveHermesHome();
     applyHonchoConfig(home, provision);
     applyModelConfig(home, provision);
+    applySystemPromptOverride(home, provision);
     return applyNousConfig(home, provision);
   } catch (err) {
     console.warn('[applyProvisionToRuntime] failed to apply provision to runtime config:', err);
     return { apiServerKey: null, needsRestart: false };
+  }
+}
+
+/**
+ * Writes system_prompt_override from HermesHQ provision to $HERMES_HOME/SOUL.md.
+ * SOUL.md is the documented Hermes mechanism for the primary system prompt
+ * (slot #1). The runtime reads it at gateway startup.
+ */
+function applySystemPromptOverride(hermesHome: string, provision: HermeshqProvisionSnapshot): void {
+  if (!provision.system_prompt_override) return;
+  const soulPath = join(hermesHome, 'SOUL.md');
+  try {
+    writeFileSync(soulPath, provision.system_prompt_override, 'utf-8');
+    console.log('[applyProvisionToRuntime] SOUL.md override written from provision');
+  } catch (err) {
+    console.warn('[applyProvisionToRuntime] failed to write SOUL.md override:', err);
   }
 }
 

@@ -13,6 +13,14 @@ vi.mock('electron', () => ({
   app: {
     getPath: mocks.getPath,
   },
+  safeStorage: {
+    isEncryptionAvailable: () => false,
+    encryptString: (s: string) => Buffer.from(s),
+    decryptString: (b: Buffer) => b.toString(),
+  },
+  BrowserWindow: {
+    getAllWindows: () => [],
+  },
 }));
 
 import {

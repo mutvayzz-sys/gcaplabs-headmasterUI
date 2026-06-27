@@ -15,7 +15,7 @@ type MessageState = {
 const LoginPage: React.FC = () => {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
-  const { status, login } = useAuth();
+  const { status, login, verifyMfa } = useAuth();
 
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -23,6 +23,8 @@ const LoginPage: React.FC = () => {
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [message, setMessage] = useState<MessageState | null>(null);
   const [loading, setLoading] = useState(false);
+  const [mfaState, setMfaState] = useState<{ required: boolean; challengeToken?: string }>({ required: false });
+  const [mfaCode, setMfaCode] = useState('');
 
   const usernameRef = useRef<HTMLInputElement | null>(null);
   const passwordRef = useRef<HTMLInputElement | null>(null);
@@ -140,6 +142,9 @@ const LoginPage: React.FC = () => {
         window.setTimeout(() => {
           void navigate('/guid', { replace: true });
         }, 600);
+      } else if (result.mfaRequired && result.mfaChallengeToken) {
+        setMfaState({ required: true, challengeToken: result.mfaChallengeToken });
+        showMessage({ type: 'error', text: result.message ?? 'Enter your MFA code.' });
       } else {
         const errorText = (() => {
           switch (result.code) {
@@ -163,6 +168,35 @@ const LoginPage: React.FC = () => {
       setLoading(false);
     },
     [login, navigate, password, rememberMe, showMessage, t, username]
+  );
+
+  const handleMfaSubmit = useCallback(
+    async (event: React.FormEvent) => {
+      event.preventDefault();
+      if (!mfaState.challengeToken) return;
+      const trimmedCode = mfaCode.trim();
+      if (!trimmedCode) {
+        showMessage({ type: 'error', text: 'Please enter your MFA code.' });
+        return;
+      }
+      setLoading(true);
+      setMessage(null);
+      const result = await verifyMfa({
+        mfaChallengeToken: mfaState.challengeToken,
+        code: trimmedCode,
+        remember: rememberMe,
+      });
+      if (result.success) {
+        showMessage({ type: 'success', text: t('login.success') });
+        window.setTimeout(() => {
+          void navigate('/guid', { replace: true });
+        }, 600);
+      } else {
+        showMessage({ type: 'error', text: result.message ?? 'Invalid MFA code.' });
+      }
+      setLoading(false);
+    },
+    [mfaCode, mfaState, navigate, rememberMe, showMessage, t, verifyMfa]
   );
 
   if (status === 'checking') {
@@ -321,6 +355,50 @@ const LoginPage: React.FC = () => {
             {message?.text}
           </div>
         </form>
+
+        {mfaState.required && (
+          <form className='login-page__form' onSubmit={handleMfaSubmit}>
+            <div className='login-page__form-item'>
+              <label className='login-page__label' htmlFor='mfa-code'>
+                MFA Code
+              </label>
+              <div className='login-page__input-wrapper'>
+                <input
+                  id='mfa-code'
+                  name='mfa-code'
+                  className='login-page__input'
+                  placeholder='000000'
+                  autoComplete='one-time-code'
+                  inputMode='numeric'
+                  pattern='[0-9]*'
+                  maxLength={6}
+                  value={mfaCode}
+                  onChange={(event) => setMfaCode(event.target.value)}
+                  aria-required='true'
+                  autoFocus
+                />
+              </div>
+            </div>
+            <button type='submit' className='login-page__submit' disabled={loading}>
+              {loading && (
+                <svg className='login-page__spinner' viewBox='0 0 24 24' width='18' height='18'>
+                  <circle
+                    cx='12'
+                    cy='12'
+                    r='10'
+                    stroke='currentColor'
+                    strokeWidth='3'
+                    fill='none'
+                    strokeDasharray='50'
+                    strokeDashoffset='25'
+                    strokeLinecap='round'
+                  />
+                </svg>
+              )}
+              <span>{loading ? 'Verifying...' : 'Verify'}</span>
+            </button>
+          </form>
+        )}
 
         <div className='login-page__footer'>
           <div className='login-page__footer-content'>

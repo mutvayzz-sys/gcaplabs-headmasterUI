@@ -25,6 +25,7 @@ type LoginErrorCode =
   | 'serverError'
   | 'networkError'
   | 'csrfError'
+  | 'mfaRequired'
   | 'unknown';
 
 interface LoginResult {
@@ -32,6 +33,8 @@ interface LoginResult {
   message?: string;
   code?: LoginErrorCode;
   shouldClearCache?: boolean;
+  mfaRequired?: boolean;
+  mfaChallengeToken?: string;
 }
 
 interface DesktopHermeshqUser {
@@ -64,6 +67,7 @@ interface AuthContextValue {
   user: AuthUser | null;
   status: AuthStatus;
   login: (params: LoginParams) => Promise<LoginResult>;
+  verifyMfa: (params: { mfaChallengeToken: string; code: string; remember?: boolean }) => Promise<LoginResult>;
   logout: () => Promise<void>;
   refresh: () => Promise<void>;
   clearAuthCache: () => void;
@@ -285,6 +289,7 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
         const data = (await response.json()) as {
           access_token?: string;
           mfa_required?: boolean;
+          mfa_challenge_token?: string;
           detail?: string;
         };
 
@@ -300,8 +305,10 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
         if (data.mfa_required) {
           return {
             success: false,
-            message: 'MFA is required. Please contact your administrator.',
-            code: 'serverError',
+            mfaRequired: true,
+            mfaChallengeToken: data.mfa_challenge_token,
+            message: 'Enter your MFA code.',
+            code: 'mfaRequired',
           };
         }
 
@@ -421,6 +428,59 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
     }
   }, []);
 
+  const verifyMfa = useCallback(async (params: {
+    mfaChallengeToken: string;
+    code: string;
+    remember?: boolean;
+  }): Promise<LoginResult> => {
+    if (isDesktopRuntime) {
+      const config = (await window.electronAPI?.getHermeshqConfig?.()) as DesktopHermeshqConfig | undefined;
+      const serverUrl = resolveDesktopServerUrl(config?.url);
+      if (!serverUrl) {
+        return { success: false, message: 'Server not configured.', code: 'serverError' };
+      }
+      try {
+        const response = await fetch(`${serverUrl}/api/auth/verify-mfa`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            mfa_challenge_token: params.mfaChallengeToken,
+            code: params.code,
+          }),
+        });
+        const data = (await response.json()) as { access_token?: string; detail?: string };
+        if (!response.ok || !data.access_token) {
+          return { success: false, message: data?.detail ?? 'Invalid MFA code', code: 'invalidCredentials' };
+        }
+        await window.electronAPI?.setHermeshqToken?.(data.access_token);
+        if (params.remember) {
+          await window.electronAPI?.setHermeshqUrl?.(serverUrl);
+        }
+        const provisionResult = await provisionDesktopSession();
+        if ('error' in provisionResult) {
+          return { success: false, message: provisionResult.error, code: 'serverError' };
+        }
+        const { provision } = provisionResult;
+        setUser(provisionUserToAuthUser(provision.user));
+        setStatus('authenticated');
+        if (typeof window !== 'undefined') {
+          (window as any).__hermeshqProvision = provision;
+          if ((provision as any).session_namespace) {
+            (window as any).__hermesSessionKey = (provision as any).session_namespace;
+          }
+          queueMicrotask(() => {
+            window.dispatchEvent(new CustomEvent('hermeshq:provision-updated'));
+          });
+        }
+        setReady(true);
+        return { success: true };
+      } catch {
+        return { success: false, message: 'MFA verification failed.', code: 'serverError' };
+      }
+    }
+    return { success: false, message: 'MFA not supported in this mode.', code: 'serverError' };
+  }, []);
+
   const logout = useCallback(async () => {
     if (isDesktopRuntime) {
       const config = await window.electronAPI?.getHermeshqConfig?.();
@@ -465,11 +525,12 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
       user,
       status,
       login,
+      verifyMfa,
       logout,
       refresh,
       clearAuthCache,
     }),
-    [login, logout, ready, refresh, status, user]
+    [login, verifyMfa, logout, ready, refresh, status, user]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
