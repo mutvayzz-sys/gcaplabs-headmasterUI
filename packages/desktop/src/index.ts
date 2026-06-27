@@ -711,15 +711,32 @@ const handleAppReady = async (): Promise<void> => {
   ];
   session.defaultSession.webRequest.onHeadersReceived({ urls: corsUrls }, (details, callback) => {
     const isPreflight = details.method === 'OPTIONS';
+    // Strip existing CORS headers from the server response so we don't
+    // create duplicates (Hermes dashboard already sends its own CORS
+    // headers in dev mode — appending ours creates a multi-value
+    // Access-Control-Allow-Origin that Chromium rejects).
+    const filteredHeaders: Record<string, string[]> = {};
+    for (const [key, value] of Object.entries(details.responseHeaders ?? {})) {
+      const lower = key.toLowerCase();
+      if (
+        lower === 'access-control-allow-origin' ||
+        lower === 'access-control-allow-methods' ||
+        lower === 'access-control-allow-headers' ||
+        lower === 'access-control-max-age'
+      ) {
+        continue; // skip — we set our own below
+      }
+      filteredHeaders[key] = value as string[];
+    }
     callback({
-      // Force a 200 on OPTIONS so Chromium accepts the preflight even when
-      // the server returns a non-2xx status for unknown origins (dev mode).
       statusLine: isPreflight ? 'HTTP/1.1 200 OK' : details.statusLine,
       responseHeaders: {
-        ...details.responseHeaders,
+        ...filteredHeaders,
         'Access-Control-Allow-Origin': ['*'],
         'Access-Control-Allow-Methods': ['GET, POST, PUT, DELETE, OPTIONS'],
-        'Access-Control-Allow-Headers': ['Content-Type, Authorization'],
+        // Include X-Hermes-Session-Token — httpBridge sends this on every
+        // REST call. Without it in Allow-Headers, every preflight fails.
+        'Access-Control-Allow-Headers': ['Content-Type, Authorization, X-Hermes-Session-Token'],
         ...(isPreflight ? { 'Access-Control-Max-Age': ['86400'] } : {}),
       },
     });

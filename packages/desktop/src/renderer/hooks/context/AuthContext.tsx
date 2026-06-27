@@ -220,10 +220,15 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
           setStatus('authenticated');
           if (typeof window !== 'undefined') {
             (window as any).__hermeshqProvision = provision;
-            window.dispatchEvent(new CustomEvent('hermeshq:provision-updated'));
+            if ((provision as any).session_namespace) {
+              (window as any).__hermesSessionKey = (provision as any).session_namespace;
+            }
             if ((provision as any).cloud_container_config?.endpoint_url) {
               window.__cloudContainerEndpoint = (provision as any).cloud_container_config.endpoint_url;
             }
+            queueMicrotask(() => {
+              window.dispatchEvent(new CustomEvent('hermeshq:provision-updated'));
+            });
           }
         }
         setReady(true);
@@ -251,13 +256,7 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
   }, []);
 
   useEffect(() => {
-    // TEMPORARILY DISABLED for testing — auto-login via stored token.
-    // Re-enable by uncommenting the void refresh() call below.
-    // void refresh();
-    // When auto-login is disabled, mark ready immediately so the auth gate
-    // (login screen) renders instead of hanging on BootstrapScreen forever.
-    setReady(true);
-    setStatus('unauthenticated');
+    void refresh();
     return () => {
       abortRef.current?.abort();
     };
@@ -338,7 +337,12 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
         }
         if (typeof window !== 'undefined') {
           (window as any).__hermeshqProvision = provision;
-          window.dispatchEvent(new CustomEvent('hermeshq:provision-updated'));
+          if ((provision as any).session_namespace) {
+            (window as any).__hermesSessionKey = (provision as any).session_namespace;
+          }
+          queueMicrotask(() => {
+            window.dispatchEvent(new CustomEvent('hermeshq:provision-updated'));
+          });
         }
 
         return { success: true };
