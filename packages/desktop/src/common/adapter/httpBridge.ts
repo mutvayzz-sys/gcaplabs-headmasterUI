@@ -32,6 +32,10 @@ declare global {
     __hermesSessionToken?: string;
     __hermesHome?: string;
     __aioncorePort?: number;
+    /** Active Hermes profile name (set by the renderer from the active profile). */
+    __hermesProfile?: string;
+    /** Per-conversation memory scope key (set by the renderer from provision.session_namespace). */
+    __hermesSessionKey?: string;
     /** Cloud container endpoint URL when in headmaster_remote mode. */
     __cloudContainerEndpoint?: string;
   }
@@ -80,6 +84,20 @@ function getApiServerKey(): string | null {
   return typeof k === 'string' && k ? k : null;
 }
 
+/**
+ * Read the active Hermes profile name. Profile-scoped API calls use
+ * ?profile=<name> query param per the Hermes dashboard docs.
+ */
+function getActiveProfile(): string | null {
+  if (typeof window !== 'undefined' && (window as any).__hermesProfile) {
+    const p = (window as any).__hermesProfile as string;
+    return p && p !== 'default' ? p : null;
+  }
+  const g = globalThis as any;
+  const p = g.__hermesProfile;
+  return p && p !== 'default' ? p : null;
+}
+
 // ── Runs API (HTTP/SSE transport) ────────────────────────────────────────────
 
 interface HermesCapabilities {
@@ -106,7 +124,9 @@ export function supportsRunsApi(caps: HermesCapabilities | null): boolean {
   return (
     caps?.features?.['run_submission'] === true &&
     caps.features['run_events_sse'] === true &&
-    caps.features['run_stop'] === true
+    caps.features['run_stop'] === true &&
+    caps.features['run_approval_response'] === true &&
+    caps.features['tool_progress_events'] === true
   );
 }
 
@@ -214,6 +234,27 @@ export async function stopRun(runId: string): Promise<void> {
 }
 
 /**
+ * Resolve a pending human approval decision on a run.
+ * The run resumes once the approval is recorded.
+ */
+export async function submitRunApproval(
+  runId: string,
+  choice: 'once' | 'session' | 'always' | 'deny',
+  signal?: AbortSignal
+): Promise<void> {
+  const apiUrl = `http://127.0.0.1:${getBackendPort()}`;
+  const apiKey = getApiServerKey();
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (apiKey) headers['Authorization'] = `Bearer ${apiKey}`;
+  await fetch(`${apiUrl}/v1/runs/${encodeURIComponent(runId)}/approval`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ choice }),
+    signal,
+  }).catch(() => {});
+}
+
+/**
  * Read the per-launch session token that the Hermes dashboard uses to auth
  * REST + WS calls. Set by `useDashboardStatus` once the dashboard is ready.
  *
@@ -228,6 +269,19 @@ function getSessionToken(): string {
   }
   const g = globalThis as typeof globalThis & { __hermesSessionToken?: string };
   return g.__hermesSessionToken ?? '';
+}
+
+/**
+ * Read the per-session memory scope key. Set by the renderer from
+ * provision.session_namespace. Sent as X-Hermes-Session-Key header so
+ * the runtime scopes Honcho long-term memory per-conversation.
+ */
+function getSessionKey(): string {
+  if (typeof window !== 'undefined' && (window as any).__hermesSessionKey) {
+    return (window as any).__hermesSessionKey as string;
+  }
+  const g = globalThis as any;
+  return g.__hermesSessionKey ?? '';
 }
 
 /**
@@ -287,6 +341,8 @@ function getWsUrl(): string {
     const token = getSessionToken();
     const params = new URLSearchParams();
     if (token) params.set('token', token);
+    const profile = getActiveProfile();
+    if (profile) params.set('profile', profile);
     const qs = params.toString();
     return `${wsEndpoint}/api/ws${qs ? `?${qs}` : ''}`;
   }
@@ -299,6 +355,8 @@ function getWsUrl(): string {
   const token = getSessionToken();
   const params = new URLSearchParams();
   if (token) params.set('token', token);
+  const profile = getActiveProfile();
+  if (profile) params.set('profile', profile);
   const qs = params.toString();
   return `ws://${getBackendHost()}:${getBackendPort()}/api/ws${qs ? `?${qs}` : ''}`;
 }
@@ -413,7 +471,12 @@ export async function httpRequest<T>(
   body?: unknown,
   options?: HttpRequestOptions
 ): Promise<T> {
-  const url = `${getBaseUrl()}${path}`;
+  let url = `${getBaseUrl()}${path}`;
+  const profile = getActiveProfile();
+  if (profile && !path.includes('?profile=')) {
+    const separator = url.includes('?') ? '&' : '?';
+    url += `${separator}profile=${encodeURIComponent(profile)}`;
+  }
 
   // Guard: in Electron renderer mode, skip requests when the backend port
   // is 0 (dashboard not ready yet). Prevents ERR_CONNECTION_REFUSED spam
@@ -440,6 +503,8 @@ export async function httpRequest<T>(
   if (!isWebUiBrowserMode()) {
     const token = getSessionToken();
     if (token) headers['X-Hermes-Session-Token'] = token;
+    const sessionKey = getSessionKey();
+    if (sessionKey) headers['X-Hermes-Session-Key'] = sessionKey;
   }
 
   console.debug(

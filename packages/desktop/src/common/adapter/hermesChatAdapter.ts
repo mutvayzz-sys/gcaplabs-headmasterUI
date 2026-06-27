@@ -20,6 +20,7 @@ import {
   probeCapabilities,
   stopRun,
   submitRunAndStream,
+  submitRunApproval,
   supportsRunsApi,
 } from './httpBridge';
 import { getHermesConversationProfile, rememberOpenHermesConversation } from './hermesSessionAdapter';
@@ -454,6 +455,15 @@ async function confirmPendingRequest(params: IConfirmMessageParams): Promise<voi
   }
 
   const responseValue = confirmationValueFromParams(params);
+
+  // If this conversation is using the Runs API, resolve via HTTP
+  const runTurn = [...turnsByLive.values()].find((t) => t.conversationId === params.conversation_id);
+  if (runTurn?.runId && request.kind === 'approval') {
+    await submitRunApproval(runTurn.runId, normalizeConfirmationChoice(responseValue));
+    removePendingRequest(params.conversation_id, request.requestId);
+    return;
+  }
+
   await respondToPendingRequest(request, responseValue);
   removePendingRequest(params.conversation_id, request.requestId);
 }
@@ -804,8 +814,8 @@ export async function sendHermesMessage(params: {
         turnsByLive.delete(liveSessionId);
       },
       onApprovalRequest() {
-        // Approvals not yet supported via Runs API — fall through to WS path below
-        turnsByLive.delete(liveSessionId);
+        // Approval will be handled via the confirmation UI + submitRunApproval.
+        // The run stays paused awaiting submitRunApproval(runId, choice).
       },
     });
 
