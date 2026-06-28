@@ -83,7 +83,7 @@ const isDesktopRuntime = typeof window !== 'undefined' && Boolean(window.electro
 const HERMESHQ_URL = (
   ((import.meta as ImportMeta & { env?: Record<string, string | undefined> }).env?.VITE_HERMESHQ_URL as
     | string
-    | undefined) ?? 'https://hermeshq.gcaplabs.com'
+    | undefined) ?? 'https://hq.gcaplabs.com'
 ).replace(/\/$/, '');
 
 async function refreshHermeshqToken(serverUrl: string, token: string): Promise<string | null> {
@@ -157,6 +157,35 @@ function resolveDesktopServerUrl(configUrl?: string): string {
   return (configUrl || HERMESHQ_URL).trim().replace(/\/$/, '');
 }
 
+async function extractRemoteSessionToken(endpointUrl: string): Promise<string | null> {
+  try {
+    const res = await fetch(`${endpointUrl}/`, { signal: AbortSignal.timeout(3000) });
+    const html = await res.text();
+    const match = /window\.__HERMES_SESSION_TOKEN__\s*=\s*("(?:\\.|[^"\\])*")/.exec(html);
+    if (!match) return null;
+    return JSON.parse(match[1]) as string;
+  } catch {
+    return null;
+  }
+}
+
+async function applyProvisionGlobals(provision: DesktopHermeshqProvision): Promise<void> {
+  if (typeof window === 'undefined') return;
+  (window as any).__hermeshqProvision = provision;
+  if ((provision as any).session_namespace) {
+    (window as any).__hermesSessionKey = (provision as any).session_namespace;
+  }
+  const containerUrl = provision.cloud_container_config?.endpoint_url;
+  if (containerUrl) {
+    window.__cloudContainerEndpoint = containerUrl;
+    const token = await extractRemoteSessionToken(containerUrl);
+    if (token) (window as any).__hermesSessionToken = token;
+  }
+  queueMicrotask(() => {
+    window.dispatchEvent(new CustomEvent('hermeshq:provision-updated'));
+  });
+}
+
 async function provisionDesktopSession(): Promise<{ provision: DesktopHermeshqProvision } | { error: string }> {
   const result = await window.electronAPI?.provisionHermeshq?.({
     client: 'headmaster_desktop',
@@ -222,18 +251,7 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
           const { provision } = provisionResult;
           setUser(provisionUserToAuthUser(provision.user));
           setStatus('authenticated');
-          if (typeof window !== 'undefined') {
-            (window as any).__hermeshqProvision = provision;
-            if ((provision as any).session_namespace) {
-              (window as any).__hermesSessionKey = (provision as any).session_namespace;
-            }
-            if ((provision as any).cloud_container_config?.endpoint_url) {
-              window.__cloudContainerEndpoint = (provision as any).cloud_container_config.endpoint_url;
-            }
-            queueMicrotask(() => {
-              window.dispatchEvent(new CustomEvent('hermeshq:provision-updated'));
-            });
-          }
+          await applyProvisionGlobals(provision);
         }
         setReady(true);
         return;
@@ -337,20 +355,7 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
         setUser(provisionUserToAuthUser(provision.user));
         setStatus('authenticated');
         setReady(true);
-
-        // Phase 3: Set cloud container endpoint for remote mode
-        if (typeof window !== 'undefined' && provision.cloud_container_config?.endpoint_url) {
-          window.__cloudContainerEndpoint = provision.cloud_container_config.endpoint_url;
-        }
-        if (typeof window !== 'undefined') {
-          (window as any).__hermeshqProvision = provision;
-          if ((provision as any).session_namespace) {
-            (window as any).__hermesSessionKey = (provision as any).session_namespace;
-          }
-          queueMicrotask(() => {
-            window.dispatchEvent(new CustomEvent('hermeshq:provision-updated'));
-          });
-        }
+        await applyProvisionGlobals(provision);
 
         return { success: true };
       } catch {
@@ -428,58 +433,49 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
     }
   }, []);
 
-  const verifyMfa = useCallback(async (params: {
-    mfaChallengeToken: string;
-    code: string;
-    remember?: boolean;
-  }): Promise<LoginResult> => {
-    if (isDesktopRuntime) {
-      const config = (await window.electronAPI?.getHermeshqConfig?.()) as DesktopHermeshqConfig | undefined;
-      const serverUrl = resolveDesktopServerUrl(config?.url);
-      if (!serverUrl) {
-        return { success: false, message: 'Server not configured.', code: 'serverError' };
-      }
-      try {
-        const response = await fetch(`${serverUrl}/api/auth/verify-mfa`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            mfa_challenge_token: params.mfaChallengeToken,
-            code: params.code,
-          }),
-        });
-        const data = (await response.json()) as { access_token?: string; detail?: string };
-        if (!response.ok || !data.access_token) {
-          return { success: false, message: data?.detail ?? 'Invalid MFA code', code: 'invalidCredentials' };
+  const verifyMfa = useCallback(
+    async (params: { mfaChallengeToken: string; code: string; remember?: boolean }): Promise<LoginResult> => {
+      if (isDesktopRuntime) {
+        const config = (await window.electronAPI?.getHermeshqConfig?.()) as DesktopHermeshqConfig | undefined;
+        const serverUrl = resolveDesktopServerUrl(config?.url);
+        if (!serverUrl) {
+          return { success: false, message: 'Server not configured.', code: 'serverError' };
         }
-        await window.electronAPI?.setHermeshqToken?.(data.access_token);
-        if (params.remember) {
-          await window.electronAPI?.setHermeshqUrl?.(serverUrl);
-        }
-        const provisionResult = await provisionDesktopSession();
-        if ('error' in provisionResult) {
-          return { success: false, message: provisionResult.error, code: 'serverError' };
-        }
-        const { provision } = provisionResult;
-        setUser(provisionUserToAuthUser(provision.user));
-        setStatus('authenticated');
-        if (typeof window !== 'undefined') {
-          (window as any).__hermeshqProvision = provision;
-          if ((provision as any).session_namespace) {
-            (window as any).__hermesSessionKey = (provision as any).session_namespace;
-          }
-          queueMicrotask(() => {
-            window.dispatchEvent(new CustomEvent('hermeshq:provision-updated'));
+        try {
+          const response = await fetch(`${serverUrl}/api/auth/verify-mfa`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              mfa_challenge_token: params.mfaChallengeToken,
+              code: params.code,
+            }),
           });
+          const data = (await response.json()) as { access_token?: string; detail?: string };
+          if (!response.ok || !data.access_token) {
+            return { success: false, message: data?.detail ?? 'Invalid MFA code', code: 'invalidCredentials' };
+          }
+          await window.electronAPI?.setHermeshqToken?.(data.access_token);
+          if (params.remember) {
+            await window.electronAPI?.setHermeshqUrl?.(serverUrl);
+          }
+          const provisionResult = await provisionDesktopSession();
+          if ('error' in provisionResult) {
+            return { success: false, message: provisionResult.error, code: 'serverError' };
+          }
+          const { provision } = provisionResult;
+          setUser(provisionUserToAuthUser(provision.user));
+          setStatus('authenticated');
+          await applyProvisionGlobals(provision);
+          setReady(true);
+          return { success: true };
+        } catch {
+          return { success: false, message: 'MFA verification failed.', code: 'serverError' };
         }
-        setReady(true);
-        return { success: true };
-      } catch {
-        return { success: false, message: 'MFA verification failed.', code: 'serverError' };
       }
-    }
-    return { success: false, message: 'MFA not supported in this mode.', code: 'serverError' };
-  }, []);
+      return { success: false, message: 'MFA not supported in this mode.', code: 'serverError' };
+    },
+    []
+  );
 
   const logout = useCallback(async () => {
     if (isDesktopRuntime) {

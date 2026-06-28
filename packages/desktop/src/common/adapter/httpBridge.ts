@@ -107,7 +107,7 @@ const _capCache = new Map<string, { value: HermesCapabilities | null; exp: numbe
 const CAP_TTL_MS = 5 * 60 * 1000;
 
 export async function probeCapabilities(): Promise<HermesCapabilities | null> {
-  const url = `http://127.0.0.1:${getBackendPort()}/v1/capabilities`;
+  const url = `${getBaseUrl()}/v1/capabilities`;
   const cached = _capCache.get(url);
   if (cached && cached.exp > Date.now()) return cached.value;
   try {
@@ -145,7 +145,7 @@ export async function submitRunAndStream(
   callbacks: RunStreamCallbacks,
   signal?: AbortSignal
 ): Promise<{ runId: string } | null> {
-  const apiUrl = `http://127.0.0.1:${getBackendPort()}`;
+  const apiUrl = getBaseUrl();
   const apiKey = getApiServerKey();
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (apiKey) headers['Authorization'] = `Bearer ${apiKey}`;
@@ -226,7 +226,7 @@ export async function submitRunAndStream(
 }
 
 export async function stopRun(runId: string): Promise<void> {
-  const apiUrl = `http://127.0.0.1:${getBackendPort()}`;
+  const apiUrl = getBaseUrl();
   const apiKey = getApiServerKey();
   const headers: Record<string, string> = {};
   if (apiKey) headers['Authorization'] = `Bearer ${apiKey}`;
@@ -242,7 +242,7 @@ export async function submitRunApproval(
   choice: 'once' | 'session' | 'always' | 'deny',
   signal?: AbortSignal
 ): Promise<void> {
-  const apiUrl = `http://127.0.0.1:${getBackendPort()}`;
+  const apiUrl = getBaseUrl();
   const apiKey = getApiServerKey();
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (apiKey) headers['Authorization'] = `Bearer ${apiKey}`;
