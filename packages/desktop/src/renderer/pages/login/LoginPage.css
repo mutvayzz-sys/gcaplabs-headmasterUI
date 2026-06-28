@@ -1,3 +1,78 @@
+/* OAuth buttons */
+.login-page__oauth {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.login-page__oauth-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  padding: 9px 16px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.login-page__oauth-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.login-page__oauth-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Divider between OAuth and form */
+.login-page__divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 8px 0;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 12px;
+}
+
+.login-page__divider::before,
+.login-page__divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Mode toggle (sign in / sign up switch) */
+.login-page__mode-toggle {
+  margin-top: 8px;
+  text-align: center;
+}
+
+.login-page__link {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 13px;
+  cursor: pointer;
+  padding: 0;
+}
+
+.login-page__link:hover {
+  color: #fff;
+}
+
+.login-page__link strong {
+  color: #fff;
+}
+
 .login-page {
   position: relative;
   display: flex;

@@ -62,11 +62,24 @@ interface DesktopHermeshqConfig {
   provision?: DesktopHermeshqProvision | null;
 }
 
+interface RegisterParams {
+  username: string;
+  password: string;
+  email?: string;
+}
+
+interface RegisterResult {
+  success: boolean;
+  message: string;
+}
+
 interface AuthContextValue {
   ready: boolean;
   user: AuthUser | null;
   status: AuthStatus;
   login: (params: LoginParams) => Promise<LoginResult>;
+  loginWithOAuthToken: (token: string) => Promise<LoginResult>;
+  register: (params: RegisterParams) => Promise<RegisterResult>;
   verifyMfa: (params: { mfaChallengeToken: string; code: string; remember?: boolean }) => Promise<LoginResult>;
   logout: () => Promise<void>;
   refresh: () => Promise<void>;
@@ -433,6 +446,49 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
     }
   }, []);
 
+  const loginWithOAuthToken = useCallback(async (token: string): Promise<LoginResult> => {
+    if (!isDesktopRuntime)
+      return { success: false, message: 'OAuth login only available in desktop mode.', code: 'serverError' };
+    const config = (await window.electronAPI?.getHermeshqConfig?.()) as DesktopHermeshqConfig | undefined;
+    const serverUrl = resolveDesktopServerUrl(config?.url);
+    if (!serverUrl) return { success: false, message: 'Server not configured.', code: 'serverError' };
+    try {
+      await window.electronAPI?.setHermeshqUrl?.(serverUrl);
+      await window.electronAPI?.setHermeshqToken?.(token);
+      const provisionResult = await provisionDesktopSession();
+      if ('error' in provisionResult) {
+        await window.electronAPI?.clearHermeshqToken?.();
+        return { success: false, message: provisionResult.error, code: 'serverError' };
+      }
+      const { provision } = provisionResult;
+      setUser(provisionUserToAuthUser(provision.user));
+      setStatus('authenticated');
+      setReady(true);
+      await applyProvisionGlobals(provision);
+      return { success: true };
+    } catch {
+      return { success: false, message: 'Could not reach server.', code: 'networkError' };
+    }
+  }, []);
+
+  const register = useCallback(async ({ username, password, email }: RegisterParams): Promise<RegisterResult> => {
+    const config = (await window.electronAPI?.getHermeshqConfig?.()) as DesktopHermeshqConfig | undefined;
+    const serverUrl = resolveDesktopServerUrl(config?.url);
+    if (!serverUrl) return { success: false, message: 'Server not configured. Please contact your administrator.' };
+    try {
+      const response = await fetch(`${serverUrl}/api/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password, email }),
+      });
+      const data = (await response.json()) as { message?: string; detail?: string };
+      if (!response.ok) return { success: false, message: data?.detail ?? 'Registration failed.' };
+      return { success: true, message: data.message ?? 'Account created. Awaiting admin approval.' };
+    } catch {
+      return { success: false, message: 'Could not reach server. Check your connection.' };
+    }
+  }, []);
+
   const verifyMfa = useCallback(
     async (params: { mfaChallengeToken: string; code: string; remember?: boolean }): Promise<LoginResult> => {
       if (isDesktopRuntime) {
@@ -521,12 +577,14 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
       user,
       status,
       login,
+      loginWithOAuthToken,
+      register,
       verifyMfa,
       logout,
       refresh,
       clearAuthCache,
     }),
-    [login, verifyMfa, logout, ready, refresh, status, user]
+    [login, loginWithOAuthToken, register, verifyMfa, logout, ready, refresh, status, user]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

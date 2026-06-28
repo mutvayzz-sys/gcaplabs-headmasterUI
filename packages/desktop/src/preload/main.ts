@@ -69,6 +69,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
   saveCredentials: (creds: { username: string; password: string }) => ipcRenderer.invoke('credentials:save', creds),
   loadCredentials: () => ipcRenderer.invoke('credentials:load'),
   clearCredentials: () => ipcRenderer.invoke('credentials:clear'),
+  // OAuth login via popup BrowserWindow — returns JWT token on success
+  triggerOAuthLogin: (provider: string) =>
+    ipcRenderer.invoke('oauth:trigger-login', provider) as Promise<{
+      success: boolean;
+      token?: string;
+      error?: string;
+    }>,
   // Install progress — subscribe/unsubscribe to stage-by-stage progress events
   onInstallProgress: (callback: (progress: unknown) => void) => {
     const handler = (_event: Electron.IpcRendererEvent, progress: unknown) => callback(progress);

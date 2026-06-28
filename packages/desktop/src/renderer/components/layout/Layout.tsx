@@ -17,6 +17,7 @@ import { NavigationHistoryProvider } from '@renderer/hooks/context/NavigationHis
 import { useDeepLink } from '@renderer/hooks/system/useDeepLink';
 import { useNotificationClick } from '@renderer/hooks/system/useNotificationClick';
 import { useDashboardStatus } from '@renderer/hooks/system/useDashboardStatus';
+import { useAuth } from '@renderer/hooks/context/AuthContext';
 import { HermesStatusBar } from './HermesStatusBar';
 import { useDirectorySelection } from '@renderer/hooks/file/useDirectorySelection';
 import { cleanupSiderTooltips } from '@renderer/utils/ui/siderTooltip';
@@ -110,6 +111,7 @@ const Layout: React.FC<{
   );
   const [shouldMountUpdateModal, setShouldMountUpdateModal] = useState(false);
   const { onClick } = useDebug();
+  const { user, logout } = useAuth();
   const { contextHolder: directorySelectionContextHolder } = useDirectorySelection();
   useDeepLink();
   useNotificationClick();
@@ -364,7 +366,32 @@ const Layout: React.FC<{
                     ></path>
                   </svg>
                 </div>
-                <div className='text-16px text-t-primary collapsed-hidden font-semibold'>Headmaster</div>
+                <div className='collapsed-hidden flex min-w-0 flex-1 flex-col'>
+                  <span className='text-11px text-t-secondary truncate'>Hello,</span>
+                  <span className='text-14px text-t-primary truncate font-semibold'>{user?.username ?? 'User'}</span>
+                </div>
+                <button
+                  type='button'
+                  className='collapsed-hidden ml-auto shrink-0 rounded p-4px text-t-secondary opacity-60 transition-opacity hover:opacity-100'
+                  title='Sign out'
+                  aria-label='Sign out'
+                  onClick={() => void logout()}
+                >
+                  <svg
+                    viewBox='0 0 24 24'
+                    width='16'
+                    height='16'
+                    fill='none'
+                    stroke='currentColor'
+                    strokeWidth='2'
+                    strokeLinecap='round'
+                    strokeLinejoin='round'
+                  >
+                    <path d='M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4' />
+                    <polyline points='16 17 21 12 16 7' />
+                    <line x1='21' y1='12' x2='9' y2='12' />
+                  </svg>
+                </button>
                 {isMobile && !collapsed && (
                   <button
                     type='button'
