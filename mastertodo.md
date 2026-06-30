@@ -26,8 +26,9 @@ This file is the single source of truth for per-phase status and outstanding wor
 - [x] Phase 1: gateway in per-user container (:3737)
 - [x] Phase 2: host-kit Traefik + forward-auth + caps
 - [x] Phase 3: HermesHQ provision response includes `/v1` runtime route, health/version URLs, forward-auth token fields
-- [ ] Phase 3: Supabase JWT trust for console-originated provision calls
-- [ ] Phase 3: full approve→provision→runtime smoke on VPS (gate — see Broken/Follow-Up below)
+- [ ] Phase 3: Supabase JWT trust — verify user tokens against the public JWKS (`SUPABASE_JWKS_URL`); new asymmetric-key system, no shared secret
+- [ ] Phase 3: swap runtime model credential to **kimi-code** (`KIMI_API_KEY`, provider `kimi-coding`, `kimi-k2.7-code`, `api_mode anthropic_messages`) — replaces legacy `org.nous_api_key` injection
+- [ ] Phase 3: full approve→provision→runtime smoke (kimi-code chat streams) on VPS or Mac mini (gate — see Broken/Follow-Up below)
 - [ ] Phase 4: new console = starter-kit (Next.js + Supabase, Vercel) — _not started_
 - [x] Phase 5: desktop remote runtime chat uses `/v1/responses` SSE + cancel/reconnect path
 - [ ] Phase 5: iOS → `/v1/responses` SSE — _not started_
