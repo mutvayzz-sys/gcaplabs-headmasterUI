@@ -15,18 +15,17 @@
 **Decisions locked from Q&A (2026-06-30):**
 1. **Full adopt** — vendor `gateway` + `host-kit`; **starter-kit becomes the new `gcaplabs-console`.**
 2. **Routing/isolation** — adopt host-kit's **Traefik + forward-auth**, behind the existing Cloudflare tunnel.
-3. **Front door & identity** — **starter-kit (Next.js + Supabase) replaces the existing Open
-   SaaS/Wasp console.** **Supabase is the single identity source of truth.** HermesHQ trusts
-   Supabase-issued JWTs for end users; the Wasp app at `gcaplabs-console/` is retired/redirected.
+3. **Front door & identity** — **build the console fresh on starter-kit (Next.js + Supabase).**
+   **Supabase is the single identity source of truth.** HermesHQ trusts Supabase-issued JWTs
+   for end users.
 4. **Client transport** — migrate Headmaster Desktop + iOS to the unified `/v1/responses` SSE contract **now**.
 5. **Console hosting** — the console runs on **Vercel** (stateless Next.js front door; VPS stays runtime-only).
 6. **Branding** — **one canonical GCAP brand kit**, reconciled from the marketing site + the
    desktop app, applied across site, console, desktop, and the HermesHQ dashboard (see "Branding unification").
 
-> Note: the current `gcaplabs-console` is an Open SaaS/Wasp app (Prisma+Postgres, SendGrid,
-> built-in billing) at `console.gcaplabs.com`. Per the decision above it is **superseded** by
-> starter-kit. We migrate what's worth keeping (branding, domain, any beta-user records) into
-> the new Supabase-backed console rather than maintaining two front doors.
+> Note: there is **no existing console to migrate**. The `gcaplabs-console/` Wasp scaffold was
+> never built out (no real users, no data), so the console is started **fresh** on starter-kit
+> with Supabase as identity. The unused scaffold is simply dropped.
 
 ---
 
@@ -63,7 +62,6 @@
 - ✅ HermesHQ backend: open sign-up, OAuth, approval pipeline, container supervisor, provision endpoints
 - ✅ Desktop: Runs API transport (~80% wired), local/remote parity, login + MFA, install UI
 - ✅ iOS: RunsAPIClient actor, CloudContainerTransport, auth + provision
-- ✅ Console (Wasp): DashboardChatPage with streaming, admin approval UI
 
 ---
 
@@ -180,7 +178,7 @@ authenticated `/v1` instance; admin can approve→provision→destroy from the H
 ## Phase 4 — New gcap-console = starter-kit (Next.js + Supabase)
 
 **Goal:** stand up starter-kit as the new `console.gcaplabs.com`, with Supabase as the single
-identity source, replacing the Wasp app.
+identity source. Built **fresh** — there is no prior console to replace.
 
 - Stand up starter-kit per its `SETUP.md`: `npm install && npm run setup` (creates `.env.local`,
   provisions a Supabase project, runs migrations `supabase/migrations/0001_init.sql`, enables
@@ -192,9 +190,9 @@ identity source, replacing the Wasp app.
   (Phases 1–3), not Agent37's hosted API.
 - **Branding:** apply the unified GCAP brand kit (see "Branding unification" below) via
   starter-kit's `src/config/branding.ts` + its Tailwind theme; domain `console.gcaplabs.com`.
-- **Migration off Wasp:** move the domain + any existing beta-user/email records from the Wasp
-  console into Supabase; redirect/retire the Wasp app. Keep open email signup (starter-kit
-  default) gated by the HermesHQ approval pipeline.
+- **Fresh start (no migration):** the `gcaplabs-console/` Wasp scaffold was never built, so there
+  are no users/records/billing to migrate. Point `console.gcaplabs.com` at the new Vercel
+  deployment. Keep open email signup (starter-kit default) gated by the HermesHQ approval pipeline.
 - **Deploy: Vercel (decided).** The console is a stateless Next.js front door with no runtime
   containers, so it ships on Vercel per starter-kit's `SETUP.md` (free TLS/CDN/preview deploys),
   keeping the VPS focused on agent runtime + control plane. It reaches HermesHQ via the existing
@@ -350,7 +348,7 @@ naming + `/var/lib/headmaster/instances/<id>/`.
 
 **Console (new = starter-kit):** `src/` (fleet/chat/files, rewired to HermesHQ),
 `src/config/branding.ts`, `supabase/migrations/0001_init.sql`, `.env.local`, `next.config.ts`.
-Old Wasp app `gcaplabs-console/app/` is retired/redirected (migrate domain + beta records).
+The unused `gcaplabs-console/` Wasp scaffold is dropped (nothing to migrate).
 
 **VPS:** vendored `deploy/traefik/`, `docker/forward-auth/`, adapted `scripts/*.sh`;
 HermesHQ `.env`; per-user image Dockerfile.

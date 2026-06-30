@@ -24,6 +24,11 @@ Audited the prior Agent37-aligned pass and folded `veeplan.md` into the trackers
 - Removed superseded docs and their stale references: `todo.md`, `CHANGELOG.md` (tombstones
   already redirecting to the master files) and `revisedplan.md` (superseded by `veeplan.md`);
   fixed two `AGENTS.md` pointers that still named `todo.md` as the active backlog.
+- `veeplan.md`: dropped all Wasp-migration framing — the `gcaplabs-console/` Wasp scaffold was
+  never built, so the console (Phase 4) is built **fresh** on starter-kit + Supabase with
+  nothing to migrate (removed the false "Console (Wasp)" pre-existing-work claim and the
+  migrate-domain/records steps). `supabase/migrations/*` and the historical hermeshq→hq
+  domain-migration item are unrelated and kept.
 
 ## 2026-06-30
 
