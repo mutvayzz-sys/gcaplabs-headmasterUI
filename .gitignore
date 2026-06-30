@@ -140,7 +140,8 @@ lint-results.txt
 # Local kanban workbook at repo root
 /kanban/
 
-# Finished audit/plan docs live in _archive/ (tracked)
+# Finished audit/plan docs — no longer tracked (bloat)
+_archive/
 
 # Git worktrees
 .worktree/
