@@ -45,7 +45,7 @@ bunx electron-vite build --config packages/desktop/electron.vite.config.ts
 node scripts/build-with-builder.js auto --win
 ```
 
-**Version:** `0.2.1` (release candidate; final packaged validation remains in `todo.md`). Output filenames track this version.
+**Version:** `0.2.1` (release candidate; final packaged validation tracked in `mastertodo.md`). Output filenames track this version.
 
 Output lands in `gcaplabs-headmasterUI/out/`:
 
@@ -93,7 +93,7 @@ For a quick iteration that only produces the runnable portable exe (skips the sl
 - **Vocab mapping:** `gcaplabs-headmasterUI/docs/white-label/HEADMASTER-VOCABULARY.csv` (read before any naming work).
 - **Hermes runtime recon:** `runtime-recon/RECON.md` (read before any runtime/backend work).
 - **The plan:** `gcaplabs-headmasterUI/docs/white-label/WHAT-WE-TAKE.md` (high-level; likely out of date, the recon wins).
-- **Active backlog:** `todo.md` — read this first when resuming desktop work. The v0.2.1 implementation is assembled; remaining work is final automated validation, installed-runtime smoke testing, debugging, and release closeout.
+- **Active backlog:** `mastertodo.md` — read this first when resuming desktop work. The current roadmap is the Agent37-aligned beta-readiness plan in `veeplan.md` (Phases 0–7); `mastertodo.md` tracks per-phase status and outstanding items.
 - **Update check architecture:** `updateBridge.ts` calls `https://gcaplabs.com/api/release` (Vercel proxy, 5-min cache) which proxies `mutvayzz-sys/gcaplabs-headmasterUI` GitHub releases with a server-side `GITHUB_TOKEN`. Needs `GITHUB_TOKEN` set in Vercel env vars. Downloads rewritten to CDN via `static.gcaplabs.com/releases/{version}/{filename}`.
 - **Full history:** `DEVLOG.md` (workspace root, newest first).
 - **Last few things we did** (most recent first):

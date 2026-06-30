@@ -2,8 +2,9 @@
 
 ## veeplan.md (Agent37-aligned, 2026-06-30)
 
-The beta roadmap is now `veeplan.md` + `.hermes/plans/2026-06-30_222130-headmaster-beta-readiness.md`.
-See top-level `mastertodo.md` for the full phase breakdown.
+The beta roadmap is `veeplan.md` (Phases 0–7) +
+`.hermes/plans/2026-06-30_222130-headmaster-beta-readiness.md` (bite-sized task breakdown).
+This file is the single source of truth for per-phase status and outstanding work.
 
 ### VPS Infrastructure (Hoster kanban — running)
 
@@ -21,17 +22,27 @@ See top-level `mastertodo.md` for the full phase breakdown.
 ### Code Phases
 
 - [x] Phase 0: restore bite-sized plan + pin Agent37 refs in `_support/upstream/agent37/VENDOR.md`
-- [ ] Phase 0: run local Agent37 gateway spike against Hermes (`/v1/health`, `/v1/models`, streaming `/v1/responses`)
+- [~] Phase 0: local Agent37 gateway spike against Hermes — **intentionally deferred** (not run against local Hermes, per instruction); revisit if container `/v1` contract needs local repro
 - [x] Phase 1: gateway in per-user container (:3737)
 - [x] Phase 2: host-kit Traefik + forward-auth + caps
 - [x] Phase 3: HermesHQ provision response includes `/v1` runtime route, health/version URLs, forward-auth token fields
 - [ ] Phase 3: Supabase JWT trust for console-originated provision calls
-- [ ] Phase 4: new console = starter-kit (Next.js + Supabase, Vercel)
+- [ ] Phase 3: full approve→provision→runtime smoke on VPS (gate — see Broken/Follow-Up below)
+- [ ] Phase 4: new console = starter-kit (Next.js + Supabase, Vercel) — _not started_
 - [x] Phase 5: desktop remote runtime chat uses `/v1/responses` SSE + cancel/reconnect path
-- [ ] Phase 5: iOS → `/v1/responses` SSE
-- [ ] Phase 6: beta hardening (billing, email, observability, security, lifecycle)
+- [ ] Phase 5: iOS → `/v1/responses` SSE — _not started_
+- [ ] Phase 6: beta hardening — _not started_
+  - [ ] billing/limits: starter-kit + Stripe gating provisioning; per-org Nous spend; resource caps enforced
+  - [ ] email: finish MFA + password-reset (`RESEND_API_KEY`/`FROM_EMAIL` on HermesHQ or console provider)
+  - [ ] observability: Traefik access logs, container health dashboard, Sentry on console + desktop
+  - [ ] security: forward-auth token rotation, `no-new-privileges`, secrets out of images, admin surface gated
+  - [ ] lifecycle: idle-instance reaping (= H7), restart policies, data-dir backups
 - [x] Phase 7: canonical GCAP brand token files created in `docs/theming/`
-- [ ] Phase 7: apply brand tokens to site, console, desktop runtime theme, HermesHQ
+- [ ] Phase 7: apply brand tokens to all four consumers:
+  - [ ] site → `gcaplabs-site/tailwind.config.js` + `app/globals.css`
+  - [ ] console (starter-kit) → `src/config/branding.ts` + Tailwind theme
+  - [ ] desktop → `uno.config.ts` + `:root`/`:root.dark` seed vars
+  - [ ] HermesHQ dashboard → its Tailwind v4 theme
 
 ## Done
 
@@ -69,3 +80,4 @@ See top-level `mastertodo.md` for the full phase breakdown.
 - [ ] Fix/replace existing `hq.gcaplabs.com` DNS record so it points at the Cloudflare tunnel route for HermesHQ frontend.
 - [ ] Avoid browser HTTPS on `*.run.gcaplabs.com` until Cloudflare advanced cert/SaaS wildcard covers second-level wildcard names; runtime clients can still use the tunnel path once certing is resolved.
 - [ ] Bring up HermesHQ backend/frontend containers on VPS and run an approve→provision→runtime health smoke.
+- [x] Removed superseded docs: `todo.md` + `CHANGELOG.md` (tombstones → master files) and `revisedplan.md` (superseded by `veeplan.md`); scrubbed stale `AGENTS.md` pointers to `todo.md`.

@@ -1,5 +1,30 @@
 # Master Log
 
+## 2026-07-01
+
+### Audit of Agent37 push + veeplan integration
+
+Audited the prior Agent37-aligned pass and folded `veeplan.md` into the trackers.
+
+**Push audit (verified against git, both repos clean & on `main` == `origin/main`):**
+- `gcaplabs-hermeshq` @ `402b433` — Agent37 Gateway vendored (`third_party/agent37/gateway`),
+  HMAC forward-auth (`docker/forward-auth/{Dockerfile,server.js}`), Traefik file-provider
+  routes in `container_supervisor.py`, `docker-compose.yml` + `.env.example`, `runtime.Dockerfile`,
+  `tests/test_containers_runtime.py`. Backend test result "14 passed, 1 skipped" is **as reported
+  by the prior pass** (not re-run here).
+- `gcaplabs-headmasterUI` @ `5efc80c` — desktop `/v1/responses` SSE + cancel/reconnect in
+  `hermesChatAdapter.ts` / `httpBridge.ts`, provision snapshot fields in `connectionConfig.ts`,
+  brand tokens in `docs/theming/`, new `veeplan.md`. Desktop "19 vitest passed" + typecheck
+  is **as reported** (not re-run here).
+
+**Integration changes (this entry's commit):**
+- `mastertodo.md` reconciled with `veeplan.md`: Phase 0 spike marked deferred (not "todo"),
+  Phase 3 VPS smoke gate surfaced, Phase 6 expanded into its five hardening sub-tracks,
+  Phase 7 rollout expanded into the four brand-kit consumers, circular header reference removed.
+- Removed superseded docs and their stale references: `todo.md`, `CHANGELOG.md` (tombstones
+  already redirecting to the master files) and `revisedplan.md` (superseded by `veeplan.md`);
+  fixed two `AGENTS.md` pointers that still named `todo.md` as the active backlog.
+
 ## 2026-06-30
 
 ### VPS runtime host + Portainer/Cockpit
