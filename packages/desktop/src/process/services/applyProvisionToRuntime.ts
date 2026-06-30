@@ -53,6 +53,15 @@ export interface ApplyProvisionResult {
 /** Applies provision snapshot to the local Hermes runtime config/env files. */
 export function applyProvisionToRuntime(provision: HermeshqProvisionSnapshot): ApplyProvisionResult {
   try {
+    if (provision.mode === 'headmaster_remote') {
+      return {
+        apiServerKey:
+          provision.cloud_container_config?.forward_auth_token ??
+          provision.cloud_container_config?.api_server_key ??
+          null,
+        needsRestart: false,
+      };
+    }
     const home = resolveHermesHome();
     applyHonchoConfig(home, provision);
     applyModelConfig(home, provision);

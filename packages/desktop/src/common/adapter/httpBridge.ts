@@ -38,6 +38,10 @@ declare global {
     __hermesSessionKey?: string;
     /** Cloud container endpoint URL when in headmaster_remote mode. */
     __cloudContainerEndpoint?: string;
+    /** Runtime API base path for Agent37-style runtimes. */
+    __runtimeApiBasePath?: string;
+    /** Bearer token for routed runtime calls (forward-auth in remote mode). */
+    __runtimeBearerToken?: string;
   }
 }
 
@@ -82,6 +86,14 @@ function getApiServerKey(): string | null {
   const g = globalThis as typeof globalThis & { __apiServerKey?: string };
   const k = g.__apiServerKey;
   return typeof k === 'string' && k ? k : null;
+}
+
+function getRuntimeBearerToken(): string | null {
+  if (typeof window !== 'undefined') {
+    const bearer = (window as Window).__runtimeBearerToken;
+    if (typeof bearer === 'string' && bearer) return bearer;
+  }
+  return getApiServerKey();
 }
 
 /**
@@ -321,6 +333,24 @@ function getCloudContainerEndpoint(): string {
   return g.__cloudContainerEndpoint ?? '';
 }
 
+function getRuntimeApiBasePath(): string {
+  const fromWindow =
+    typeof window !== 'undefined' && typeof window.__runtimeApiBasePath === 'string' ? window.__runtimeApiBasePath : '';
+  const g = globalThis as typeof globalThis & { __runtimeApiBasePath?: string };
+  const raw = fromWindow || g.__runtimeApiBasePath || '/v1';
+  const normalized = raw.trim() || '/v1';
+  return normalized.startsWith('/') ? normalized.replace(/\/$/, '') : `/${normalized.replace(/\/$/, '')}`;
+}
+
+function getRuntimeV1BaseUrl(): string {
+  return `${getBaseUrl().replace(/\/$/, '')}${getRuntimeApiBasePath()}`;
+}
+
+export function supportsResponsesApi(): boolean {
+  if (!isRemoteContainerMode()) return false;
+  return getRuntimeApiBasePath() === '/v1' || Boolean(getRuntimeBearerToken());
+}
+
 export function getBaseUrl(): string {
   if (isRemoteContainerMode()) {
     return getCloudContainerEndpoint();
@@ -331,6 +361,162 @@ export function getBaseUrl(): string {
     return '';
   }
   return `http://${getBackendHost()}:${getBackendPort()}`;
+}
+
+function runtimeHeaders(json = false): Record<string, string> {
+  const headers: Record<string, string> = {};
+  if (json) headers['Content-Type'] = 'application/json';
+  const bearer = getRuntimeBearerToken();
+  if (bearer) headers.Authorization = `Bearer ${bearer}`;
+  return headers;
+}
+
+type ResponseUsage = { input_tokens: number; output_tokens: number; cost_usd?: number | null };
+
+type ResponseStreamCallbacks = {
+  onResponseCreated?: (responseId: string, sessionId: string) => void;
+  onChunk: (text: string) => void;
+  onToolEvent: (name: string, status: 'running' | 'completed' | 'failed', preview?: string) => void;
+  onReasoning: (text: string) => void;
+  onDone: (usage?: ResponseUsage | null, outputText?: string) => void;
+  onError: (message: string) => void;
+};
+
+async function* parseSse(response: Response): AsyncGenerator<{ event: string; data: Record<string, unknown> }> {
+  if (!response.body) return;
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    let index: number;
+    while ((index = buffer.indexOf('\n\n')) !== -1) {
+      const frame = buffer.slice(0, index);
+      buffer = buffer.slice(index + 2);
+      if (!frame.trim() || frame.startsWith(':')) continue;
+      let event = '';
+      const dataLines: string[] = [];
+      for (const line of frame.split('\n')) {
+        if (line.startsWith('event:')) event = line.slice(6).trim();
+        if (line.startsWith('data:')) dataLines.push(line.slice(5).trimStart());
+      }
+      if (!event || dataLines.length === 0) continue;
+      try {
+        yield { event, data: JSON.parse(dataLines.join('\n')) as Record<string, unknown> };
+      } catch {
+        // skip malformed SSE block
+      }
+    }
+  }
+}
+
+async function consumeResponseStream(
+  response: Response,
+  callbacks: ResponseStreamCallbacks
+): Promise<{ sawTerminal: boolean; responseId: string | null; sessionId: string | null }> {
+  let sawTerminal = false;
+  let responseId: string | null = null;
+  let sessionId: string | null = null;
+  for await (const { event, data } of parseSse(response)) {
+    switch (event) {
+      case 'response.created':
+        responseId = typeof data.id === 'string' ? data.id : responseId;
+        sessionId = typeof data.session_id === 'string' ? data.session_id : sessionId;
+        if (responseId && sessionId) callbacks.onResponseCreated?.(responseId, sessionId);
+        break;
+      case 'response.reasoning.delta':
+        callbacks.onReasoning(typeof data.text === 'string' ? data.text : '');
+        break;
+      case 'response.output_text.delta':
+        callbacks.onChunk(typeof data.text === 'string' ? data.text : '');
+        break;
+      case 'response.tool_call.started':
+        callbacks.onToolEvent(
+          String(data.label ?? data.tool ?? 'tool'),
+          'running',
+          String(data.label ?? data.tool ?? '')
+        );
+        break;
+      case 'response.tool_call.completed':
+        callbacks.onToolEvent(String(data.tool ?? 'tool'), 'completed');
+        break;
+      case 'response.tool_call.failed':
+        callbacks.onToolEvent(String(data.tool ?? 'tool'), 'failed', String(data.error ?? ''));
+        break;
+      case 'response.completed':
+        sawTerminal = true;
+        callbacks.onDone(data.usage as ResponseUsage | null | undefined, String(data.output_text ?? ''));
+        break;
+      case 'response.failed': {
+        sawTerminal = true;
+        const error = data.error && typeof data.error === 'object' ? (data.error as { message?: unknown }) : null;
+        callbacks.onError(typeof error?.message === 'string' ? error.message : 'Response failed');
+        break;
+      }
+    }
+  }
+  return { sawTerminal, responseId, sessionId };
+}
+
+const RESPONSE_STREAM_RECOVERY_ATTEMPTS = 8;
+const RESPONSE_STREAM_RECOVERY_DELAY_MS = 1500;
+
+const delay = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
+
+export async function submitResponseAndStream(
+  input: string,
+  sessionId: string,
+  callbacks: ResponseStreamCallbacks,
+  signal?: AbortSignal
+): Promise<{ responseId: string; sessionId: string } | null> {
+  const baseUrl = getRuntimeV1BaseUrl();
+  let response: Response;
+  try {
+    response = await fetch(`${baseUrl}/responses`, {
+      method: 'POST',
+      headers: runtimeHeaders(true),
+      body: JSON.stringify({ input, session_id: sessionId, stream: true }),
+      signal,
+    });
+  } catch {
+    return null;
+  }
+  if (!response.ok || !response.headers.get('content-type')?.includes('text/event-stream')) {
+    return null;
+  }
+
+  let outcome = await consumeResponseStream(response, callbacks);
+  let responseId = outcome.responseId;
+  let resolvedSessionId = outcome.sessionId ?? sessionId;
+  let attempts = 0;
+  while (!outcome.sawTerminal && responseId && attempts < RESPONSE_STREAM_RECOVERY_ATTEMPTS) {
+    attempts += 1;
+    if (attempts > 1) await delay(RESPONSE_STREAM_RECOVERY_DELAY_MS);
+    try {
+      const replay = await fetch(`${baseUrl}/responses/${encodeURIComponent(responseId)}/stream`, {
+        headers: runtimeHeaders(),
+        signal,
+      });
+      if (!replay.ok || !replay.headers.get('content-type')?.includes('text/event-stream')) continue;
+      outcome = await consumeResponseStream(replay, callbacks);
+      responseId = outcome.responseId ?? responseId;
+      resolvedSessionId = outcome.sessionId ?? resolvedSessionId;
+    } catch {
+      // retry until the retention window or network recovers
+    }
+  }
+  if (!responseId) return null;
+  if (!outcome.sawTerminal) callbacks.onError('Lost the runtime stream and could not reattach.');
+  return { responseId, sessionId: resolvedSessionId };
+}
+
+export async function cancelResponse(responseId: string): Promise<void> {
+  await fetch(`${getRuntimeV1BaseUrl()}/responses/${encodeURIComponent(responseId)}/cancel`, {
+    method: 'POST',
+    headers: runtimeHeaders(),
+  }).catch(() => {});
 }
 
 function getWsUrl(): string {

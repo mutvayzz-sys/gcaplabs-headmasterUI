@@ -15,12 +15,15 @@ import type {
 } from './ipcBridge';
 import {
   broadcastWsEvent,
+  cancelResponse,
   gatewayRpcRequest,
   onGatewayEvent,
   probeCapabilities,
   stopRun,
+  submitResponseAndStream,
   submitRunAndStream,
   submitRunApproval,
+  supportsResponsesApi,
   supportsRunsApi,
 } from './httpBridge';
 import { getHermesConversationProfile, rememberOpenHermesConversation } from './hermesSessionAdapter';
@@ -62,6 +65,7 @@ type ActiveTurn = {
   pendingContent: string;
   flushHandle: ReturnType<typeof setTimeout> | null;
   timeout: ReturnType<typeof setTimeout>;
+  responseId?: string;
   runId?: string;
 };
 
@@ -683,10 +687,38 @@ async function ensureLiveSession(storedId: string): Promise<string> {
 }
 
 export async function createHermesChatConversation(params: ICreateConversationParams): Promise<TChatConversation> {
-  ensureSubscribed();
   const workspace = params.extra.workspace?.trim();
   const profile = params.assistant?.id?.trim();
   const sessionMode = params.extra?.session_mode;
+  if (supportsResponsesApi()) {
+    const storedId = uuid();
+    if (profile) {
+      profilesByStored.set(storedId, profile);
+      persistProfiles();
+    }
+    rememberSession(storedId, storedId);
+    const now = Date.now();
+    const conversation: TChatConversation = {
+      id: storedId,
+      name: params.name?.trim() || 'New Chat',
+      type: 'aionrs',
+      created_at: now,
+      modified_at: now,
+      status: 'pending',
+      source: 'headmaster',
+      model: params.model ?? EMPTY_MODEL,
+      runtime: idleRuntime(),
+      extra: {
+        ...params.extra,
+        workspace: workspace || '',
+        custom_workspace: Boolean(workspace),
+      },
+    };
+    rememberOpenHermesConversation(storedId, profile, conversation);
+    return conversation;
+  }
+
+  ensureSubscribed();
   const created = await gatewayRpcRequest<HermesSessionCreateResponse>('session.create', {
     cols: 96,
     ...(workspace ? { cwd: workspace } : {}),
@@ -725,12 +757,17 @@ export async function sendHermesMessage(params: {
   input: string;
   files?: string[];
 }): Promise<ISendMessageResult> {
-  ensureSubscribed();
-  let liveSessionId: string;
-  try {
-    liveSessionId = await ensureLiveSession(params.conversation_id);
-  } catch {
-    throw runtimeSubmissionError();
+  const useResponsesApi = supportsResponsesApi();
+  if (!useResponsesApi) ensureSubscribed();
+  let liveSessionId = params.conversation_id;
+  if (!useResponsesApi) {
+    try {
+      liveSessionId = await ensureLiveSession(params.conversation_id);
+    } catch {
+      throw runtimeSubmissionError();
+    }
+  } else {
+    rememberSession(params.conversation_id, params.conversation_id);
   }
   const userMsgId = uuid();
   const assistantMsgId = uuid();
@@ -762,7 +799,72 @@ export async function sendHermesMessage(params: {
     });
   };
 
-  // Probe once (cached 5 min) whether the runtime supports the Runs API.
+  if (useResponsesApi) {
+    let toolCallIndex = 0;
+    void submitResponseAndStream(text, liveSessionId, {
+      onResponseCreated(responseId, sessionId) {
+        turn.responseId = responseId;
+        if (sessionId && sessionId !== liveSessionId) {
+          liveByStored.set(params.conversation_id, sessionId);
+          storedByLive.set(sessionId, params.conversation_id);
+        }
+      },
+      onChunk(chunk) {
+        if (!chunk) return;
+        turn.sawContent = true;
+        turn.pendingContent += chunk;
+        scheduleContentFlush(turn);
+      },
+      onToolEvent(name, status, preview) {
+        emitResponse(turn, 'tool_group', [
+          {
+            call_id: `${liveSessionId}:${name}:${toolCallIndex++}`,
+            name,
+            status: status === 'running' ? 'Executing' : status === 'completed' ? 'Success' : 'Error',
+            description: preview ?? name,
+            result_display: status === 'completed' ? preview : undefined,
+          },
+        ]);
+      },
+      onReasoning(text: string) {
+        if (text) emitResponse(turn, 'thought', { subject: 'reasoning', description: text });
+      },
+      onDone(usage, outputText) {
+        if (turn.flushHandle) {
+          clearTimeout(turn.flushHandle);
+          turn.flushHandle = null;
+        }
+        if (turn.pendingContent) {
+          emitResponse(turn, 'content', { content: turn.pendingContent });
+          turn.pendingContent = '';
+        } else if (!turn.sawContent && outputText) {
+          emitResponse(turn, 'content', { content: outputText });
+        }
+        clearTimeout(turn.timeout);
+        emitResponse(turn, 'finish', usage ?? {});
+        emitCompleted(turn, usage ? `tokens: ${usage.input_tokens}+${usage.output_tokens}` : '');
+        turnsByLive.delete(liveSessionId);
+      },
+      onError(message) {
+        finishTurn(liveSessionId, message, message);
+      },
+    }).then((responseResult) => {
+      if (responseResult) {
+        turn.responseId = responseResult.responseId;
+        return;
+      }
+      finishTurn(
+        liveSessionId,
+        'The runtime could not start this response.',
+        'The runtime could not start this response.'
+      );
+    });
+
+    emitUserCreated();
+    return { msg_id: userMsgId, turn_id: turnId, runtime: runningRuntime(turnId) };
+  }
+
+  // Probe once (cached 5 min) whether the local runtime supports the Runs API.
   // If yes, stream over HTTP/SSE; if no (or run creation fails), fall back to WS.
   const caps = await probeCapabilities();
   const useRunsApi = supportsRunsApi(caps);
@@ -854,9 +956,13 @@ export async function sendHermesMessage(params: {
 export async function stopHermesConversation(
   conversationId: string
 ): Promise<{ runtime: TConversationRuntimeSummary }> {
-  let liveSessionId = await ensureLiveSession(conversationId);
+  let liveSessionId = supportsResponsesApi()
+    ? (liveByStored.get(conversationId) ?? conversationId)
+    : await ensureLiveSession(conversationId);
   const turn = turnsByLive.get(liveSessionId);
-  if (turn?.runId) {
+  if (turn?.responseId) {
+    await cancelResponse(turn.responseId);
+  } else if (turn?.runId) {
     await stopRun(turn.runId);
   } else {
     try {

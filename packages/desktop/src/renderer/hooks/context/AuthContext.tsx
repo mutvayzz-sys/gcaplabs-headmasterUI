@@ -48,12 +48,18 @@ interface DesktopHermeshqProvision {
   user: DesktopHermeshqUser;
   capabilities: string[];
   runtime: {
+    base_url?: string | null;
+    api_base_path?: string | null;
+    health_url?: string | null;
     validate_url: string;
+    version_url?: string | null;
     ttl_seconds: number;
   };
   cloud_container_config?: {
     endpoint_url: string;
     api_server_key?: string | null;
+    forward_auth_token?: string | null;
+    forward_auth_expires_at?: string | null;
   };
 }
 
@@ -189,16 +195,24 @@ async function applyProvisionGlobals(provision: DesktopHermeshqProvision): Promi
   if ((provision as any).session_namespace) {
     (window as any).__hermesSessionKey = (provision as any).session_namespace;
   }
-  const containerUrl = provision.cloud_container_config?.endpoint_url;
+  const containerUrl = provision.runtime?.base_url || provision.cloud_container_config?.endpoint_url;
   if (containerUrl) {
-    window.__cloudContainerEndpoint = containerUrl;
-    if (provision.cloud_container_config?.api_server_key) {
-      (window as any).__apiServerKey = provision.cloud_container_config.api_server_key;
+    window.__cloudContainerEndpoint = containerUrl.replace(/\/$/, '');
+    (window as any).__runtimeApiBasePath = provision.runtime?.api_base_path || '/v1';
+    const bearerToken =
+      provision.cloud_container_config?.forward_auth_token ?? provision.cloud_container_config?.api_server_key;
+    if (bearerToken) {
+      (window as any).__apiServerKey = bearerToken;
+      (window as any).__runtimeBearerToken = bearerToken;
     }
-    const token = await extractRemoteSessionToken(containerUrl);
-    if (token) (window as any).__hermesSessionToken = token;
+    if (!provision.cloud_container_config?.forward_auth_token) {
+      const token = await extractRemoteSessionToken(containerUrl);
+      if (token) (window as any).__hermesSessionToken = token;
+    }
   } else {
     delete window.__cloudContainerEndpoint;
+    delete (window as any).__runtimeApiBasePath;
+    delete (window as any).__runtimeBearerToken;
   }
   queueMicrotask(() => {
     window.dispatchEvent(new CustomEvent('hermeshq:provision-updated'));

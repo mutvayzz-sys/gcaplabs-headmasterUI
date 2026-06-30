@@ -158,7 +158,7 @@ const LoginPage: React.FC = () => {
         if (rememberMe) void window.electronAPI?.saveCredentials?.({ username: trimmedUsername, password });
         else void window.electronAPI?.clearCredentials?.();
         showMessage({ type: 'success', text: t('login.success') });
-        window.setTimeout(() => void navigate('/guid', { replace: true }), 600);
+        window.setTimeout((): void => void navigate('/guid', { replace: true }), 600);
       } else if (result.mfaRequired && result.mfaChallengeToken) {
         setMfaState({ required: true, challengeToken: result.mfaChallengeToken });
         showMessage({ type: 'error', text: result.message ?? 'Enter your MFA code.' });
@@ -196,7 +196,7 @@ const LoginPage: React.FC = () => {
       const result = await register({ username: username.trim(), password, email: email.trim() || undefined });
       if (result.success) {
         showMessage({ type: 'success', text: result.message });
-        window.setTimeout(() => setMode('login'), 3000);
+        window.setTimeout((): void => setMode('login'), 3000);
       } else {
         showMessage({ type: 'error', text: result.message });
       }
@@ -215,7 +215,7 @@ const LoginPage: React.FC = () => {
           const loginResult = await loginWithOAuthToken(result.token);
           if (loginResult.success) {
             showMessage({ type: 'success', text: t('login.success') });
-            window.setTimeout(() => void navigate('/guid', { replace: true }), 600);
+            window.setTimeout((): void => void navigate('/guid', { replace: true }), 600);
           } else {
             showMessage({ type: 'error', text: loginResult.message ?? 'OAuth login failed.' });
           }
@@ -248,7 +248,7 @@ const LoginPage: React.FC = () => {
       });
       if (result.success) {
         showMessage({ type: 'success', text: t('login.success') });
-        window.setTimeout(() => void navigate('/guid', { replace: true }), 600);
+        window.setTimeout((): void => void navigate('/guid', { replace: true }), 600);
       } else {
         showMessage({ type: 'error', text: result.message ?? 'Invalid MFA code.' });
       }

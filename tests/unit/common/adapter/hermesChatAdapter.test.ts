@@ -16,8 +16,11 @@ vi.mock('../../../../packages/desktop/src/common/adapter/httpBridge', () => ({
   probeCapabilities: vi.fn(async () => null),
   supportsRunsApi: vi.fn(() => false),
   submitRunAndStream: vi.fn(async () => null),
+  submitResponseAndStream: vi.fn(async () => null),
   submitRunApproval: vi.fn(async () => {}),
   stopRun: vi.fn(async () => {}),
+  cancelResponse: vi.fn(async () => {}),
+  supportsResponsesApi: vi.fn(() => false),
 }));
 
 import {
@@ -27,11 +30,17 @@ import {
   stopHermesConversation,
 } from '../../../../packages/desktop/src/common/adapter/hermesChatAdapter';
 import { rememberOpenHermesConversation } from '../../../../packages/desktop/src/common/adapter/hermesSessionAdapter';
+import {
+  submitResponseAndStream,
+  supportsResponsesApi,
+} from '../../../../packages/desktop/src/common/adapter/httpBridge';
 
 describe('Hermes chat adapter', () => {
   beforeEach(() => {
     mocks.request.mockReset();
     mocks.broadcast.mockReset();
+    vi.mocked(supportsResponsesApi).mockReturnValue(false);
+    vi.mocked(submitResponseAndStream).mockResolvedValue(null);
     resetHermesChatRuntimeState();
   });
 
@@ -254,12 +263,51 @@ describe('Hermes chat adapter', () => {
       })
     );
   });
+
+  it('uses Agent37 responses SSE directly in remote runtime mode', async () => {
+    vi.mocked(supportsResponsesApi).mockReturnValue(true);
+    vi.mocked(submitResponseAndStream).mockImplementation(async (_input, _sessionId, callbacks) => {
+      callbacks.onResponseCreated?.('resp-1', _sessionId);
+      callbacks.onChunk('Remote hello');
+      callbacks.onDone({ input_tokens: 1, output_tokens: 2 }, 'Remote hello');
+      return { responseId: 'resp-1', sessionId: _sessionId };
+    });
+
+    const conversation = await createHermesChatConversation({
+      type: 'aionrs',
+      name: 'Remote',
+      model: {
+        id: 'openai',
+        name: 'OpenAI',
+        platform: 'openai',
+        api_key: '',
+        base_url: '',
+        use_model: 'openai/gpt-5',
+      },
+      extra: {},
+    });
+
+    const sent = await sendHermesMessage({ conversation_id: conversation.id, input: 'Hello remote' });
+
+    expect(mocks.request).not.toHaveBeenCalled();
+    expect(submitResponseAndStream).toHaveBeenCalledWith('Hello remote', conversation.id, expect.any(Object));
+    expect(sent.runtime.state).toBe('running');
+    expect(mocks.broadcast).toHaveBeenCalledWith(
+      'message.stream',
+      expect.objectContaining({
+        conversation_id: conversation.id,
+        data: { content: 'Remote hello' },
+      })
+    );
+  });
 });
 
 describe('gateway edge cases', () => {
   beforeEach(() => {
     mocks.request.mockReset();
     mocks.broadcast.mockReset();
+    vi.mocked(supportsResponsesApi).mockReturnValue(false);
+    vi.mocked(submitResponseAndStream).mockResolvedValue(null);
     resetHermesChatRuntimeState();
   });
 

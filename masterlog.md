@@ -1,5 +1,67 @@
 # Master Log
 
+## 2026-06-30
+
+### VPS runtime host + Portainer/Cockpit
+
+Deployed the VPS runtime foundation from GitHub pulls only:
+
+- Pushed HermesHQ Agent37 runtime stack to `mutvayzz-sys/gcapslab-hermeshq`.
+- VPS cloned `/home/m4/headmaster-stack` from GitHub over SSH.
+- Built `headmaster-stack-headmaster-forward-auth` and started it on `127.0.0.1:18081`.
+- Built `headmaster-hermes-runtime:latest` with Hermes Agent + Agent37 Gateway on `:3737`.
+- Installed Portainer CE, initialized admin credentials at `/home/m4/portainer-admin.txt`, and attached the local Docker socket as `vps-local-docker`.
+- Installed Cockpit and enabled `cockpit.socket`.
+- Updated system Cloudflare tunnel ingress for runtime wildcard, Portainer, and HQ routes.
+- Upgraded Traefik to `v3.5`, removed broken ACME/example.com config, and switched VPS runtime routing to Traefik file provider because Docker 29 rejects Traefik's Docker-provider API version.
+- Added HermesHQ supervisor support for file-provider runtime routes via `RUNTIME_TRAEFIK_DYNAMIC_CONFIG_PATH`.
+
+Verified:
+- `headmaster-forward-auth` health: `ok`.
+- Runtime image exists on VPS: `headmaster-hermes-runtime:latest`.
+- Portainer reachable at `http://portainer.run.gcaplabs.com`.
+- Portainer shows baseline: 2 stacks, 5 images, 2 volumes, 3 containers.
+- Traefik now starts without Docker-provider errors.
+
+Follow-up:
+- `portainer.gcaplabs.com` was added to Cloudflare but local/router DNS may still cache NXDOMAIN; use `http://portainer.run.gcaplabs.com` until it settles.
+- `hq.gcaplabs.com` has an existing DNS record that must be replaced/confirmed before HermesHQ frontend can be publicly routed through the tunnel.
+- HTTPS for second-level wildcard names like `*.run.gcaplabs.com` needs Cloudflare cert coverage beyond the ordinary `*.gcaplabs.com` certificate.
+
+### Agent37 `/v1` desktop + HermesHQ provision contract
+
+Implemented the first Agent37-aligned runtime contract slice:
+
+- Restored `.hermes/plans/2026-06-30_222130-headmaster-beta-readiness.md`.
+- Added Agent37 source pins in `_support/upstream/agent37/VENDOR.md`.
+- Added GCAP brand token source files under `docs/theming/`.
+- Desktop remote runtime now prefers `/v1/responses` SSE, reconnects through `/v1/responses/{id}/stream`, and cancels through `/v1/responses/{id}/cancel`.
+- Desktop provision storage now preserves `runtime.base_url`, `runtime.api_base_path`, health/version URLs, `forward_auth_token`, and token expiry.
+- HermesHQ provision and container APIs now return `/v1` route metadata and forward-auth token fields.
+- HermesHQ supervisor now starts runtime containers for Gateway on `:3737`, adds resource caps, and emits Traefik labels when `RUN_DOMAIN` is configured.
+- Fixed desktop login TypeScript issues around OAuth bridge typing and `setTimeout` callback return annotations.
+
+Verified:
+- `bunx tsc --noEmit --pretty false`
+- `bunx vitest run tests/unit/common/adapter/hermesChatAdapter.test.ts tests/unit/process/hermeshqProvisionService.test.ts`
+- HermesHQ backend focused pytest: `tests/test_containers_runtime.py tests/test_desktop_runtime.py`
+
+### veeplan.md + Hoster VPS kanban + SSH fix
+
+**veeplan.md:** User dropped Agent37-aligned beta-readiness plan. Full implementation plan produced → `.hermes/plans/2026-06-30_222130-headmaster-beta-readiness.md` (Phases 0–7). 9 VPS infra cards queued on `hoster` profile.
+
+**SSH fix:** Hermes SSH backend (`tools/environments/ssh.py`) always added `-o ControlMaster=auto`, which conflicts with `cloudflared access ssh` ProxyCommand on Windows. Patched `_build_ssh_command()` to detect ProxyCommand in `~/.ssh/config` and skip ControlMaster when detected. Also patched `cleanup()`.
+
+**VPS setup:** Passwordless sudo for `m4` configured. `persistent_shell=false` in Hoster config. Existing CF tunnel routes `vps.gcaplabs.com` → SSH. Traefik will sit behind tunnel — CF terminates TLS, Traefik routes internally on :80.
+
+**Files changed:**
+- `veeplan.md` — progress section, plan link
+- `.hermes/plans/2026-06-30_222130-headmaster-beta-readiness.md` — full plan (new)
+- `~/AppData/Local/hermes/hermes-agent/tools/environments/ssh.py` — ControlMaster fix
+- `~/AppData/Local/hermes/profiles/hoster/config.yaml` — persistent_shell: false
+
+See top-level `masterlog.md` for the full session record.
+
 ## 2026-06-28
 
 ### Open Sign-Up + OAuth + Approval System

@@ -57,7 +57,11 @@ export interface HermeshqProvisionSnapshot {
   };
   capabilities: string[];
   runtime: {
+    base_url?: string | null;
+    api_base_path?: string | null;
+    health_url?: string | null;
     validate_url: string;
+    version_url?: string | null;
     ttl_seconds: number;
   };
   local_container_config?: {
@@ -68,6 +72,8 @@ export interface HermeshqProvisionSnapshot {
     endpoint_url: string | null;
     container_id: string;
     api_server_key?: string | null;
+    forward_auth_token?: string | null;
+    forward_auth_expires_at?: string | null;
   } | null;
   system_prompt_override?: string | null;
   session_namespace?: string | null;
@@ -180,7 +186,11 @@ function normalizeProvisionSnapshot(
     },
     capabilities,
     runtime: {
+      base_url: typeof runtime.base_url === 'string' ? runtime.base_url : null,
+      api_base_path: typeof runtime.api_base_path === 'string' ? runtime.api_base_path : null,
+      health_url: typeof runtime.health_url === 'string' ? runtime.health_url : null,
       validate_url: runtime.validate_url,
+      version_url: typeof runtime.version_url === 'string' ? runtime.version_url : null,
       ttl_seconds: Number.isFinite(Number(runtime.ttl_seconds)) ? Number(runtime.ttl_seconds) : 0,
     },
     client: typeof snapshot.client === 'string' ? snapshot.client : undefined,
@@ -202,6 +212,8 @@ function normalizeProvisionSnapshot(
         endpoint_url: typeof ccc.endpoint_url === 'string' ? ccc.endpoint_url : null,
         container_id: ccc.container_id,
         api_server_key: typeof ccc.api_server_key === 'string' ? ccc.api_server_key : null,
+        forward_auth_token: typeof ccc.forward_auth_token === 'string' ? ccc.forward_auth_token : null,
+        forward_auth_expires_at: typeof ccc.forward_auth_expires_at === 'string' ? ccc.forward_auth_expires_at : null,
       };
     }
   }

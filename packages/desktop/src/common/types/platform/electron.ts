@@ -47,6 +47,7 @@ export interface ElectronBridgeAPI {
   saveCredentials?: (creds: { username: string; password: string }) => Promise<{ success: boolean; error?: string }>;
   loadCredentials?: () => Promise<{ success: boolean; credentials: { username: string; password: string } | null }>;
   clearCredentials?: () => Promise<{ success: boolean }>;
+  triggerOAuthLogin?: (provider: string) => Promise<{ success: boolean; token?: string; error?: string }>;
   onInstallProgress?: (callback: (progress: unknown) => void) => () => void;
 }
 

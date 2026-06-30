@@ -66,8 +66,21 @@ export interface HermeshqProvisionApiResponse {
   hermeshq_url: string;
   user: { id: string; username: string; role: string };
   capabilities: string[];
-  runtime: { validate_url: string; ttl_seconds: number };
-  cloud_container_config?: { endpoint_url: string | null; container_id: string; api_server_key?: string | null } | null;
+  runtime: {
+    base_url?: string | null;
+    api_base_path?: string | null;
+    health_url?: string | null;
+    validate_url: string;
+    version_url?: string | null;
+    ttl_seconds: number;
+  };
+  cloud_container_config?: {
+    endpoint_url: string | null;
+    container_id: string;
+    api_server_key?: string | null;
+    forward_auth_token?: string | null;
+    forward_auth_expires_at?: string | null;
+  } | null;
   system_prompt_override?: string | null;
   session_namespace?: string | null;
   honcho_base_url?: string | null;
@@ -158,7 +171,8 @@ export async function provisionHermeshqDesktop(request: HermeshqProvisionRequest
     };
     setHermeshqProvision(provision);
     const { apiServerKey, needsRestart } = applyProvisionToRuntime(provision);
-    if (apiServerKey) broadcastApiServerKey(apiServerKey);
+    const runtimeBearerToken = provision.cloud_container_config?.forward_auth_token ?? apiServerKey;
+    if (runtimeBearerToken) broadcastApiServerKey(runtimeBearerToken);
     if (needsRestart && _runtimeRestarter) {
       // Delay so the provision response IPC completes before we restart the runtime.
       setTimeout(() => {
