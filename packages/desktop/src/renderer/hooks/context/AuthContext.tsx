@@ -53,6 +53,7 @@ interface DesktopHermeshqProvision {
   };
   cloud_container_config?: {
     endpoint_url: string;
+    api_server_key?: string | null;
   };
 }
 
@@ -191,8 +192,13 @@ async function applyProvisionGlobals(provision: DesktopHermeshqProvision): Promi
   const containerUrl = provision.cloud_container_config?.endpoint_url;
   if (containerUrl) {
     window.__cloudContainerEndpoint = containerUrl;
+    if (provision.cloud_container_config?.api_server_key) {
+      (window as any).__apiServerKey = provision.cloud_container_config.api_server_key;
+    }
     const token = await extractRemoteSessionToken(containerUrl);
     if (token) (window as any).__hermesSessionToken = token;
+  } else {
+    delete window.__cloudContainerEndpoint;
   }
   queueMicrotask(() => {
     window.dispatchEvent(new CustomEvent('hermeshq:provision-updated'));

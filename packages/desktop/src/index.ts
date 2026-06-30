@@ -74,7 +74,7 @@ import {
   setIsQuitting,
 } from './process/utils/tray';
 import { readCloseToTraySetting } from './process/utils/closeToTraySetting';
-import { getConnectionMode, getRemoteConfig } from './process/connection/connectionConfig';
+import { getConnectionMode, getRemoteConfig, getHermeshqProvision } from './process/connection/connectionConfig';
 import { validateHermeshqRuntimeAccess, setHermesRuntimeRestarter } from './process/services/hermeshqProvisionService';
 // @ts-expect-error - electron-squirrel-startup doesn't have types
 import electronSquirrelStartup from 'electron-squirrel-startup';
@@ -403,7 +403,7 @@ ipcMain.handle('runtime:get-status', async () => {
 });
 
 async function startAioncoreSidecar(): Promise<void> {
-  if (getConnectionMode() === 'remote') {
+  if (getConnectionMode() === 'remote' || getHermeshqProvision()?.mode === 'headmaster_remote') {
     clearAioncorePort();
     return;
   }
@@ -434,7 +434,9 @@ async function startAioncoreSidecar(): Promise<void> {
 // ---------------------------------------------------------------------------
 ipcMain.handle('runtime:restart', async () => {
   try {
-    if (getConnectionMode() !== 'remote') {
+    const provisionModeIsRemote = getHermeshqProvision()?.mode === 'headmaster_remote';
+
+    if (getConnectionMode() !== 'remote' && !provisionModeIsRemote) {
       const validation = await validateHermeshqRuntimeAccess({
         runtime_id: 'local-hermes',
         requested_capability: 'runtime_settings',
@@ -445,6 +447,16 @@ ipcMain.handle('runtime:restart', async () => {
           error: validation.error || 'HermesHQ denied runtime restart.',
         };
       }
+    }
+
+    if (provisionModeIsRemote) {
+      // Remote session has no local runtime to restart — just reload the renderer
+      // so the UI picks up any config changes.
+      const wins = BrowserWindow.getAllWindows();
+      for (const win of wins) {
+        if (!win.isDestroyed()) win.webContents.reload();
+      }
+      return { ok: true };
     }
 
     hermesBootstrap.stop();
@@ -942,7 +954,10 @@ const handleAppReady = async (): Promise<void> => {
     // Start Hermes backend AFTER window is shown so the installer doesn't
     // block window creation on first launch (install can take several minutes).
     // installIfMissing: true triggers install.ps1 if the venv is absent.
-    if (!remoteModeActive) {
+    // Also skip when provision.mode is headmaster_remote so remote users don't
+    // spawn a redundant local dashboard alongside their cloud container.
+    const provisionModeIsRemote = getHermeshqProvision()?.mode === 'headmaster_remote';
+    if (!remoteModeActive && !provisionModeIsRemote) {
       void (async () => {
         const hermesStartup = await hermesBootstrap.start({ installIfMissing: true });
         if (hermesStartup.ok && hermesStartup.port) {
