@@ -32,7 +32,7 @@ This file is the single source of truth for per-phase status and outstanding wor
 - [x] Phase 5: desktop remote runtime chat uses `/v1/responses` SSE + cancel/reconnect path
 - [ ] Phase 5: iOS → `/v1/responses` SSE — _not started_
 - [ ] Phase 6: beta hardening — _not started_
-  - [ ] billing/limits: starter-kit + Stripe gating provisioning; per-org Nous spend; resource caps enforced
+  - [ ] billing/limits: **beta is free — no Stripe/payment gate during beta**; access gated by approval + resource caps; per-org Nous spend visibility only. Stripe deferred to GA (post-beta).
   - [ ] email: finish MFA + password-reset (`RESEND_API_KEY`/`FROM_EMAIL` on HermesHQ or console provider)
   - [ ] observability: Traefik access logs, container health dashboard, Sentry on console + desktop
   - [ ] security: forward-auth token rotation, `no-new-privileges`, secrets out of images, admin surface gated

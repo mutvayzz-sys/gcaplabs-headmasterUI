@@ -224,8 +224,10 @@ a remote provisioned instance with zero WS/port code in the hot path.
 
 **Goal:** safe for real external beta testers.
 
-- **Billing/limits:** starter-kit + Stripe (via Supabase) gating provisioning; per-org Nous
-  spend visibility; per-container resource caps enforced (Phase 2).
+- **Billing/limits:** **beta is free — no Stripe / payment gate during beta.** Deferred until
+  GA (post-beta): wire starter-kit + Stripe (via Supabase) to gate provisioning then. For now,
+  control access via the HermesHQ approval pipeline + per-container resource caps (Phase 2) and
+  keep per-org Nous spend *visibility* (read-only, no charging).
 - **Email:** finish MFA + password-reset email (`RESEND_API_KEY`/`FROM_EMAIL` on HermesHQ, or
   the console's own email provider).
 - **Observability:** Traefik access logs, container health dashboard (extend HermesHQ health
@@ -235,7 +237,7 @@ a remote provisioned instance with zero WS/port code in the hot path.
 - **Lifecycle:** idle-instance reaping, restart policies, data-dir backups.
 
 **Gate:** a clean VPS can be provisioned from scripts; 5–10 external testers each get an
-isolated, billed, monitored instance; tear-down and restart are reliable.
+isolated, monitored instance (free during beta — no billing gate); tear-down and restart are reliable.
 
 ---
 
@@ -323,7 +325,7 @@ naming + `/var/lib/headmaster/instances/<id>/`.
 3. **Provision contract:** `POST /api/desktop/provision` returns subdomain + token + `/v1` base
    + models; `HERMES_HQ_URL` is `https://hq.gcaplabs.com` (not `localhost`).
 4. **Clients:** desktop + iOS chat/stream/cancel/files/model-switch against remote instance.
-5. **Front door:** console signup → approve → fleet → launch → chat, single identity, billing gate.
+5. **Front door:** console signup → approve → fleet → launch → chat, single identity (free beta — no billing gate).
 6. **Cold VPS rehearsal:** from a clean box run `provision-host.sh` + compose up + build image +
    create an instance; confirm external `https://hm-<id>.run.gcaplabs.com/v1/health` = 200.
 7. **Suites:** `bunx tsc --noEmit`, `bunx vitest run` (desktop); HermesHQ pytest (excluding the

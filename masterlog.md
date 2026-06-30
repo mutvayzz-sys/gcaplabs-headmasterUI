@@ -29,6 +29,17 @@ Audited the prior Agent37-aligned pass and folded `veeplan.md` into the trackers
   nothing to migrate (removed the false "Console (Wasp)" pre-existing-work claim and the
   migrate-domain/records steps). `supabase/migrations/*` and the historical hermeshq→hq
   domain-migration item are unrelated and kept.
+- **Billing decision:** beta is **free** — no Stripe / payment gate during beta. Access is gated
+  by the HermesHQ approval pipeline + per-container resource caps; per-org Nous spend is
+  visibility-only. Stripe is deferred to GA (post-beta). Updated Phase 6 + the Phase 4/6 gates.
+- **Env audit (Mac mini `macmini` docker context):** the running HermesHQ stack
+  (`hermeshq-backend/frontend/postgres/tunnel`) was launched from this machine's
+  `gcaplabs-hermeshq/.env`. Already set: `JWT_SECRET`, admin creds, DB, CORS,
+  `CONTAINER_HOST_URL=https://hq.gcaplabs.com`, runtime image + idle TTL. Empty/missing:
+  all `OIDC_*` (OAuth), `OPEN_SIGNUP=false`, and no Supabase/Sentry/email vars. Note: this
+  running stack is the **older proxy build** (`AUTH_MODE=local`, no Traefik/forward-auth env) —
+  the pushed `402b433` routed stack is **not deployed on the Mac mini**; forward-auth/Traefik
+  live on the VPS. Two environments.
 
 ## 2026-06-30
 
