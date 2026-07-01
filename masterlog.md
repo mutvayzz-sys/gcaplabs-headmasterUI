@@ -13,10 +13,19 @@ Picked the per-instance runtime domain scheme (owner delegated the choice).
   prefix avoids collisions with console/hq/portainer.
 - **Applied in repo:** `RUN_DOMAIN=gcaplabs.com` in `gcaplabs-hermeshq/.env.example` (commit
   `6d3b3c8`). The supervisor already builds `https://hm-{id[:12]}.{RUN_DOMAIN}`, so no code change.
-- **Remaining to go live (host + Cloudflare):** (1) set `RUN_DOMAIN=gcaplabs.com` in the host
-  runtime `.env` and `docker compose up --build -d`; (2) add wildcard `*.gcaplabs.com` → the
-  cloudflared tunnel in Cloudflare (explicit records override it) and add `*.gcaplabs.com` to the
-  tunnel ingress → Traefik.
+- **Applied & verified live on the VPS (2026-07-01):**
+  - VPS stack `/home/m4/headmaster-stack`: set `.env` `RUN_DOMAIN=gcaplabs.com` (backup
+    `.env.bak-predomain`), `docker compose up -d --force-recreate backend` → healthy,
+    `printenv RUN_DOMAIN`=`gcaplabs.com`.
+  - Tunnel `71b69661-7312-47ba-a451-ee7957a08fc4`: added `*.gcaplabs.com → https://localhost:443`
+    (noTLSVerify) to `/etc/cloudflared/config.yml` after the explicit hosts (backup
+    `config.yml.bak-predomain`); `cloudflared ingress validate` OK; restarted cloudflared.
+  - DNS: created wildcard `*.gcaplabs.com` CNAME → tunnel via
+    `cloudflared tunnel route dns` using origin cert `/home/m4/.cloudflared/cert.pem`.
+  - End-to-end verify: `https://hm-test123456.gcaplabs.com/v1/health` returns valid TLS
+    (verify=0) + Traefik 404 (no instance provisioned = expected); `hq.gcaplabs.com` and
+    `console.gcaplabs.com` both still 200 (explicit records override the wildcard — no regression).
+  - Net: the free universal `*.gcaplabs.com` cert covers per-instance hosts; runtime routing is live.
 
 ### Console deployed to Vercel
 

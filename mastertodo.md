@@ -74,32 +74,12 @@ This file is the single source of truth for per-phase status and outstanding wor
 - [ ] **iOS build verification** — requires Mac (code changes are committed)
 - [ ] **hermeshq: `git pull` this Windows checkout** — local is 1 behind `origin/main` (`a982fa1` version bump pushed from another machine); all local work is already on GitHub
 - [ ] **Beta cold-VPS rehearsal** — provision-host.sh + build image + create instance from clean box
-- [x] **Runtime domain decided: `hm-<id>.gcaplabs.com`** — single-level subdomain covered by Cloudflare's free universal `*.gcaplabs.com` cert (replaces temp `run.gcaplabs.com`). Applied in repo: `RUN_DOMAIN=gcaplabs.com` (hermeshq `.env.example`, commit `6d3b3c8`). **To go live on the host, 2 steps remain:**
-  - [ ] **Cloudflare — add wildcard DNS** (prompt for the dashboard AI):
-
-    ```
-    In the DNS zone for gcaplabs.com, add a wildcard record so any hm-*.gcaplabs.com
-    subdomain routes to the same Cloudflare Tunnel that hq.gcaplabs.com currently uses.
-
-    1. Look at the existing DNS record for "hq" (hq.gcaplabs.com) and note its target —
-       it's a CNAME pointing at a tunnel, e.g. <id>.cfargotunnel.com.
-    2. Create a new DNS record:
-       - Type: CNAME
-       - Name: *   (the wildcard *.gcaplabs.com)
-       - Target: the SAME <id>.cfargotunnel.com target that hq uses
-       - Proxy status: Proxied (orange cloud)
-       - TTL: Auto
-    Do not modify existing explicit records (hq, console, portainer, www, @, mail) —
-    those take precedence over the wildcard automatically. The wildcard only catches
-    undefined names like hm-<id>.
-    ```
-
-  - [ ] **On the runtime host** (the box running Traefik + the cloudflared tunnel):
-    1. Set `RUN_DOMAIN=gcaplabs.com` in the HermesHQ `.env`.
-    2. Add `*.gcaplabs.com` to the cloudflared tunnel ingress → Traefik (in `~/.cloudflared/hermeshq.yml` on the tunnel host, or the tunnel's dashboard config).
-    3. `docker compose up --build -d` to restart the backend with the new `RUN_DOMAIN`.
-    4. Verify: provision an instance → `curl https://hm-<id>.gcaplabs.com/v1/health` returns 200 with a valid TLS cert.
-    - ⚠️ Confirm **which host** actually runs the runtime containers for beta first (VPS routed stack vs Mac mini) — the two-environment split is still unresolved (see 2026-07-01 env audit).
+- [x] **Runtime domain LIVE: `hm-<id>.gcaplabs.com`** — single-level subdomain covered by Cloudflare's free universal `*.gcaplabs.com` cert (replaces temp `run.gcaplabs.com`). Applied & verified end-to-end on the **VPS** 2026-07-01:
+  - [x] Repo: `RUN_DOMAIN=gcaplabs.com` default (hermeshq `.env.example`, commit `6d3b3c8`).
+  - [x] VPS host (`/home/m4/headmaster-stack`): `.env` `RUN_DOMAIN=gcaplabs.com` (backed up `.env.bak-predomain`); backend recreated + healthy, `printenv RUN_DOMAIN` = `gcaplabs.com`.
+  - [x] Tunnel `71b69661…`: added `*.gcaplabs.com → https://localhost:443` (noTLSVerify) to `/etc/cloudflared/config.yml` after the explicit hosts (backup `config.yml.bak-predomain`); `ingress validate` OK; cloudflared restarted.
+  - [x] DNS: wildcard `*.gcaplabs.com` CNAME → tunnel created via `cloudflared tunnel route dns` (origin cert `/home/m4/.cloudflared/cert.pem`).
+  - [x] Verified: `https://hm-test123456.gcaplabs.com/v1/health` → **valid TLS (verify=0)**, 404 from Traefik (no instance yet = correct); `hq` + `console` still 200 (no regressions). A real provisioned instance will get its Traefik route and return `/v1/health` 200.
 
 ## Broken / Follow-Up From 2026-06-30 Agent37 Pass
 
