@@ -550,6 +550,7 @@ export class BackendLifecycleManager {
       this.childProcess = spawn(binaryPath, args, {
         stdio: ['pipe', 'pipe', 'pipe'],
         env: dirs ? buildSpawnEnv(dirs) : process.env,
+        cwd: dirs?.workDir ?? undefined,
         detached: process.platform !== 'win32',
       });
     } catch (error) {
