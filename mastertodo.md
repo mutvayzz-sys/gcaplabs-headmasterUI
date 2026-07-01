@@ -74,7 +74,9 @@ This file is the single source of truth for per-phase status and outstanding wor
 - [ ] **iOS build verification** — requires Mac (code changes are committed)
 - [ ] **hermeshq: `git pull` this Windows checkout** — local is 1 behind `origin/main` (`a982fa1` version bump pushed from another machine); all local work is already on GitHub
 - [ ] **Beta cold-VPS rehearsal** — provision-host.sh + build image + create instance from clean box
-- [ ] **Confirm production runtime domain** — `*.run.gcaplabs.com` was a **temporary** placeholder, NOT the real runtime host; decide/record the actual per-instance domain scheme before beta routing.
+- [x] **Runtime domain decided: `hm-<id>.gcaplabs.com`** — single-level subdomain covered by Cloudflare's free universal `*.gcaplabs.com` cert (replaces temp `run.gcaplabs.com`). Applied in repo: `RUN_DOMAIN=gcaplabs.com` (hermeshq `.env.example`, commit `6d3b3c8`). **To go live on the host, 2 steps remain:**
+  - [ ] Set `RUN_DOMAIN=gcaplabs.com` in the runtime `.env` on the host + `docker compose up --build -d`
+  - [ ] Cloudflare: add wildcard `*.gcaplabs.com` → the cloudflared tunnel (CNAME, proxied); explicit records (console/hq/portainer) already override it. Add `*.gcaplabs.com` to the tunnel ingress → Traefik.
 
 ## Broken / Follow-Up From 2026-06-30 Agent37 Pass
 

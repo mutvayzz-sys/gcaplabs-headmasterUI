@@ -2,6 +2,22 @@
 
 ## 2026-07-01
 
+### Runtime domain decided + applied: hm-<id>.gcaplabs.com
+
+Picked the per-instance runtime domain scheme (owner delegated the choice).
+
+- **Decision:** instances at `https://hm-<id>.gcaplabs.com` (was temp `hm-<id>.run.gcaplabs.com`).
+  Rationale: a single-level subdomain is covered by Cloudflare's **free universal `*.gcaplabs.com`
+  cert**; the old second-level `run.gcaplabs.com` would have required paid Advanced Certificate
+  Manager. Subdomain routing (not path-based) keeps the gateway's `/v1` URLs clean; the `hm-`
+  prefix avoids collisions with console/hq/portainer.
+- **Applied in repo:** `RUN_DOMAIN=gcaplabs.com` in `gcaplabs-hermeshq/.env.example` (commit
+  `6d3b3c8`). The supervisor already builds `https://hm-{id[:12]}.{RUN_DOMAIN}`, so no code change.
+- **Remaining to go live (host + Cloudflare):** (1) set `RUN_DOMAIN=gcaplabs.com` in the host
+  runtime `.env` and `docker compose up --build -d`; (2) add wildcard `*.gcaplabs.com` → the
+  cloudflared tunnel in Cloudflare (explicit records override it) and add `*.gcaplabs.com` to the
+  tunnel ingress → Traefik.
+
 ### Console deployed to Vercel
 
 - Deployed `gcap-console` to Vercel production (`vercel deploy --prod`) — build OK, `READY`,
