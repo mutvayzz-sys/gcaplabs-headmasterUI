@@ -30,7 +30,7 @@ This file is the single source of truth for per-phase status and outstanding wor
 - [x] Phase 3: swap runtime model credential to **kimi-code** (`KIMI_API_KEY`, provider `kimi-coding`, `kimi-k2.7-code`, `api_mode anthropic_messages`) — replaces legacy `org.nous_api_key` injection
 - [x] Phase 3: full approve→provision→runtime smoke — VPS smoke test passed: container started with kimi-code env vars, `/v1/health` returns 200 via direct Docker network
 - [x] Phase 4: **NEW console built fresh from starter-kit** — `gcap-console/` at workspace root is a Next.js 16 + Supabase + Tailwind v4 app with GCAP brand tokens (parchment + green + gold), Headmaster branding, HermesHQ provision API client (`src/lib/hermeshq.ts`), `/v1/responses` SSE chat routes, simplified one-page dashboard, Supabase profiles migration (fleet tables commented out for future use). Typecheck + build both PASS. Pushed to `main-nextjs` branch on `mutvayzz-sys/gcaplabs-console` — needs force-push or branch merge to replace old Wasp code on `main`. Deploy to Vercel pending DNS (`console.gcaplabs.com`).
-- [x] Phase 5: desktop remote runtime chat uses `/v1/responses` SSE + cancel/reconnect path
+- [~] Phase 5: desktop remote runtime — response **streaming** uses `/v1/responses` SSE + cancel/reconnect, BUT the migration is **PARTIAL** (see "Desktop remote-runtime /v1 migration" below — prompt submission + session mgmt still on legacy WS RPC).
 - [x] Phase 5: iOS → `/v1/responses` SSE — `RunsAPIClient.swift`, `CloudContainerConfig`/`CloudContainerTransport.swift` updated; build verification requires Mac. Commit `0105789` pushed to `origin/main` 2026-07-01.
 - [x] Phase 6: beta hardening
   - [x] billing/limits: **beta is free — no Stripe/payment gate during beta**; access gated by approval + resource caps; per-org Nous spend visibility only. Stripe deferred to GA (post-beta).
@@ -44,6 +44,53 @@ This file is the single source of truth for per-phase status and outstanding wor
   - [x] console (Next.js) — fresh build from starter-kit with GCAP brand tokens + Headmaster branding; pushed to `main-nextjs` branch
   - [x] desktop — `packages/desktop/src/renderer/pages/settings/AppearanceSettings/presets/default.css` updated with GCAP tokens; typecheck clean
   - [ ] HermesHQ dashboard — **deferred** (operator tool, dark+red theme; not a user-facing surface; brand kit applies to user-facing only per white-label rules)
+
+## 🔴 Desktop remote-runtime /v1 migration (full inspection — 2026-07-02)
+
+**Problem:** Phase 5's `/v1` migration is only PARTIAL. Response *streaming* moved to
+`/v1/responses` SSE, but the desktop still drives sessions + prompt submission over the **legacy
+Hermes WebSocket JSON-RPC** (`gatewayRpcRequest` → `wss://<runtime>/api/ws`, built by
+`getWsUrl()`/`connectRpcWs()` in `common/adapter/httpBridge.ts`). The Agent37 runtime is
+**REST-only** (`/v1/*`) and has no `/api/ws`, so in remote mode the WS never connects →
+"Headmaster: Inactive" **and remote chat can't send prompts or create sessions**. (The runtime
+itself is healthy — `/v1/health`, `/v1/models` work with kimi.)
+
+**Legacy WS-RPC call sites to migrate → Agent37 `/v1` surface** (surface per gateway `AGENTS.md`:
+responses, sessions, models, files):
+- `common/adapter/hermesChatAdapter.ts`:
+  - `session.create` → `POST /v1/responses` (start a response/session)
+  - `session.resume` → `GET /v1/sessions/{id}` (transcript) + `GET /v1/responses/{id}/stream` (reattach)
+  - `prompt.submit` (send message) → `POST /v1/responses` (`session_id` + input)
+  - `session.interrupt` → `POST /v1/responses/{id}/cancel`
+  - `approval.respond` / `clarify.respond` / `sudo.respond` / `secret.respond` → map to the `/v1`
+    interactive/tool-call response flow (check gateway `README.md` — likely a follow-up
+    `POST /v1/responses` carrying the tool/approval result)
+- `renderer/hooks/system/useRuntimeConnectionState.ts`: status probe `session.list` →
+  `GET /v1/health` (or `/v1/models`) so "Active/Inactive" reflects real runtime health.
+- Session list / history & file browser: confirm they hit `GET /v1/sessions` + `/v1/files*`,
+  not WS RPC.
+
+**Supporting cleanup:**
+- `common/adapter/httpBridge.ts`: retire `connectRpcWs`/`gatewayRpcRequest`/`/api/ws` for remote
+  mode (keep only if local-dashboard mode still needs WS); remove the `9119`/`9120`/`8080` port
+  fallbacks (veeplan Phase 5 "remove brittle port logic").
+- Ensure every remote `/v1` call attaches the forward-auth `Authorization: Bearer <token>` +
+  `x-headmaster-container-id` (Traefik injects the container-id header per route; the client sends
+  the bearer). Confirm `applyProvisionGlobals` wires `__runtimeBearerToken` into httpBridge auth.
+
+**Quick win (do first):** fix `useRuntimeConnectionState.probe()` to a `/v1/health` GET — makes the
+indicator accurate and unblocks the "is it connected" UX even before the full chat-path migration.
+
+**Verification (remote mode against `hm-<id>.gcaplabs.com/v1/*`):** create session → send prompt →
+stream a kimi turn → cancel → list sessions → browse files; approval/clarify prompts round-trip;
+status indicator shows **Active**.
+
+### Runtime image rebuild (pending — infra)
+- [ ] Rebuild `headmaster-hermes-runtime:latest` on the VPS with the entrypoint + Dockerfile perf
+  fix (`c258d59`) and recreate provisioned containers. **Blocked 2026-07-02 by flaky SSH-over-tunnel**
+  under build load (repeated `websocket: bad handshake`). The live container already works via a
+  manual kimi `config.yaml`; the rebuild makes it automatic. Retry when the tunnel is stable, or
+  build via Portainer/Cockpit on the box.
 
 ## Done
 

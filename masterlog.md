@@ -2,6 +2,30 @@
 
 ## 2026-07-01
 
+### "Headmaster: Inactive" → desktop /v1 migration is only half-done
+
+Investigating why the desktop shows "Headmaster: Inactive" surfaced a bigger issue.
+
+- **Runtime is genuinely healthy:** the user's container (`hermes-a48f4b18-…`) has
+  `provider: kimi-coding` (my earlier manual write survived the VPS reboot) and internal
+  `/v1/health` → `{"ok":true,"healthy":true,"hermes":true}`; `/v1/models` returns the kimi catalog.
+- **Why it shows Inactive:** `GatewayStatusIndicator` reads `useRuntimeConnectionState`, whose
+  probe calls `gatewayRpcRequest('session.list')`. In remote mode `getWsUrl()` builds
+  `wss://hm-<id>.gcaplabs.com/api/ws` — the **legacy Hermes WebSocket JSON-RPC**. The Agent37
+  runtime is **REST-only** (`/v1/*`); it has no `/api/ws`, so the probe never connects → false
+  "Inactive".
+- **Bigger finding:** the WS-RPC path isn't just the status probe — `hermesChatAdapter.ts` still
+  drives the core chat over `gatewayRpcRequest`: `prompt.submit` (send message), `session.create`,
+  `session.resume`, `session.interrupt`, and `approval/clarify/sudo/secret.respond`. Only response
+  *streaming* was moved to `/v1/responses` SSE. So **remote chat can't send prompts or manage
+  sessions** against the Agent37 gateway — Phase 5's migration is partial. Full desktop `/v1`
+  migration scoped in `mastertodo.md` (see "Desktop remote-runtime /v1 migration").
+- **Also fixed this session:** the stale `hermeshq.gcaplabs.com` stored URL that blocked login
+  (file-patched on this machine + code migration `4bcbd24`); runtime image Dockerfile perf
+  (chown scoped to `/home/hermes`, `c258d59`) — VPS image rebuild still PENDING (SSH-over-tunnel
+  was too flaky to drive the build reliably; the running container already works via the manual
+  kimi config).
+
 ### Hermes worker fix (wrong model config) + desktop bootstrap hang fix
 
 **Hermes worker "did not respond within 10000ms" — root cause found & fixed.** The gateway
