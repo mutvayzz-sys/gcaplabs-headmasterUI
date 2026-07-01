@@ -2,6 +2,18 @@
 
 ## 2026-07-01
 
+### Console main replaced + domain corrections
+
+- **gcap-console:** replaced `origin/main` (old Wasp) with the fresh Next.js starter-kit console
+  (`e574d85`) via force-push — histories were unrelated, so this is a replace, not a merge. Per
+  owner: the old Wasp code is not kept (no backup branch). Deleted the redundant `main-nextjs`.
+  `mutvayzz-sys/gcaplabs-console` now has a single `main` = the new console.
+- **Domain corrections (owner):** `*.run.gcaplabs.com` was a **temporary** placeholder, NOT the
+  production runtime domain — dropped the `*.run` wildcard-TLS blocker; real per-instance domain
+  is TBD (added as a Confirm item). Portainer's actual host is **`portainer.gcaplabs.com`**.
+- **Resend:** `gcaplabs.com` domain is already set up/verified in Resend — email delivery is live
+  (removed the "domain verification pending" item).
+
 ### Implementation review — Phases 3–7 (independent verification)
 
 Reviewed the completed Phases 3–7 work across all repos against the trackers' "done" claims.

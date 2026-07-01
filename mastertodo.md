@@ -48,7 +48,7 @@ This file is the single source of truth for per-phase status and outstanding wor
 ## Done
 
 - [x] Container provisioning: admin provisions Hermes container per user via GUI
-- [x] Domain routing: containers proxied through `*.run.gcaplabs.com` via Traefik + forward-auth
+- [x] Domain routing: per-container proxy via Traefik + forward-auth (the `*.run.gcaplabs.com` subdomain used here was a **temporary** scheme — production runtime domain TBD)
 - [x] WebSocket support for container proxy
 - [x] Domain migration: all `hermeshq.gcaplabs.com` → `hq.gcaplabs.com`
 - [x] Open sign-up: `POST /api/auth/register` public endpoint (requires `OPEN_SIGNUP=true`)
@@ -66,15 +66,15 @@ This file is the single source of truth for per-phase status and outstanding wor
 
 ## Next / Pending
 
-- [ ] **Console: merge `main-nextjs` → `main`** — force-push or GitHub PR merge to replace old Wasp code with the new Next.js console on `mutvayzz-sys/gcaplabs-console`
-- [ ] **Console: deploy to Vercel** — after merge, deploy `gcap-console/` to Vercel at `console.gcaplabs.com` (needs DNS CNAME)
-- [ ] **DNS: `console.gcaplabs.com`** — CNAME to Vercel (owner needs to add in Cloudflare)
-- [ ] **Resend `gcaplabs.com` domain verification** — emails will send but be silently dropped until verified
+- [x] **Console: `main` = new Next.js console** — done 2026-07-01; force-replaced old Wasp `main` with the fresh starter-kit console on `mutvayzz-sys/gcaplabs-console` (unrelated histories; old Wasp branch not kept). `main-nextjs` deleted.
+- [ ] **Console: deploy to Vercel** — deploy `gcap-console/` to Vercel at `console.gcaplabs.com` (needs DNS CNAME)
+- [ ] **DNS: `console.gcaplabs.com`** — CNAME to Vercel (owner)
+- [x] **Resend `gcaplabs.com` domain** — already set up / verified in Resend (owner confirmed 2026-07-01); email delivery is live
 - [x] **iOS: push commit `0105789` to `origin/main`** — done 2026-07-01; SSE migration now on GitHub
 - [ ] **iOS build verification** — requires Mac (code changes are committed)
 - [ ] **hermeshq: `git pull` this Windows checkout** — local is 1 behind `origin/main` (`a982fa1` version bump pushed from another machine); all local work is already on GitHub
-- [ ] **TLS for `*.run.gcaplabs.com`** — Cloudflare cert doesn't cover second-level wildcards. Container reachable via Docker network, but browser HTTPS doesn't work yet.
 - [ ] **Beta cold-VPS rehearsal** — provision-host.sh + build image + create instance from clean box
+- [ ] **Confirm production runtime domain** — `*.run.gcaplabs.com` was a **temporary** placeholder, NOT the real runtime host; decide/record the actual per-instance domain scheme before beta routing.
 
 ## Broken / Follow-Up From 2026-06-30 Agent37 Pass
 
@@ -82,8 +82,8 @@ This file is the single source of truth for per-phase status and outstanding wor
 - [x] Replace temporary forward-auth compatibility token (`api_server_key` reused as `forward_auth_token`) with real HMAC signing using `FORWARD_AUTH_HMAC_SECRET`.
 - [x] Finish `openclaw-host-kit` recovery or implement equivalent VPS scripts: `provision-host.sh`, `create-instance.sh`, `destroy-instance.sh`, URL helpers, idle reaper.
 - [ ] Install backend lint tooling or add it to the HermesHQ backend venv; `python -m ruff` is currently unavailable there.
-- [ ] Decide final Portainer hostname: `http://portainer.run.gcaplabs.com` works now; `portainer.gcaplabs.com` exists but some resolvers still cache NXDOMAIN.
+- [x] Portainer hostname: **`portainer.gcaplabs.com`** is the actual/production host (the `*.run` variant was temporary).
 - [x] Fix/replace existing `hq.gcaplabs.com` DNS record — repointed from Mac mini tunnel to VPS tunnel via `cloudflared tunnel route dns -f` on 2026-07-01
-- [ ] Avoid browser HTTPS on `*.run.gcaplabs.com` until Cloudflare advanced cert/SaaS wildcard covers second-level wildcard names; runtime clients can still use the tunnel path once certing is resolved.
+- [x] ~~`*.run.gcaplabs.com` wildcard TLS~~ — **dropped**: `*.run` was a temporary routing placeholder, not the production runtime domain (see "Confirm production runtime domain" above).
 - [x] Bring up HermesHQ backend/frontend containers on VPS and run an approve→provision→runtime health smoke — done 2026-07-01
 - [x] Removed superseded docs: `todo.md` + `CHANGELOG.md` (tombstones → master files) and `revisedplan.md` (superseded by `veeplan.md`); scrubbed stale `AGENTS.md` pointers to `todo.md`.
