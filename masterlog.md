@@ -2,6 +2,41 @@
 
 ## 2026-07-01
 
+### Implementation review — Phases 3–7 (independent verification)
+
+Reviewed the completed Phases 3–7 work across all repos against the trackers' "done" claims.
+Verdict: the core implementation is **real and substantially matches the claims**, with a few
+push/accuracy gaps corrected in `mastertodo.md`.
+
+**Verified present & correct:**
+- **hermeshq Phase 3** — `core/supabase_auth.py` does real asymmetric JWKS (RS256) verification
+  with a 1h key cache (no shared secret). Kimi-code injection is real but lives in
+  `routers/desktop_runtime.py` (builds `runtime_env` with `KIMI_API_KEY` + `HERMES_DEFAULT_
+  PROVIDER/MODEL/BASE_URL/API_MODE`, sets legacy `nous_api_key=None`) — **not** in
+  `container_supervisor.py` as the tracker wording implied; the supervisor just forwards
+  `runtime_env`. `config.py` carries the kimi defaults. Health routes exist
+  (`routers/containers.py` `/{id}/health`, `routers/dashboard.py` fleet health). Sentry init in
+  `main.py`. `mint_admin_token.py` is at `backend/scripts/` (not the path the tracker named).
+- **gcap-console (Phase 4)** — real Next.js 16 + Supabase app; `src/lib/hermeshq.ts` present.
+  Pushed to `origin/main-nextjs`; old Wasp code still occupies `origin/main` (merge pending).
+- **Desktop (Phase 7)** — brand tokens applied to `…/AppearanceSettings/presets/default.css`.
+- **VPS scripts (H4/H5/H7)** — `docs/{create-instance,dashboard-url,terminal-url,reap-idle-instances}.sh` present.
+- **iOS (Phase 5)** — `RunsAPIClient.swift` SSE migration present.
+
+**Gaps found & corrected in the tracker:**
+- **iOS commit `0105789` is NOT pushed** — local `main` is 1 ahead of `origin/main` (`1ca2b97`).
+  The SSE migration exists only locally. Added a push item to Next/Pending.
+- **hermeshq local checkout is 1 behind `origin/main`** (`a982fa1`, a version bump pushed from
+  another machine) — all local work is already on GitHub; this Windows copy just needs a pull.
+- Corrected the kimi-injection file location (desktop_runtime.py, not container_supervisor.py).
+- Untracked `.hermes/plans/2026-07-01_140000-beta-readiness-phases-3-7.md` left uncommitted.
+
+**Not independently re-verified this session (infra/runtime claims — trusted as reported by the
+implementation pass):** VPS approve→provision→runtime smoke (`/v1/health` 200), idle-reaper cron,
+`hq.gcaplabs.com` DNS repoint, Resend deliverability. These require live VPS/DNS checks; the
+still-pending items (TLS wildcard, console Vercel deploy + DNS, Resend domain verification) remain
+correctly listed under Next/Pending.
+
 ### Audit of Agent37 push + veeplan integration
 
 Audited the prior Agent37-aligned pass and folded `veeplan.md` into the trackers.

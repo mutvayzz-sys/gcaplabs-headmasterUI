@@ -31,7 +31,7 @@ This file is the single source of truth for per-phase status and outstanding wor
 - [x] Phase 3: full approve→provision→runtime smoke — VPS smoke test passed: container started with kimi-code env vars, `/v1/health` returns 200 via direct Docker network
 - [x] Phase 4: **NEW console built fresh from starter-kit** — `gcap-console/` at workspace root is a Next.js 16 + Supabase + Tailwind v4 app with GCAP brand tokens (parchment + green + gold), Headmaster branding, HermesHQ provision API client (`src/lib/hermeshq.ts`), `/v1/responses` SSE chat routes, simplified one-page dashboard, Supabase profiles migration (fleet tables commented out for future use). Typecheck + build both PASS. Pushed to `main-nextjs` branch on `mutvayzz-sys/gcaplabs-console` — needs force-push or branch merge to replace old Wasp code on `main`. Deploy to Vercel pending DNS (`console.gcaplabs.com`).
 - [x] Phase 5: desktop remote runtime chat uses `/v1/responses` SSE + cancel/reconnect path
-- [x] Phase 5: iOS → `/v1/responses` SSE — `RunsAPIClient.swift`, `CloudContainerConfig`/`CloudContainerTransport.swift` updated; build verification requires Mac
+- [x] Phase 5: iOS → `/v1/responses` SSE — `RunsAPIClient.swift`, `CloudContainerConfig`/`CloudContainerTransport.swift` updated; build verification requires Mac. ⚠️ **Commit `0105789` is LOCAL ONLY — not yet pushed to `origin/main` (1 ahead); push it.**
 - [x] Phase 6: beta hardening
   - [x] billing/limits: **beta is free — no Stripe/payment gate during beta**; access gated by approval + resource caps; per-org Nous spend visibility only. Stripe deferred to GA (post-beta).
   - [x] email: MFA + password-reset via Resend — wired and functional; `gcaplabs.com` domain needs verification in Resend dashboard for actual delivery
@@ -70,7 +70,9 @@ This file is the single source of truth for per-phase status and outstanding wor
 - [ ] **Console: deploy to Vercel** — after merge, deploy `gcap-console/` to Vercel at `console.gcaplabs.com` (needs DNS CNAME)
 - [ ] **DNS: `console.gcaplabs.com`** — CNAME to Vercel (owner needs to add in Cloudflare)
 - [ ] **Resend `gcaplabs.com` domain verification** — emails will send but be silently dropped until verified
+- [ ] **iOS: push commit `0105789` to `origin/main`** — the `/v1/responses` SSE migration is committed locally but not on GitHub yet
 - [ ] **iOS build verification** — requires Mac (code changes are committed)
+- [ ] **hermeshq: `git pull` this Windows checkout** — local is 1 behind `origin/main` (`a982fa1` version bump pushed from another machine); all local work is already on GitHub
 - [ ] **TLS for `*.run.gcaplabs.com`** — Cloudflare cert doesn't cover second-level wildcards. Container reachable via Docker network, but browser HTTPS doesn't work yet.
 - [ ] **Beta cold-VPS rehearsal** — provision-host.sh + build image + create instance from clean box
 
