@@ -2,6 +2,31 @@
 
 ## 2026-07-01
 
+### Hermes worker fix (wrong model config) + desktop bootstrap hang fix
+
+**Hermes worker "did not respond within 10000ms" — root cause found & fixed.** The gateway
+served `/v1/health` 200 but chat/model calls failed. The Hermes worker
+(`third_party/agent37/gateway/server/workers/hermes_worker.py`) reads model settings ONLY from
+`$HERMES_HOME/config.yaml` via `hermes_cli.config.load_config` — it does **not** read the
+`HERMES_DEFAULT_PROVIDER/MODEL/BASE_URL/API_MODE` env that `routers/desktop_runtime.py` injects.
+The image's baked `config.yaml` was `nous-api`, so provisioned kimi containers ran nous-api with
+no key and the worker hung. Verified by writing a kimi `config.yaml` into a live container: the
+worker selftest then reported `provider: kimi-coding` and `/v1/models` returned the live kimi
+catalog (`kimi-k2.7-code`, `kimi-k2.6`, …) — `KIMI_API_KEY` is read from env, no `api_key` in
+config needed. Fix: `backend/runtime-entrypoint.sh` materializes `config.yaml` from the injected
+`HERMES_DEFAULT_*` env before starting the gateway; wired as the image CMD (hermeshq `2111f0c`).
+Added `.gitattributes` (`*.sh eol=lf`) so the entrypoint shebang survives Windows checkouts.
+Remaining: rebuild `headmaster-hermes-runtime:latest` on the VPS + recreate containers, then a
+full `/v1/responses` chat smoke.
+
+**Desktop app hung on "Preparing your workspace…" (packaged build).** Renderer threw
+`ReferenceError: process is not defined` from `AuthContext.provisionDesktopSession()` using
+`process.platform` — Vite shims `process.env.*` but not bare `process`, so it throws in the
+packaged renderer, aborting `refresh()` before `setReady(true)`. The `ws://127.0.0.1:9119` WS
+storm was the same bug's symptom (`window.__backendPort` is only set once `Layout` mounts, after
+`ready`). Fixed by deriving platform from `navigator.userAgent` (headmasterUI `f30ba79`).
+Note: dev mode provides `process`, so it only reproduced in the packaged `.exe`.
+
 ### CI/CD: console CI + headmasterUI auto version-bump
 
 - **gcap-console** had no CI — added `.github/workflows/ci.yml` (typecheck + `next build` on
