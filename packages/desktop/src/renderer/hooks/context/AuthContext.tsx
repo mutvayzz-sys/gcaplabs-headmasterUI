@@ -219,11 +219,22 @@ async function applyProvisionGlobals(provision: DesktopHermeshqProvision): Promi
   });
 }
 
+// Node's `process` global does not exist in the packaged Electron renderer, so
+// derive the platform from the user agent instead (using `process.platform` here
+// throws "process is not defined" and stalls bootstrap on "Preparing your workspace…").
+function getRendererPlatform(): NodeJS.Platform {
+  const ua = (typeof navigator !== 'undefined' ? navigator.userAgent : '').toLowerCase();
+  if (ua.includes('win')) return 'win32';
+  if (ua.includes('mac')) return 'darwin';
+  if (ua.includes('linux')) return 'linux';
+  return 'win32';
+}
+
 async function provisionDesktopSession(): Promise<{ provision: DesktopHermeshqProvision } | { error: string }> {
   const result = await window.electronAPI?.provisionHermeshq?.({
     client: 'headmaster_desktop',
     version: __APP_VERSION__,
-    platform: process.platform as NodeJS.Platform,
+    platform: getRendererPlatform(),
   });
 
   if (!result?.success || !result.provision) {
