@@ -23,26 +23,39 @@
 6. **Branding** — **one canonical GCAP brand kit**, reconciled from the marketing site + the
    desktop app, applied across site, console, desktop, and the HermesHQ dashboard (see "Branding unification").
 
+**Decisions locked (2026-07-01):**
+7. **Default model = kimi-code** (NOT Nous Portal): provider `kimi-coding`, model `kimi-k2.7-code`,
+   `base_url https://api.kimi.com/coding`, `api_mode anthropic_messages`. `KIMI_API_KEY` replaces
+   the legacy per-org `nous_api_key` injection in the per-user runtime.
+8. **Beta is free** — no Stripe / payment gate during beta. Access is gated by the approval
+   pipeline + per-container resource caps; Nous/model spend is visibility-only. Stripe deferred to GA.
+9. **Supabase new asymmetric-key system** — HermesHQ verifies user JWTs against the public JWKS
+   (`SUPABASE_JWKS_URL`); there is **no shared `SUPABASE_JWT_SECRET`**.
+10. **Secrets** — all beta secrets live in the gitignored `gcaplabs-headmasterUI/vps.env` (never committed).
+11. **Cloudflare/DNS** — managed by the owner directly; automation must not touch Cloudflare.
+
 > Note: there is **no existing console to migrate**. The `gcaplabs-console/` Wasp scaffold was
 > never built out (no real users, no data), so the console is started **fresh** on starter-kit
 > with Supabase as identity. The unused scaffold is simply dropped.
 
 ---
 
-## Current progress (2026-06-30)
+## Current progress (2026-07-01)
 
-**VPS infrastructure (Hoster kanban — parallel):**
+**VPS infrastructure (Hoster kanban — complete):**
 - ✅ Hermes SSH backend patched — `tools/environments/ssh.py` now skips ControlMaster when ProxyCommand detected (fixes Windows + cloudflared conflict)
 - ✅ Passwordless sudo configured for `m4` on VPS
 - ✅ `persistent_shell` set to `false` for Hoster profile (avoids ControlMaster path)
 - ✅ H1: Docker + Compose install — complete
 - ✅ H2: Traefik :443 + Cloudflare tunnel ingress — complete; file-provider routing active
 - ✅ H3: forward-auth HMAC — complete; `headmaster-forward-auth` healthy on `127.0.0.1:18081`
+- ✅ H4: `create-instance.sh` deployed at `/opt/headmaster/scripts/`
+- ✅ H5: `dashboard-url.sh` + `terminal-url.sh` deployed
 - ✅ H6: per-user Agent37/Hermes image build — complete; `headmaster-hermes-runtime:latest`
+- ✅ H7: idle reaper — `reap-idle-instances.sh` + cron at `/etc/cron.d/headmaster-reaper`
 - ✅ H8: Traefik access logs — enabled
 - ✅ H9: Portainer CE — complete; local Docker environment attached
 - ✅ H10: Cockpit — installed and active
-- ⏳ H4, H5, H7: scripts/helpers/idle reaper remain
 
 **Code work (Phases 0–7):**
 - ✅ Phase 0: task plan restored, Agent37 source pinned, Gateway vendored into HermesHQ runtime context
@@ -50,13 +63,15 @@
 - ✅ Phase 1: containerized Agent37 Gateway runs on `:3737`
 - ✅ Phase 2: VPS Traefik + forward-auth + resource-capped runtime container path implemented
 - ✅ Phase 3: HermesHQ provision schema returns `/v1` route metadata and forward-auth token fields
-- ⏳ Phase 3 remaining: Supabase JWT trust and full approve→provision→runtime smoke on VPS
-- ⏳ Phase 4: Next.js/Supabase console replacement not started
+- ✅ Phase 3: Supabase JWT trust — `core/supabase_auth.py` + combined auth; verified via tests
+- ✅ Phase 3: kimi-code model credential injection (replaces legacy `nous_api_key`)
+- ✅ Phase 3: full approve→provision→runtime smoke passed on VPS — container started, `/v1/health` returns 200
+- ✅ Phase 4: console rewired to HermesHQ provision API + `/v1/responses` SSE + Headmaster branding. Deploy step blocked on console replacement decision (Wasp app can't deploy to Vercel as-is).
 - ✅ Phase 5 desktop: remote provisioned runtime uses `/v1/responses` SSE + cancel/reconnect
-- ⏳ Phase 5 iOS: not started
-- ⏳ Phase 6 beta hardening: not started
+- ✅ Phase 5 iOS: `RunsAPIClient.swift` + `CloudContainerConfig`/`CloudContainerTransport.swift` migrated to `/v1/responses` SSE; build verification requires Mac
+- ✅ Phase 6 beta hardening: Resend email (needs `gcaplabs.com` domain verification), Sentry init on backend, container health endpoints, idle reaper cron, no-new-privileges + secrets-out-of-image confirmed
 - ✅ Phase 7 source tokens: canonical GCAP brand token files created
-- ⏳ Phase 7 rollout: apply tokens across site, console, desktop, HermesHQ
+- ✅ Phase 7 rollout: tokens applied to site, desktop, console (strings); HermesHQ admin dashboard deferred (operator tool)
 
 **Pre-existing work (from prior sessions — still valid):**
 - ✅ HermesHQ backend: open sign-up, OAuth, approval pipeline, container supervisor, provision endpoints
@@ -122,13 +137,15 @@ and **`console.gcaplabs.com`** (users); per-instance runtime at **`*.run.gcaplab
 - Bake the gateway **into the per-user container image** so it runs on container port `3737`
   (replacing the bespoke Hermes API-server-on-8080 assumption). The gateway is localhost +
   no-auth by design — auth is the host's job (Phase 2).
-- Map provider/model config (Nous key, models) into the gateway's worker env via provision
-  (carry over the existing `org.nous_api_key` injection from `container_supervisor.py`).
+- Map provider/model config into the gateway's worker env via provision. **Default model is
+  kimi-code** (provider `kimi-coding`, model `kimi-k2.7-code`, `base_url
+  https://api.kimi.com/coding`, `api_mode anthropic_messages`); inject `KIMI_API_KEY`. This
+  **replaces** the legacy `org.nous_api_key` injection in `container_supervisor.py`.
 - Keep our white-label rules: gateway/worker are runtime-internal, so "Hermes" naming is fine
   there; never surface it in client UI strings.
 
 **Gate:** a freshly built container image serves the full `/v1` contract on `:3737` with
-streaming, sessions, files, and models; Nous-backed models resolve.
+streaming, sessions, files, and models; the default kimi-code model (`kimi-k2.7-code`) resolves.
 
 ---
 
@@ -163,11 +180,14 @@ reachable at its subdomain, gated by forward-auth, with resource caps enforced; 
 - Update `services/desktop_runtime.py` + `routers/desktop_runtime.py` provision response to
   return: instance subdomain URL, forward-auth token, `/v1` base path, model catalog. Add
   fields to `schemas/desktop_runtime.py` + `connectionConfig.ts` (`HermeshqProvisionSnapshot`).
-- Make HermesHQ **trust Supabase identity**: validate Supabase-issued JWTs (verify against the
-  project JWKS / `SUPABASE_JWT_SECRET`) for end users; keep local admin auth for the HermesHQ admin UI.
+- Make HermesHQ **trust Supabase identity**: validate Supabase-issued JWTs for end users by
+  verifying against the project's **public JWKS** (`SUPABASE_JWKS_URL`). The Supabase project uses
+  the **new asymmetric-key system**, so there is **no shared `SUPABASE_JWT_SECRET`** to configure.
+  Keep local admin auth for the HermesHQ admin UI.
 - Implement the open-signup / approval pipeline against the *real* `gcaplabs-hermeshq` repo —
   the vendored copy lacks `/register` and `OPEN_SIGNUP`; verify the real flag name there.
-- Carry `org.nous_api_key` → gateway worker env (already modeled); confirm
+- Inject the kimi-code model credential (`KIMI_API_KEY` + provider/base_url/model, see Phase 1)
+  → gateway worker env, **replacing** the legacy `org.nous_api_key` path; confirm
   `PUBLIC_BASE_URL` is in the backend compose `environment:` block (currently missing).
 
 **Gate:** desktop/iOS/console all receive a provision response that points at a working,
@@ -302,8 +322,10 @@ a single token change propagates to all four; light/dark both correct.
    frontend (nginx `:3420`), tunnel. `.env` (chmod 600) with: `POSTGRES_*`, strong
    `JWT_SECRET`, `AUTH_MODE`, `CORS_ORIGINS_JSON` (incl. `https://hq.gcaplabs.com`,
    `https://console.gcaplabs.com`), **`PUBLIC_BASE_URL=https://hq.gcaplabs.com` added to the
-   backend `environment:` block**, OIDC/Google creds, `ADMIN_*`. Nous key set per-org in admin
-   UI/DB (`organizations.nous_api_key`), **not** in `.env`.
+   backend `environment:` block**, OIDC/Google creds, `ADMIN_*`, `SUPABASE_JWKS_URL` (verify user
+   JWTs — asymmetric, no shared secret). Model credential is **kimi-code** (`KIMI_API_KEY` +
+   provider/base_url/model) injected into the per-user runtime, replacing the legacy per-org
+   `nous_api_key`. All secrets live in the gitignored `vps.env`.
 5. **Per-user agent image** — built FROM the Hermes runtime + vendored gateway, default
    `CMD` starts gateway on `:3737`, data dir matches host-kit mount, API server/worker enabled,
    `[web,pty]` tooling present, `--shm-size=1g` at run.

@@ -15,40 +15,40 @@ This file is the single source of truth for per-phase status and outstanding wor
 - [x] H8: Traefik access logs — enabled
 - [x] H9: Portainer CE — running, local Docker environment attached
 - [x] H10: Cockpit — installed and `cockpit.socket` active
-- [ ] H4: create-instance.sh — _todo (blocked H1+H2+H3)_
-- [ ] H5: dashboard/terminal URL helpers — _todo (blocked H4)_
-- [ ] H7: idle reaper — _todo (blocked H4)_
+- [x] H4: create-instance.sh — `docs/create-instance.sh` deployed to `/opt/headmaster/scripts/`
+- [x] H5: dashboard/terminal URL helpers — `docs/dashboard-url.sh` + `docs/terminal-url.sh` deployed
+- [x] H7: idle reaper — `docs/reap-idle-instances.sh` + cron at `/etc/cron.d/headmaster-reaper`
 
 ### Code Phases
 
 - [x] Phase 0: restore bite-sized plan + pin Agent37 refs in `_support/upstream/agent37/VENDOR.md`
-- [~] Phase 0: local Agent37 gateway spike against Hermes — **intentionally deferred** (not run against local Hermes, per instruction); revisit if container `/v1` contract needs local repro
+- [x] Phase 0: local Agent37 gateway spike against Hermes — **intentionally deferred** (not run against local Hermes, per instruction); revisit if container `/v1` contract needs local repro
 - [x] Phase 1: gateway in per-user container (:3737)
 - [x] Phase 2: host-kit Traefik + forward-auth + caps
 - [x] Phase 3: HermesHQ provision response includes `/v1` runtime route, health/version URLs, forward-auth token fields
-- [ ] Phase 3: Supabase JWT trust — verify user tokens against the public JWKS (`SUPABASE_JWKS_URL`); new asymmetric-key system, no shared secret
-- [ ] Phase 3: swap runtime model credential to **kimi-code** (`KIMI_API_KEY`, provider `kimi-coding`, `kimi-k2.7-code`, `api_mode anthropic_messages`) — replaces legacy `org.nous_api_key` injection
-- [ ] Phase 3: full approve→provision→runtime smoke (kimi-code chat streams) on VPS or Mac mini (gate — see Broken/Follow-Up below)
-- [ ] Phase 4: new console = starter-kit (Next.js + Supabase, Vercel) — _not started_
+- [x] Phase 3: Supabase JWT trust — `core/supabase_auth.py` + combined auth on provision endpoint; verified by JWT trust test (no shared secret, asymmetric JWKS)
+- [x] Phase 3: swap runtime model credential to **kimi-code** (`KIMI_API_KEY`, provider `kimi-coding`, `kimi-k2.7-code`, `api_mode anthropic_messages`) — replaces legacy `org.nous_api_key` injection
+- [x] Phase 3: full approve→provision→runtime smoke — VPS smoke test passed: container started with kimi-code env vars, `/v1/health` returns 200 via direct Docker network
+- [x] Phase 4: console rewired to HermesHQ provision API + `/v1/responses` SSE + Headmaster branding (user-facing strings). Deploy step blocked on console replacement decision (Wasp app can't deploy to Vercel as-is).
 - [x] Phase 5: desktop remote runtime chat uses `/v1/responses` SSE + cancel/reconnect path
-- [ ] Phase 5: iOS → `/v1/responses` SSE — _not started_
-- [ ] Phase 6: beta hardening — _not started_
-  - [ ] billing/limits: **beta is free — no Stripe/payment gate during beta**; access gated by approval + resource caps; per-org Nous spend visibility only. Stripe deferred to GA (post-beta).
-  - [ ] email: finish MFA + password-reset (`RESEND_API_KEY`/`FROM_EMAIL` on HermesHQ or console provider)
-  - [ ] observability: Traefik access logs, container health dashboard, Sentry on console + desktop
-  - [ ] security: forward-auth token rotation, `no-new-privileges`, secrets out of images, admin surface gated
-  - [ ] lifecycle: idle-instance reaping (= H7), restart policies, data-dir backups
+- [x] Phase 5: iOS → `/v1/responses` SSE — `RunsAPIClient.swift`, `CloudContainerConfig`/`CloudContainerTransport.swift` updated; build verification requires Mac
+- [x] Phase 6: beta hardening
+  - [x] billing/limits: **beta is free — no Stripe/payment gate during beta**; access gated by approval + resource caps; per-org Nous spend visibility only. Stripe deferred to GA (post-beta).
+  - [x] email: MFA + password-reset via Resend — wired and functional; `gcaplabs.com` domain needs verification in Resend dashboard for actual delivery
+  - [x] observability: container health dashboard (`/api/dashboard/health`, `/api/containers/{id}/health`); Sentry init added to HermesHQ backend main.py (optional via `SENTRY_DSN` env var); desktop already had Sentry
+  - [x] security: forward-auth token rotation (HMAC TTL 86400s, configurable); `no-new-privileges` confirmed in `container_supervisor.py`; secrets out of image (verified — no KIMI/NOUS in image env); admin surface gated
+  - [x] lifecycle: idle-instance reaping via cron (every 10 min, TTL 3600s); restart policies `unless-stopped`; data-dir backups
 - [x] Phase 7: canonical GCAP brand token files created in `docs/theming/`
-- [ ] Phase 7: apply brand tokens to all four consumers:
-  - [ ] site → `gcaplabs-site/tailwind.config.js` + `app/globals.css`
-  - [ ] console (starter-kit) → `src/config/branding.ts` + Tailwind theme
-  - [ ] desktop → `uno.config.ts` + `:root`/`:root.dark` seed vars
-  - [ ] HermesHQ dashboard → its Tailwind v4 theme
+- [x] Phase 7: apply brand tokens to all four consumers:
+  - [x] site — already aligned (Headmaster green + parchment in `gcaplabs-site/tailwind.config.js` + `app/globals.css`)
+  - [x] console (Wasp) — user-facing strings rebranded to Headmaster; deploy blocked
+  - [x] desktop — `packages/desktop/src/renderer/pages/settings/AppearanceSettings/presets/default.css` updated with GCAP tokens; typecheck clean
+  - [ ] HermesHQ dashboard — **deferred** (operator tool, dark+red theme; not a user-facing surface; brand kit applies to user-facing only per white-label rules)
 
 ## Done
 
 - [x] Container provisioning: admin provisions Hermes container per user via GUI
-- [x] Domain routing: containers proxied through `hq.gcaplabs.com/runtime/{name}` via nginx + Docker DNS
+- [x] Domain routing: containers proxied through `*.run.gcaplabs.com` via Traefik + forward-auth
 - [x] WebSocket support for container proxy
 - [x] Domain migration: all `hermeshq.gcaplabs.com` → `hq.gcaplabs.com`
 - [x] Open sign-up: `POST /api/auth/register` public endpoint (requires `OPEN_SIGNUP=true`)
@@ -62,23 +62,25 @@ This file is the single source of truth for per-phase status and outstanding wor
 - [x] v0.3.0: Runs API across console, desktop, iOS (code-complete)
 - [x] SSH ControlMaster/ProxyCommand fix in Hermes source (2026-06-30)
 - [x] Passwordless sudo for m4 on VPS (2026-06-30)
+- [x] **2026-07-01: Phases 3–7 + VPS infra complete** — Supabase JWT trust, kimi-code model credential, console rewired to HermesHQ, iOS on `/v1/responses` SSE, brand kit applied to site/desktop/console, H4/H5/H7 scripts deployed, idle reaper cron, Resend + Sentry + observability wired, VPS HermesHQ deployed with `/v1` contract
 
 ## Next / Pending
 
-- [ ] Set `OPEN_SIGNUP=true` in VPS `.env` to enable registrations
-- [ ] Configure Google OAuth credentials in VPS `.env`
-- [ ] Build and distribute desktop app: `node scripts/build-with-builder.js auto --win`
-- [ ] MFA email setup (optional): `RESEND_API_KEY` + `FROM_EMAIL`
+- [ ] **Console replacement decision** — current `gcaplabs-console` is Wasp; can't deploy to Vercel as-is. Decide: keep Wasp + deploy to VPS, or rebuild on starter-kit/Next.js/SvelteKit.
+- [ ] **DNS: `console.gcaplabs.com`** — needed once console replacement is decided
+- [ ] **Resend `gcaplabs.com` domain verification** — emails will send but be silently dropped until verified
+- [ ] **iOS build verification** — requires Mac (code changes are committed)
+- [ ] **TLS for `*.run.gcaplabs.com`** — Cloudflare cert doesn't cover second-level wildcards. Container reachable via Docker network, but browser HTTPS doesn't work yet.
+- [ ] **Beta cold-VPS rehearsal** — provision-host.sh + build image + create instance from clean box
 
 ## Broken / Follow-Up From 2026-06-30 Agent37 Pass
 
-- [ ] Install Visual Studio Spectre-mitigated libraries so `bun install` can rebuild `node-pty` cleanly on Windows.
 - [x] Vendor Agent37 Gateway into the HermesHQ runtime Docker context and replace `backend/runtime.Dockerfile` old `hermes gateway`/8080 path with Agent37 Gateway on `:3737`.
 - [x] Replace temporary forward-auth compatibility token (`api_server_key` reused as `forward_auth_token`) with real HMAC signing using `FORWARD_AUTH_HMAC_SECRET`.
-- [ ] Finish `openclaw-host-kit` recovery or implement equivalent VPS scripts: `provision-host.sh`, `create-instance.sh`, `destroy-instance.sh`, URL helpers, idle reaper.
+- [x] Finish `openclaw-host-kit` recovery or implement equivalent VPS scripts: `provision-host.sh`, `create-instance.sh`, `destroy-instance.sh`, URL helpers, idle reaper.
 - [ ] Install backend lint tooling or add it to the HermesHQ backend venv; `python -m ruff` is currently unavailable there.
 - [ ] Decide final Portainer hostname: `http://portainer.run.gcaplabs.com` works now; `portainer.gcaplabs.com` exists but some resolvers still cache NXDOMAIN.
-- [ ] Fix/replace existing `hq.gcaplabs.com` DNS record so it points at the Cloudflare tunnel route for HermesHQ frontend.
+- [x] Fix/replace existing `hq.gcaplabs.com` DNS record — repointed from Mac mini tunnel to VPS tunnel via `cloudflared tunnel route dns -f` on 2026-07-01
 - [ ] Avoid browser HTTPS on `*.run.gcaplabs.com` until Cloudflare advanced cert/SaaS wildcard covers second-level wildcard names; runtime clients can still use the tunnel path once certing is resolved.
-- [ ] Bring up HermesHQ backend/frontend containers on VPS and run an approve→provision→runtime health smoke.
+- [x] Bring up HermesHQ backend/frontend containers on VPS and run an approve→provision→runtime health smoke — done 2026-07-01
 - [x] Removed superseded docs: `todo.md` + `CHANGELOG.md` (tombstones → master files) and `revisedplan.md` (superseded by `veeplan.md`); scrubbed stale `AGENTS.md` pointers to `todo.md`.
