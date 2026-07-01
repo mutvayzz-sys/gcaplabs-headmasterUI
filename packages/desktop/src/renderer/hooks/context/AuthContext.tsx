@@ -174,7 +174,10 @@ async function fetchCurrentUser(signal?: AbortSignal): Promise<AuthUser | null> 
 }
 
 function resolveDesktopServerUrl(configUrl?: string): string {
-  return (configUrl || HERMESHQ_URL).trim().replace(/\/$/, '');
+  const url = (configUrl || HERMESHQ_URL).trim().replace(/\/$/, '');
+  // Migrate the pre-rename control-plane domain so clients with a stale stored
+  // URL still reach it (hermeshq.gcaplabs.com → hq.gcaplabs.com).
+  return url.replace('://hermeshq.gcaplabs.com', '://hq.gcaplabs.com');
 }
 
 async function extractRemoteSessionToken(endpointUrl: string): Promise<string | null> {
