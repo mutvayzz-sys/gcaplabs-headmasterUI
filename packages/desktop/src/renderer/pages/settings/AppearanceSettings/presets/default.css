@@ -1,51 +1,50 @@
-/* Default Theme - AOU Purple Theme / 默认主题 */
-/* 此主题展示了系统默认的颜色变量，您可以基于此进行自定义 */
-/* This theme shows the system default color variables, you can customize based on this */
+/* Default Theme - GCAP Headmaster (parchment + Slytherin green) */
+/* Rebranded from AOU Purple to Headmaster brand tokens. See docs/theming/gcap-brand-tokens.ts */
 
 :root {
-  /* Primary Colors - 主色调 */
-  --color-primary: #165dff;
-  --primary: #165dff;
-  --color-primary-light-1: #4080ff;
-  --color-primary-light-2: #6aa1ff;
-  --color-primary-light-3: #94bfff;
-  --color-primary-dark-1: #0e42d2;
-  --primary-rgb: 22, 93, 255;
+  /* Primary Colors - Headmaster green (from gcap-brand-tokens.ts color.primary) */
+  --color-primary: #1a4d2e;
+  --primary: #1a4d2e;
+  --color-primary-light-1: #2d6a4f;
+  --color-primary-light-2: #4a7d5e;
+  --color-primary-light-3: #74a981;
+  --color-primary-dark-1: #143d25;
+  --primary-rgb: 26, 77, 46;
 
-  /* Brand Colors - 品牌色 */
-  --brand: #7583b2;
-  --brand-light: #eff0f6;
-  --brand-hover: #b5bcd6;
-  --color-brand-fill: #7583b2;
-  --color-brand-bg: #eff0f6;
+  /* Brand Colors - GCAP brand (green primary + gold accent) */
+  --brand: #1a4d2e;
+  --brand-light: #faf7f2;
+  --brand-hover: #143d25;
+  --color-brand-fill: #1a4d2e;
+  --color-brand-bg: #faf7f2;
 
-  /* AOU Brand Colors - AOU 品牌色板 */
-  --aou-1: #eff0f6;
-  --aou-2: #e5e7f0;
-  --aou-3: #d1d5e5;
-  --aou-4: #b5bcd6;
-  --aou-5: #97a0c5;
-  --aou-6: #7583b2;
-  --aou-7: #596590;
-  --aou-8: #3f4868;
-  --aou-9: #262c41;
-  --aou-10: #0d101c;
+  /* AOU Brand Colors - kept as a complementary slate palette */
+  --aou-1: #f5f2ec;
+  --aou-2: #e8e4dc;
+  --aou-3: #d4cfc4;
+  --aou-4: #b5b0a5;
+  --aou-5: #8a857a;
+  --aou-6: #5e564a;
+  --aou-7: #3f3a32;
+  --aou-8: #2a2520;
+  --aou-9: #1a1814;
+  --aou-10: #0d0c0a;
 
-  /* Background Colors - 背景色 */
-  --color-bg-1: #f9fafb;
-  --bg-1: #f9fafb;
-  --color-bg-2: #f2f3f5;
-  --bg-2: #f2f3f5;
-  --color-bg-3: #e5e6eb;
-  --bg-3: #e5e6eb;
-  --color-bg-4: #c9cdd4;
-  --bg-4: #c9cdd4;
-  --bg-base: #ffffff;
-  --bg-5: #adb4c1;
-  --bg-6: #86909c;
-  --bg-8: #4e5969;
-  --bg-9: #1d2129;
-  --bg-10: #0c0e12;
+  /* Background Colors - parchment cream (from gcap-brand-tokens.ts color.surface/surfaceRaised) */
+  --color-bg-1: #faf7f2;
+  --bg-1: #faf7f2;
+  --color-bg-2: #f5f2ec;
+  --bg-2: #f5f2ec;
+  --color-bg-3: #e8e4dc;
+  --bg-3: #e8e4dc;
+  --color-bg-4: #d4cfc4;
+  --bg-4: #d4cfc4;
+  --bg-base: #f4f1ea;
+  --bg-5: #b5b0a5;
+  --bg-6: #5e564a;
+  --bg-8: #2a2520;
+  --bg-9: #1a1814;
+  --bg-10: #0d0c0a;
 
   /* Interactive State Colors - 交互状态色 */
   --bg-hover: #f3f4f6;
