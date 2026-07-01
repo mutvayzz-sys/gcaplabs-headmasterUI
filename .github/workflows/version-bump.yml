@@ -1,0 +1,55 @@
+name: Version Bump
+
+# Auto-increments the patch version in package.json on every push to main.
+# The paths-ignore guard prevents the bot's own bump commit from re-triggering.
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - 'package.json'
+      - '.github/workflows/version-bump.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: version-bump-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Compute new version (patch bump)
+        id: version
+        run: |
+          CURRENT=$(node -p "require('./package.json').version")
+          if [[ ! "$CURRENT" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
+            echo "Version '$CURRENT' is not plain semver (x.y.z); skipping auto-bump."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          NEW="${BASH_REMATCH[1]}.${BASH_REMATCH[2]}.$((BASH_REMATCH[3] + 1))"
+          echo "current=$CURRENT" >> "$GITHUB_OUTPUT"
+          echo "new=$NEW" >> "$GITHUB_OUTPUT"
+          echo "Bumping version: $CURRENT → $NEW"
+
+      - name: Update package.json
+        if: steps.version.outputs.skip != 'true'
+        run: |
+          node -e "const fs=require('fs');const p=require('./package.json');p.version='${{ steps.version.outputs.new }}';fs.writeFileSync('./package.json', JSON.stringify(p, null, 2) + '\n');"
+
+      - name: Commit and push
+        if: steps.version.outputs.skip != 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add package.json
+          git commit -m "chore: bump version to ${{ steps.version.outputs.new }}"
+          git push
