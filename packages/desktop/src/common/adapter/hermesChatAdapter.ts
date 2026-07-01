@@ -20,6 +20,7 @@ import {
   onGatewayEvent,
   probeCapabilities,
   stopRun,
+  submitRemoteInteractive,
   submitResponseAndStream,
   submitRunAndStream,
   submitRunApproval,
@@ -409,6 +410,16 @@ const buildMaskedRequest = (
 };
 
 async function respondToPendingRequest(request: PendingInteractiveRequest, responseValue: string): Promise<void> {
+  // Remote container mode: use the /v1/responses/{id}/interactive endpoint.
+  if (supportsResponsesApi()) {
+    const turn = turnsByLive.get(request.liveSessionId);
+    if (!turn?.responseId) {
+      throw new Error('No active response to respond to');
+    }
+    await submitRemoteInteractive(turn.responseId, request.requestId, responseValue);
+    return;
+  }
+  // Local dashboard mode: use legacy WS-RPC.
   switch (request.kind) {
     case 'approval':
       await gatewayRpcRequest('approval.respond', {
@@ -828,6 +839,25 @@ export async function sendHermesMessage(params: {
       },
       onReasoning(text: string) {
         if (text) emitResponse(turn, 'thought', { subject: 'reasoning', description: text });
+      },
+      onInteractiveRequest(data) {
+        // Surface the interactive prompt to the existing confirmation UI.
+        // The PendingInteractiveRequest system handles rendering and user input.
+        registerPendingRequest({
+          kind: data.kind,
+          conversationId: turn.conversationId,
+          liveSessionId: turn.liveSessionId,
+          requestId: data.request_id,
+          confirmation: {
+            action: data.kind,
+            id: data.request_id,
+            call_id: data.request_id,
+            description: data.description ?? data.prompt ?? data.question ?? data.command ?? '',
+            title: data.description ?? data.prompt ?? data.question ?? 'Interactive request',
+            options: (data.choices ?? []).map((c) => ({ label: c, value: c })),
+            ...(data.env_var ? { command_type: data.env_var } : {}),
+          },
+        });
       },
       onDone(usage, outputText) {
         if (turn.flushHandle) {

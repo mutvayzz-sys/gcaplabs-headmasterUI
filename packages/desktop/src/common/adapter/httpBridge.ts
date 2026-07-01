@@ -398,6 +398,16 @@ type ResponseStreamCallbacks = {
   onReasoning: (text: string) => void;
   onDone: (usage?: ResponseUsage | null, outputText?: string) => void;
   onError: (message: string) => void;
+  onInteractiveRequest?: (data: {
+    kind: 'approval' | 'clarify' | 'sudo' | 'secret';
+    request_id: string;
+    description?: string;
+    question?: string;
+    choices?: string[];
+    command?: string;
+    env_var?: string;
+    prompt?: string;
+  }) => void;
 };
 
 async function* parseSse(response: Response): AsyncGenerator<{ event: string; data: Record<string, unknown> }> {
@@ -462,6 +472,20 @@ async function consumeResponseStream(
         break;
       case 'response.tool_call.failed':
         callbacks.onToolEvent(String(data.tool ?? 'tool'), 'failed', String(data.error ?? ''));
+        break;
+      case 'response.interactive.requested':
+        if (data.kind && data.request_id && typeof data.kind === 'string' && typeof data.request_id === 'string') {
+          callbacks.onInteractiveRequest?.({
+            kind: data.kind as 'approval' | 'clarify' | 'sudo' | 'secret',
+            request_id: String(data.request_id),
+            description: typeof data.description === 'string' ? data.description : undefined,
+            question: typeof data.question === 'string' ? data.question : undefined,
+            choices: Array.isArray(data.choices) ? data.choices.map(String) : undefined,
+            command: typeof data.command === 'string' ? data.command : undefined,
+            env_var: typeof data.env_var === 'string' ? data.env_var : undefined,
+            prompt: typeof data.prompt === 'string' ? data.prompt : undefined,
+          });
+        }
         break;
       case 'response.completed':
         sawTerminal = true;
@@ -534,6 +558,25 @@ export async function cancelResponse(responseId: string): Promise<void> {
   await fetch(`${getRuntimeV1BaseUrl()}/responses/${encodeURIComponent(responseId)}/cancel`, {
     method: 'POST',
     headers: runtimeHeaders(),
+  }).catch(() => {});
+}
+
+/**
+ * Submit a response to an interactive prompt (approval/clarify/sudo/secret)
+ * on a running response in remote container mode.
+ */
+export async function submitRemoteInteractive(
+  responseId: string,
+  requestId: string,
+  responseValue: string,
+): Promise<void> {
+  await fetch(`${getRuntimeV1BaseUrl()}/responses/${encodeURIComponent(responseId)}/interactive`, {
+    method: 'POST',
+    headers: runtimeHeaders(true),
+    body: JSON.stringify({
+      request_id: requestId,
+      response: responseValue,
+    }),
   }).catch(() => {});
 }
 
