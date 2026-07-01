@@ -67,8 +67,8 @@ This file is the single source of truth for per-phase status and outstanding wor
 ## Next / Pending
 
 - [x] **Console: `main` = new Next.js console** — done 2026-07-01; force-replaced old Wasp `main` with the fresh starter-kit console on `mutvayzz-sys/gcaplabs-console` (unrelated histories; old Wasp branch not kept). `main-nextjs` deleted.
-- [ ] **Console: deploy to Vercel** — deploy `gcap-console/` to Vercel at `console.gcaplabs.com` (needs DNS CNAME)
-- [ ] **DNS: `console.gcaplabs.com`** — CNAME to Vercel (owner)
+- [x] **Console: deploy to Vercel** — done 2026-07-01; prod deploy `dpl_7SGvsMiqx6…` READY, project `gcap-console`, domain attached. Live at the `*.vercel.app` URL.
+- [ ] **DNS: point `console.gcaplabs.com` at Vercel** — currently resolves to the **dead Cloudflare tunnel (530)**. In Cloudflare: delete the existing `console` tunnel/CNAME record and add **`A console.gcaplabs.com → 76.76.21.21`**. Recommend **DNS-only (grey cloud)** so Vercel manages TLS (or proxied + SSL mode Full). This is the only step left for the console to go live on its domain.
 - [x] **Resend `gcaplabs.com` domain** — already set up / verified in Resend (owner confirmed 2026-07-01); email delivery is live
 - [x] **iOS: push commit `0105789` to `origin/main`** — done 2026-07-01; SSE migration now on GitHub
 - [ ] **iOS build verification** — requires Mac (code changes are committed)
