@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { gatewayRpcRequest, httpRequest } from '@/common/adapter/httpBridge';
+import { gatewayRpcRequest, httpRequest, probeRemoteHealth } from '@/common/adapter/httpBridge';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useDashboardStatus } from './useDashboardStatus';
 
@@ -31,6 +31,25 @@ export function useRuntimeConnectionState(): RuntimeConnectionSnapshot {
   const connectedRef = useRef(false);
 
   const probe = useCallback(async () => {
+    // Remote container mode: probe /v1/health directly (no WS available).
+    // The Agent37 runtime has no /api/ws endpoint, so the WS probe below would
+    // always fail. This makes the status indicator reflect real runtime health.
+    if (typeof window !== 'undefined' && (window as any).__cloudContainerEndpoint) {
+      const healthy = await probeRemoteHealth();
+      if (healthy) {
+        connectedRef.current = true;
+        setState('connected');
+        setReason(undefined);
+      } else {
+        const wasConnected = connectedRef.current;
+        connectedRef.current = false;
+        setState(wasConnected ? 'reconnecting' : 'failed');
+        setReason('Runtime health check failed');
+      }
+      return;
+    }
+
+    // Local dashboard mode: use existing WS-RPC probe.
     const port = window.__backendPort;
     if (!port) {
       connectedRef.current = false;

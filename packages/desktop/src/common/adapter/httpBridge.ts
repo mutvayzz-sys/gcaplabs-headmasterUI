@@ -351,6 +351,24 @@ export function supportsResponsesApi(): boolean {
   return getRuntimeApiBasePath() === '/v1' || Boolean(getRuntimeBearerToken());
 }
 
+/**
+ * Probe the remote runtime's /health endpoint.
+ * Returns true if the runtime is healthy, false otherwise.
+ * Use this instead of WS-RPC session.list in remote container mode.
+ */
+export async function probeRemoteHealth(): Promise<boolean> {
+  if (!isRemoteContainerMode()) return false;
+  try {
+    const res = await fetch(`${getRuntimeV1BaseUrl()}/health`, {
+      headers: runtimeHeaders(),
+      signal: AbortSignal.timeout(5000),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
 export function getBaseUrl(): string {
   if (isRemoteContainerMode()) {
     return getCloudContainerEndpoint();
