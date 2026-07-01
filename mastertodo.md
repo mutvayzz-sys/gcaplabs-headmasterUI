@@ -73,7 +73,10 @@ This file is the single source of truth for per-phase status and outstanding wor
 - [x] **iOS: push commit `0105789` to `origin/main`** — done 2026-07-01; SSE migration now on GitHub
 - [ ] **iOS build verification** — requires Mac (code changes are committed)
 - [ ] **hermeshq: `git pull` this Windows checkout** — local is 1 behind `origin/main` (`a982fa1` version bump pushed from another machine); all local work is already on GitHub
-- [ ] **Beta cold-VPS rehearsal** — provision-host.sh + build image + create instance from clean box
+- [x] **End-to-end flow test (routing layer)** — done 2026-07-01: provision → `hm-<id>.gcaplabs.com` → **HTTP 200** over the full public path, forward-auth 401 without token, valid TLS. Fixed 2 bugs en route: multi-instance Traefik route file (`c50713b`) + backend dir-mount (`41d6478`).
+- [ ] 🔴 **BLOCKER: Hermes worker won't start in `headmaster-hermes-runtime:latest`** — gateway serves `/v1/health` 200 but no Hermes Python worker spawns ("worker did not respond within 10000ms"); `/v1/models` → 502, chat non-functional. KIMI_*/HERMES_DEFAULT_* env present, so it's a runtime-image/worker-launch issue. Investigate `backend/runtime.Dockerfile` + gateway→hermes_worker spawn.
+- [x] **Desktop app built** — `out/win-unpacked/Headmaster.exe` (v0.2.4, signed) + `C:\Users\Matve\Desktop\Headmaster.lnk` shortcut created 2026-07-01.
+- [ ] **Beta cold-VPS rehearsal** — provision-host.sh + build image + create instance from clean box (blocked on the worker fix above for a fully working instance)
 - [x] **Runtime domain LIVE: `hm-<id>.gcaplabs.com`** — single-level subdomain covered by Cloudflare's free universal `*.gcaplabs.com` cert (replaces temp `run.gcaplabs.com`). Applied & verified end-to-end on the **VPS** 2026-07-01:
   - [x] Repo: `RUN_DOMAIN=gcaplabs.com` default (hermeshq `.env.example`, commit `6d3b3c8`).
   - [x] VPS host (`/home/m4/headmaster-stack`): `.env` `RUN_DOMAIN=gcaplabs.com` (backed up `.env.bak-predomain`); backend recreated + healthy, `printenv RUN_DOMAIN` = `gcaplabs.com`.

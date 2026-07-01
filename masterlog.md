@@ -2,6 +2,41 @@
 
 ## 2026-07-01
 
+### End-to-end flow test + desktop build (2 bugs fixed, 1 blocker found)
+
+Ran a real provision→runtime flow on the VPS and built the desktop app.
+
+**Flow test — routing/provision/auth WORK end-to-end.** `POST /api/desktop/provision`
+(mode `headmaster_remote`, admin token) returns `hm-<id>.gcaplabs.com` + forward-auth token +
+`kimi-coding` provider (`nous_api_key` null). Verified over the full public path
+(DNS → Cloudflare → tunnel → Traefik → forward-auth → gateway):
+`https://hm-a065eb11-fdb.gcaplabs.com/v1/health` → **HTTP 200**, no-auth → **401**, valid TLS.
+
+**Two real bugs found & fixed in hermeshq (committed + deployed to VPS):**
+1. **Multi-instance Traefik routing** (`container_supervisor.py`, commit `c50713b`): the
+   supervisor appended a full `http:` block per instance into one dynamic file → duplicate
+   top-level `http:` keys once 2+ instances existed → Traefik rejected the whole file → 404 for
+   ALL instances. Fixed: write one `hm-<id>.yml` per instance into the watched dir (file provider
+   merges them); removal deletes the file.
+2. **Backend mounted a single FILE not the directory** (`docker-compose.yml` + `.env`, commit
+   `41d6478`): per-instance route files written by the fix above landed in the container's
+   throwaway fs. Fixed: mount the host dynamic **directory** → `/traefik`. VPS `.env`
+   `RUNTIME_TRAEFIK_DYNAMIC_CONFIG_HOST_PATH=/home/m4/traefik/dynamic`, backend recreated.
+   (Note: `ensure_user_runtime` reuses a container whose health passes, so forcing a fresh route
+   write requires deleting the DB container record via `DELETE /api/containers/{id}`.)
+
+**Remaining BLOCKER — Hermes worker doesn't start in the runtime image.** The Agent37 gateway
+runs (node PID 1, serves `/v1/health` 200) but the Hermes Python worker never spawns (no python
+process in the container; log: "Hermes backend failed to start — Hermes worker did not respond
+within 10000ms"). So `/v1/models` → 502 and chat won't work until the worker boots. KIMI_* +
+HERMES_DEFAULT_* env are all present in the container, so it's a runtime-image / worker-launch
+issue (`headmaster-hermes-runtime:latest`), NOT routing/provision. Needs investigation of
+`backend/runtime.Dockerfile` + how the gateway spawns hermes_worker.
+
+**Desktop app built.** `node scripts/build-with-builder.js auto --win --dir` →
+`out/win-unpacked/Headmaster.exe` (v0.2.4, native modules rebuilt + signed). Created
+`C:\Users\Matve\Desktop\Headmaster.lnk` shortcut.
+
 ### Runtime domain decided + applied: hm-<id>.gcaplabs.com
 
 Picked the per-instance runtime domain scheme (owner delegated the choice).
