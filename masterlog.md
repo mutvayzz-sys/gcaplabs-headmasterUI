@@ -2,6 +2,18 @@
 
 ## 2026-07-01
 
+### CI/CD: console CI + headmasterUI auto version-bump
+
+- **gcap-console** had no CI — added `.github/workflows/ci.yml` (typecheck + `next build` on
+  main push/PR, placeholder env so missing Supabase/HermesHQ env doesn't fail the build; Vercel
+  still owns deploy). Commit `a4275ad`.
+- **headmasterUI** — added `.github/workflows/version-bump.yml`: auto patch-bumps `package.json`
+  (x.y.z) on every push to main, mirroring hermeshq's auto-bump (paths-ignore on package.json
+  prevents the bot commit from looping). Commit `bc7ffe6`. Existing `build-and-release.yml`
+  (build → artifacts → version tag → release on tags/dev) is unchanged and already complete.
+- **hermeshq** already had it: `ci.yml` (pytest + frontend + docker build) + date-based
+  `version-bump.yml` on main. No change needed.
+
 ### End-to-end flow test + desktop build (2 bugs fixed, 1 blocker found)
 
 Ran a real provision→runtime flow on the VPS and built the desktop app.
