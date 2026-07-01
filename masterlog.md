@@ -8,10 +8,10 @@
   deploy `dpl_7SGvsMiqx6…`. Project `gcap-console` (`prj_d9OcX3q…`) was already linked with all
   6 env vars set (Supabase URL/anon/service-role, `HERMESHQ_URL`, `NEXT_PUBLIC_SITE_URL`, Sentry
   DSN). Live and correct on the `*.vercel.app` URL (302 → auth, as expected).
-- **`console.gcaplabs.com` DNS still points at the dead Cloudflare tunnel (HTTP 530)** — the pre-
-  existing record was a tunnel route with no live origin. Remaining step (owner, in Cloudflare):
-  replace the `console` tunnel record with `A console.gcaplabs.com → 76.76.21.21` (Vercel),
-  DNS-only recommended. Domain is already attached on the Vercel side.
+- **`console.gcaplabs.com` is LIVE on Vercel** (2026-07-01): owner replaced the dead tunnel
+  record with `A → 76.76.21.21` (DNS-only) in Cloudflare; Vercel auto-issued the TLS cert.
+  Verified: `https://console.gcaplabs.com/login` returns HTTP 200 with `Server: Vercel`
+  (was 530 against the old tunnel). The new Next.js console front door is now serving on its domain.
 
 ### Console main replaced + domain corrections
 
