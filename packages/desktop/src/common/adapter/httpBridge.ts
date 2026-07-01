@@ -539,16 +539,10 @@ export async function cancelResponse(responseId: string): Promise<void> {
 
 function getWsUrl(): string {
   if (isRemoteContainerMode()) {
-    const endpoint = getCloudContainerEndpoint();
-    // Convert http:// to ws:// for WebSocket
-    const wsEndpoint = endpoint.replace(/^http/, 'ws');
-    const token = getSessionToken();
-    const params = new URLSearchParams();
-    if (token) params.set('token', token);
-    const profile = getActiveProfile();
-    if (profile) params.set('profile', profile);
-    const qs = params.toString();
-    return `${wsEndpoint}/api/ws${qs ? `?${qs}` : ''}`;
+    // Agent37 runtime has no /api/ws endpoint — remote mode uses /v1 REST only.
+    // Calling this in remote mode is a bug; throw so it fails fast instead of
+    // silently connecting to a non-existent endpoint and hanging.
+    throw new Error('WebSocket is not available in remote container mode — use /v1 REST instead');
   }
   if (isWebUiBrowserMode()) {
     const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -944,6 +938,9 @@ function scheduleRpcReconnect(): void {
 }
 
 function connectRpcWs(): Promise<void> {
+  if (isRemoteContainerMode()) {
+    return Promise.reject(new Error('WebSocket RPC is not available in remote container mode'));
+  }
   ensureAioncoreListenersBound();
   if (rpcWs?.readyState === WebSocket.OPEN) return Promise.resolve();
   if (rpcConnectPromise) return rpcConnectPromise;
