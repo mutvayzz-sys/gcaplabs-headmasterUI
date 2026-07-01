@@ -29,7 +29,7 @@ This file is the single source of truth for per-phase status and outstanding wor
 - [x] Phase 3: Supabase JWT trust — `core/supabase_auth.py` + combined auth on provision endpoint; verified by JWT trust test (no shared secret, asymmetric JWKS)
 - [x] Phase 3: swap runtime model credential to **kimi-code** (`KIMI_API_KEY`, provider `kimi-coding`, `kimi-k2.7-code`, `api_mode anthropic_messages`) — replaces legacy `org.nous_api_key` injection
 - [x] Phase 3: full approve→provision→runtime smoke — VPS smoke test passed: container started with kimi-code env vars, `/v1/health` returns 200 via direct Docker network
-- [x] Phase 4: console rewired to HermesHQ provision API + `/v1/responses` SSE + Headmaster branding (user-facing strings). Deploy step blocked on console replacement decision (Wasp app can't deploy to Vercel as-is).
+- [x] Phase 4: **NEW console built fresh from starter-kit** — `gcap-console/` at workspace root is a Next.js 16 + Supabase + Tailwind v4 app with GCAP brand tokens (parchment + green + gold), Headmaster branding, HermesHQ provision API client (`src/lib/hermeshq.ts`), `/v1/responses` SSE chat routes, simplified one-page dashboard, Supabase profiles migration (fleet tables commented out for future use). Typecheck + build both PASS. Pushed to `main-nextjs` branch on `mutvayzz-sys/gcaplabs-console` — needs force-push or branch merge to replace old Wasp code on `main`. Deploy to Vercel pending DNS (`console.gcaplabs.com`).
 - [x] Phase 5: desktop remote runtime chat uses `/v1/responses` SSE + cancel/reconnect path
 - [x] Phase 5: iOS → `/v1/responses` SSE — `RunsAPIClient.swift`, `CloudContainerConfig`/`CloudContainerTransport.swift` updated; build verification requires Mac
 - [x] Phase 6: beta hardening
@@ -41,7 +41,7 @@ This file is the single source of truth for per-phase status and outstanding wor
 - [x] Phase 7: canonical GCAP brand token files created in `docs/theming/`
 - [x] Phase 7: apply brand tokens to all four consumers:
   - [x] site — already aligned (Headmaster green + parchment in `gcaplabs-site/tailwind.config.js` + `app/globals.css`)
-  - [x] console (Wasp) — user-facing strings rebranded to Headmaster; deploy blocked
+  - [x] console (Next.js) — fresh build from starter-kit with GCAP brand tokens + Headmaster branding; pushed to `main-nextjs` branch
   - [x] desktop — `packages/desktop/src/renderer/pages/settings/AppearanceSettings/presets/default.css` updated with GCAP tokens; typecheck clean
   - [ ] HermesHQ dashboard — **deferred** (operator tool, dark+red theme; not a user-facing surface; brand kit applies to user-facing only per white-label rules)
 
@@ -66,8 +66,9 @@ This file is the single source of truth for per-phase status and outstanding wor
 
 ## Next / Pending
 
-- [ ] **Console replacement decision** — current `gcaplabs-console` is Wasp; can't deploy to Vercel as-is. Decide: keep Wasp + deploy to VPS, or rebuild on starter-kit/Next.js/SvelteKit.
-- [ ] **DNS: `console.gcaplabs.com`** — needed once console replacement is decided
+- [ ] **Console: merge `main-nextjs` → `main`** — force-push or GitHub PR merge to replace old Wasp code with the new Next.js console on `mutvayzz-sys/gcaplabs-console`
+- [ ] **Console: deploy to Vercel** — after merge, deploy `gcap-console/` to Vercel at `console.gcaplabs.com` (needs DNS CNAME)
+- [ ] **DNS: `console.gcaplabs.com`** — CNAME to Vercel (owner needs to add in Cloudflare)
 - [ ] **Resend `gcaplabs.com` domain verification** — emails will send but be silently dropped until verified
 - [ ] **iOS build verification** — requires Mac (code changes are committed)
 - [ ] **TLS for `*.run.gcaplabs.com`** — Cloudflare cert doesn't cover second-level wildcards. Container reachable via Docker network, but browser HTTPS doesn't work yet.
