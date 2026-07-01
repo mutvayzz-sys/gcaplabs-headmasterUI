@@ -1,6 +1,6 @@
 {
   "name": "headmaster",
-  "version": "0.2.6",
+  "version": "0.2.7",
   "description": "Headmaster — a Work Along AI agent desktop app by GCAP Labs. White-label of AionUi (Apache-2.0) with the Hermes Python runtime.",
   "keywords": [],
   "homepage": "https://gcaplabs.com/headmaster",
