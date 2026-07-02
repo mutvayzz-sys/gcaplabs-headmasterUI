@@ -26,11 +26,11 @@ import { ProcessConfig } from './process/utils/initStorage';
 import { registerWindowMaximizeListeners } from '@process/bridge';
 import { HermesBootstrap, type HermesRuntimeSnapshot } from '@process/backend/hermesBootstrap';
 import {
-  AioncoreBootstrap,
-  clearAioncorePort,
-  exposeAioncorePort,
-  setAioncoreBootstrap,
-} from '@process/backend/aioncoreBootstrap';
+  GcapcoreBootstrap,
+  clearGcapcorePort,
+  exposeGcapcorePort,
+  setGcapcoreBootstrap,
+} from '@process/backend/gcapcoreBootstrap';
 import { setHermesBootstrap } from '@process/utils/hermesBootstrapSingleton';
 import { initBridges } from '@process/utils/initBridge';
 import './process/bridge/feedbackBridge';
@@ -205,14 +205,14 @@ const hermesBootstrap = new HermesBootstrap({
   resourcesPath: process.resourcesPath,
   userDataPath: app.getPath('userData'),
 });
-const aioncoreBootstrap = new AioncoreBootstrap({
+const gcapcoreBootstrap = new GcapcoreBootstrap({
   version: app.getVersion(),
   isPackaged: app.isPackaged,
   resourcesPath: process.resourcesPath,
   userDataPath: app.getPath('userData'),
 });
 setHermesBootstrap(hermesBootstrap);
-setAioncoreBootstrap(aioncoreBootstrap);
+setGcapcoreBootstrap(gcapcoreBootstrap);
 initBridges({ hermesBootstrap });
 
 // When provision writes new env vars (e.g. KIMI_API_KEY) to .env, the running
@@ -272,7 +272,10 @@ let rendererInitialLanguage: string | null = null;
 
 ipcMain.on('get-aioncore-port', (event) => {
   event.returnValue =
-    (globalThis as typeof globalThis & { __aioncorePort?: number }).__aioncorePort ?? aioncoreBootstrap.port ?? 0;
+    (globalThis as typeof globalThis & { __gcapcorePort?: number; __aioncorePort?: number }).__gcapcorePort ??
+    (globalThis as typeof globalThis & { __aioncorePort?: number }).__aioncorePort ??
+    gcapcoreBootstrap.port ??
+    0;
 });
 
 ipcMain.on('get-backend-port', (event) => {
@@ -402,29 +405,29 @@ ipcMain.handle('runtime:get-status', async () => {
   return { generatedAt: Date.now(), porting: probeResults };
 });
 
-async function startAioncoreSidecar(): Promise<void> {
+async function startGcapcoreSidecar(): Promise<void> {
   if (getConnectionMode() === 'remote' || getHermeshqProvision()?.mode === 'headmaster_remote') {
-    clearAioncorePort();
+    clearGcapcorePort();
     return;
   }
   try {
     const { getDataPath } = await import('./process/utils/utils');
     const { getSystemDir } = await import('./process/utils/initStorage');
     const sysDir = getSystemDir();
-    const result = await aioncoreBootstrap.start(getDataPath(), sysDir.logDir, {
+    const result = await gcapcoreBootstrap.start(getDataPath(), sysDir.logDir, {
       cacheDir: sysDir.cacheDir,
       workDir: sysDir.workDir,
       logDir: sysDir.logDir,
     });
     if (result.ok && result.port > 0) {
-      exposeAioncorePort(result.port);
-      console.log(`[Headmaster] AionCore sidecar ready (port=${result.port})`);
+      exposeGcapcorePort(result.port);
+      console.log(`[Headmaster] GCAPCore sidecar ready (port=${result.port})`);
     } else {
-      clearAioncorePort();
+      clearGcapcorePort();
     }
   } catch (error) {
-    clearAioncorePort();
-    console.warn('[Headmaster] AionCore sidecar startup skipped:', error);
+    clearGcapcorePort();
+    console.warn('[Headmaster] GCAPCore sidecar startup skipped:', error);
   }
 }
 
@@ -460,8 +463,8 @@ ipcMain.handle('runtime:restart', async () => {
     }
 
     hermesBootstrap.stop();
-    await aioncoreBootstrap.stop();
-    clearAioncorePort();
+    await gcapcoreBootstrap.stop();
+    clearGcapcorePort();
     await new Promise<void>((resolve) => setTimeout(resolve, 1500));
     const result = await hermesBootstrap.start({ installIfMissing: false });
     if (result.ok && result.port) {
@@ -472,13 +475,13 @@ ipcMain.handle('runtime:restart', async () => {
       });
     }
     if (getConnectionMode() !== 'remote') {
-      await startAioncoreSidecar();
+      await startGcapcoreSidecar();
     }
     const wins = BrowserWindow.getAllWindows();
     for (const win of wins) {
       if (!win.isDestroyed()) win.webContents.reload();
     }
-    return { ok: result.ok, port: result.port, aioncorePort: aioncoreBootstrap.port };
+    return { ok: result.ok, port: result.port, gcapcorePort: gcapcoreBootstrap.port };
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error('[Headmaster] runtime:restart failed:', msg);
@@ -968,7 +971,7 @@ const handleAppReady = async (): Promise<void> => {
           });
           markBackendReady(hermesStartup.port, 'hermes.dashboard');
           mark('hermesBootstrap.start');
-          await startAioncoreSidecar();
+          await startGcapcoreSidecar();
         } else {
           const error = new Error(hermesStartup.error || 'Hermes dashboard failed to start');
           console.error('[Headmaster] Hermes dashboard bootstrap failed:', error.message);
@@ -1100,8 +1103,8 @@ installQuitCleanup({
   },
   destroyTray,
   stopBackend: async () => {
-    await aioncoreBootstrap.stop();
-    clearAioncorePort();
+    await gcapcoreBootstrap.stop();
+    clearGcapcorePort();
     await hermesBootstrap.stop();
   },
   logInfo: console.log,

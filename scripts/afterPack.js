@@ -8,6 +8,7 @@ const {
   verifyModuleBinary,
   getModulesToRebuild,
 } = require('./rebuildNativeModules');
+const { assertGcapcoreResources } = require('../packages/shared-scripts/src/gcapcore-resources.js');
 
 /**
  * afterPack hook for electron-builder
@@ -57,6 +58,16 @@ module.exports = async function afterPack(context) {
     }
   } else {
     throw new Error(`resources directory not found: ${resourcesDir}`);
+  }
+
+  const gcapcoreDir = path.join(resourcesDir, 'bundled-gcapcore');
+  if (fs.existsSync(gcapcoreDir)) {
+    const verification = assertGcapcoreResources({
+      resourcesDir,
+      electronPlatformName,
+      targetArch,
+    });
+    console.log(`   GCAPCore managed resources verified (${verification.checked.length} checks)`);
   }
 
   if (!isCrossCompile && !needsSameArchRebuild && !forceRebuild) {

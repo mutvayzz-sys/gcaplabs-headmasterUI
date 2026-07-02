@@ -81,6 +81,7 @@ gha-creds-*.json
 # Bundled runtime resources (downloaded at build time)
 resources/bundled-bun
 resources/bundled-aioncore
+resources/bundled-gcapcore
 resources/hub
 
 # App build artifacts

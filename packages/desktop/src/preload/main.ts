@@ -87,7 +87,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
 // Synchronously fetch the backend port/session token and expose it to the renderer
 // via contextBridge (direct window assignment is invisible under contextIsolation).
 const backendPort = ipcRenderer.sendSync('get-backend-port') as number;
-const aioncorePort = ipcRenderer.sendSync('get-aioncore-port') as number;
+const gcapcorePort = ipcRenderer.sendSync('get-aioncore-port') as number;
 const backendHost = ipcRenderer.sendSync('get-backend-host') as string;
 const hermesSessionToken = ipcRenderer.sendSync('get-hermes-session-token') as string;
 const initialLanguage = ipcRenderer.sendSync('get-initial-language') as string | null;
@@ -99,7 +99,8 @@ const backendStartupFailure = ipcRenderer.sendSync('get-backend-startup-failure'
 // as the dashboard lifecycle changes, so exposing them here would throw
 // "Cannot assign to read only property" on every status update.
 // The renderer creates these as writable properties on first poll.
-contextBridge.exposeInMainWorld('__aioncorePort', aioncorePort > 0 ? aioncorePort : 0);
+contextBridge.exposeInMainWorld('__gcapcorePort', gcapcorePort > 0 ? gcapcorePort : 0);
+contextBridge.exposeInMainWorld('__aioncorePort', gcapcorePort > 0 ? gcapcorePort : 0);
 contextBridge.exposeInMainWorld('__backendHost', backendHost || '127.0.0.1');
 contextBridge.exposeInMainWorld('__initialLanguage', initialLanguage ?? null);
 contextBridge.exposeInMainWorld('__backendStartupFailed', backendStartupFailed === true);

@@ -69,8 +69,8 @@
     "test:e2e:team:comm": "playwright test --config playwright.config.ts tests/e2e/cases/teams/team-communication.e2e.ts --reporter=list",
     "prepare": "husky",
     "postinstall": "node scripts/postinstall.js",
-    "prepare:aioncore": "node scripts/prepareAioncore.js",
-    "install:aioncore-path": "powershell -ExecutionPolicy Bypass -File scripts/install-aioncore-path.ps1",
+    "prepare:gcapcore": "node scripts/prepareGcapcore.js",
+    "install:gcapcore-path": "powershell -ExecutionPolicy Bypass -File scripts/install-gcapcore-path.ps1",
     "test:bun": "bun test packages/desktop/src/process/services/database/drivers/*.bun.test.ts"
   },
   "dependencies": {
@@ -264,7 +264,7 @@
   "engines": {
     "node": ">=22 <25"
   },
-  "aioncoreVersion": "v0.1.33",
+  "gcapcoreVersion": "v0.1.40",
   "electronRebuild": {
     "electronVersion": "^37.10.3"
   },

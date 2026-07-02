@@ -13,6 +13,7 @@ declare global {
     __hermesPort?: number;
     __hermesSessionToken?: string;
     __hermesHome?: string;
+    __gcapcorePort?: number;
     __aioncorePort?: number;
     __initialLanguage?: string;
     __backendStartupFailed?: boolean;

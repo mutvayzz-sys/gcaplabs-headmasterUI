@@ -9,7 +9,9 @@
  */
 
 import { type ChildProcess, spawn } from 'node:child_process';
+import { existsSync } from 'node:fs';
 import { connect, createServer, type Socket } from 'node:net';
+import { delimiter, join } from 'node:path';
 import { cleanupRegisteredAgentProcesses } from './agent-process-registry.js';
 import type { AppMetadata, BackendBinaryResolver } from './types.js';
 
@@ -205,12 +207,26 @@ export function buildSpawnArgs(config: SpawnConfig): string[] {
  * backend's `/api/system/info` matches what Electron main persists in
  * ProcessEnv('headmaster.dir').
  */
-export function buildSpawnEnv(dirs: BackendDirConfig): NodeJS.ProcessEnv {
+function buildBundledOfficecliPath(resourcesPath: string): string | null {
+  const runtimeKey = `${process.platform}-${process.arch}`;
+  const binDir = join(resourcesPath, 'bundled-gcapcore', runtimeKey, 'managed-resources', 'officecli', 'bin');
+  if (!existsSync(binDir)) return null;
+  return binDir;
+}
+
+export function buildSpawnEnv(dirs: BackendDirConfig, resourcesPath?: string): NodeJS.ProcessEnv {
+  const officecliBinDir = resourcesPath ? buildBundledOfficecliPath(resourcesPath) : null;
+  const pathValue = officecliBinDir
+    ? `${officecliBinDir}${delimiter}${process.env.PATH ?? process.env.Path ?? ''}`
+    : (process.env.PATH ?? process.env.Path);
+
   return {
     ...process.env,
     HEADMASTER_CACHE_DIR: dirs.cacheDir,
     HEADMASTER_WORK_DIR: dirs.workDir,
     HEADMASTER_LOG_DIR: dirs.logDir,
+    PATH: pathValue,
+    Path: process.platform === 'win32' ? pathValue : process.env.Path,
   };
 }
 
@@ -549,7 +565,7 @@ export class BackendLifecycleManager {
     try {
       this.childProcess = spawn(binaryPath, args, {
         stdio: ['pipe', 'pipe', 'pipe'],
-        env: dirs ? buildSpawnEnv(dirs) : process.env,
+        env: dirs ? buildSpawnEnv(dirs, this.appMeta.resourcesPath) : process.env,
         cwd: dirs?.workDir ?? undefined,
         detached: process.platform !== 'win32',
       });

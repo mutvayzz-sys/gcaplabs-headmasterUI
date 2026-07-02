@@ -285,10 +285,26 @@ jobs:
           restore-keys: |
             electron-cache-windows-x64-
 
+      - name: Cache GCAPCore resources
+        uses: actions/cache@v4
+        with:
+          path: |
+            resources/bundled-aioncore
+            resources/bundled-gcapcore
+          key: gcapcore-windows-x64-${{ hashFiles('package.json', 'scripts/prepareGcapcore.js', 'scripts/resolveGcapcoreVersion.js', 'packages/shared-scripts/src/gcapcore-resources.js') }}
+          restore-keys: |
+            gcapcore-windows-x64-
+
       - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v2
         with:
           vs-version: '17.0'
+
+      - name: Prepare GCAPCore resources
+        shell: pwsh
+        run: node scripts/prepareGcapcore.js --platform win32 --arch x64
+        env:
+          GH_TOKEN: ${{ github.token }}
 
       - name: Build (Windows x64)
         shell: pwsh

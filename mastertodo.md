@@ -192,6 +192,9 @@ end-to-end instead, repeatedly, with no data impact.
 surfaced. Target names: **HeadmasterCore** (the binary/daemon), **HeadmasterMCP** (the MCP surface),
 Headmaster Office (OfficeCLI), Headmaster Council (Council/team). Rename crates, binaries, CLI names,
 env vars, log tags, and every user-facing string; keep `hermes`/`Nous`/`AionUi` out of the UI.
+This also applies to build/package scripts and their terminal output: scripts may keep upstream
+runtime identifiers only when they are internal compatibility plumbing, never as visible product
+branding or user-facing status text.
 
 **Roadmap (post-beta / parallel track):**
 

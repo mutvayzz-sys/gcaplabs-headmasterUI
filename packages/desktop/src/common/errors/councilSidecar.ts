@@ -6,17 +6,22 @@
 
 declare global {
   interface Window {
+    __gcapcorePort?: number;
     __aioncorePort?: number;
   }
 }
 
 function isCouncilSidecarAvailable(): boolean {
-  const globalPort = (globalThis as typeof globalThis & { __aioncorePort?: number }).__aioncorePort;
+  const globalState = globalThis as typeof globalThis & { __gcapcorePort?: number; __aioncorePort?: number };
+  const globalPort = globalState.__gcapcorePort ?? globalState.__aioncorePort;
   if (typeof globalPort === 'number' && globalPort > 0) {
     return true;
   }
-  if (typeof window !== 'undefined' && typeof window.__aioncorePort === 'number' && window.__aioncorePort > 0) {
-    return true;
+  if (typeof window !== 'undefined') {
+    const windowPort = window.__gcapcorePort ?? window.__aioncorePort;
+    if (typeof windowPort === 'number' && windowPort > 0) {
+      return true;
+    }
   }
   return false;
 }
@@ -30,7 +35,7 @@ export class CouncilSidecarUnavailableError extends Error {
   }
 }
 
-/** Council mutating operations require the AionCore sidecar — native fallback is not supported. */
+/** Council mutating operations require the GCAPCore sidecar. */
 export function requireCouncilSidecar(): void {
   if (!isCouncilSidecarAvailable()) {
     throw new CouncilSidecarUnavailableError();

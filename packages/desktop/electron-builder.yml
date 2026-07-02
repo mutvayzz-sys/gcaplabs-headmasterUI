@@ -109,9 +109,9 @@ extraResources:
     to: .
   - from: resources/app.png
     to: app.png
-  # aioncore binary (pre-compiled per platform/arch, ships its own bun runtime)
-  - from: resources/bundled-aioncore
-    to: bundled-aioncore
+  # GCAPCore sidecar (pre-compiled per platform/arch, ships its own runtime)
+  - from: resources/bundled-gcapcore
+    to: bundled-gcapcore
   - from: resources/hub
     to: hub
 win:

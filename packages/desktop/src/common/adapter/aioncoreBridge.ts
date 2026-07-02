@@ -5,8 +5,9 @@
  */
 
 /**
- * HTTP + WebSocket client for the AionCore sidecar (Council / ACP runtime).
- * Hermes remains on __backendPort; AionCore listens on __aioncorePort.
+ * HTTP + WebSocket client for the GCAPCore sidecar (Council / ACP runtime).
+ * Hermes remains on __backendPort; GCAPCore listens on __gcapcorePort.
+ * __aioncorePort remains as a compatibility alias for upstream route code.
  */
 
 import { BackendHttpError, type HttpRequestOptions } from './httpBridge';
@@ -16,6 +17,7 @@ let wsListenersRef: Map<string, Set<WsCallback>> | null = null;
 
 declare global {
   interface Window {
+    __gcapcorePort?: number;
     __aioncorePort?: number;
   }
 }
@@ -55,11 +57,13 @@ const AIONCORE_WS_EVENTS = new Set([
 
 export function getAioncorePort(): number {
   if (typeof window !== 'undefined') {
-    const w = (window as Window).__aioncorePort;
-    if (typeof w === 'number' && w > 0) return w;
+    const gcapcore = (window as Window).__gcapcorePort;
+    if (typeof gcapcore === 'number' && gcapcore > 0) return gcapcore;
+    const aioncore = (window as Window).__aioncorePort;
+    if (typeof aioncore === 'number' && aioncore > 0) return aioncore;
   }
-  const g = globalThis as typeof globalThis & { __aioncorePort?: number };
-  return g.__aioncorePort ?? 0;
+  const g = globalThis as typeof globalThis & { __gcapcorePort?: number; __aioncorePort?: number };
+  return g.__gcapcorePort ?? g.__aioncorePort ?? 0;
 }
 
 export function isAioncoreAvailable(): boolean {
@@ -86,7 +90,7 @@ export async function aioncoreHttpRequest<T>(
 ): Promise<T> {
   const port = getAioncorePort();
   if (port <= 0) {
-    throw new Error('AionCore sidecar is not running');
+    throw new Error('GCAPCore sidecar is not running');
   }
   const url = `${getAioncoreBaseUrl()}${path}`;
   const headers: Record<string, string> = {};

@@ -1,19 +1,35 @@
 #!/usr/bin/env node
 
 /**
- * Simplified build script for Headmaster
- * Coordinates electron-vite (bundling) and electron-builder (packaging)
+ * Headmaster desktop build coordinator.
+ * Runs electron-vite for app bundles, stages optional packaged resources, then
+ * hands off to electron-builder for installer/zip/dmg/deb artifacts.
+ *
+ * Current architecture:
+ * - Primary runtime is the Hermes Python dashboard, installed/started by the app.
+ * - Remote mode talks to a provisioned container gateway over /v1 and /api.
+ * - GCAPCore sidecar carries local Council, MCP, cron, Office CLI, and preview
+ *   compatibility inherited from the upstream core surface. It is bundled by
+ *   default for full desktop builds.
  *
  * Features:
- * - Incremental builds: use --skip-vite to skip Vite compilation if out/ exists
- * - Skip native rebuild: use --skip-native to skip native module rebuilding
- * - Packaging only: use --pack-only to skip electron-builder distributable creation
+ * - Incremental builds: use --skip-vite to reuse existing Vite output
+ * - Force rebuild: use --force to ignore the Vite output cache
+ * - Bundle only: use --pack-only to skip distributable creation
+ * - Thin remote/container-only build: use --skip-gcapcore
  */
 
 const { execSync, spawnSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+
+const ROOT_DIR = path.resolve(__dirname, '..');
+const ELECTRON_VITE_CONFIG = 'packages/desktop/electron.vite.config.ts';
+const ELECTRON_BUILDER_CONFIG = 'packages/desktop/electron-builder.yml';
+const ELECTRON_BUILDER_CLI = './node_modules/electron-builder/cli.js';
+const EXPECTED_PACKAGE_MAIN = './out/main/index.js';
+let activeElectronBuilderConfig = ELECTRON_BUILDER_CONFIG;
 
 // DMG retry logic for macOS: detects DMG creation failures by checking artifacts
 // (.app exists but .dmg missing) and retries only the DMG step using
@@ -26,13 +42,23 @@ const DMG_RETRY_DELAY_SEC = 30;
 
 // Incremental build: hash of source files to detect changes
 const INCREMENTAL_CACHE_FILE = 'out/.build-hash';
+const HASH_SKIP_DIRS = new Set([
+  'node_modules',
+  'out',
+  '.git',
+  '.venv',
+  'coverage',
+  'dist',
+  'bundled-aioncore',
+  'bundled-gcapcore',
+]);
 
 function walkFiles(dir, acc = []) {
   const entries = fs.readdirSync(dir, { withFileTypes: true });
   for (const entry of entries) {
     const fullPath = path.join(dir, entry.name);
     if (entry.isDirectory()) {
-      if (entry.name === 'node_modules' || entry.name === 'out' || entry.name === '.git') continue;
+      if (HASH_SKIP_DIRS.has(entry.name)) continue;
       walkFiles(fullPath, acc);
     } else if (entry.isFile()) {
       acc.push(fullPath);
@@ -43,19 +69,18 @@ function walkFiles(dir, acc = []) {
 
 function computeSourceHash() {
   const hash = crypto.createHash('md5');
-  const rootDir = path.resolve(__dirname, '..');
   const filesToHash = [
     'package.json',
     'package-lock.json',
     'bun.lock',
     'tsconfig.json',
-    'packages/desktop/electron.vite.config.ts',
-    'packages/desktop/electron-builder.yml',
+    ELECTRON_VITE_CONFIG,
+    ELECTRON_BUILDER_CONFIG,
     'justfile',
   ];
 
   for (const file of filesToHash) {
-    const filePath = path.resolve(rootDir, file);
+    const filePath = path.resolve(ROOT_DIR, file);
     if (fs.existsSync(filePath)) {
       const content = fs.readFileSync(filePath);
       hash.update(file + ':');
@@ -63,17 +88,17 @@ function computeSourceHash() {
     }
   }
 
-  const hashDirs = ['packages/desktop/src', 'packages', 'public', 'scripts'];
+  const hashDirs = ['packages', 'public', 'resources', 'scripts'];
   for (const dir of hashDirs) {
-    const dirPath = path.resolve(rootDir, dir);
+    const dirPath = path.resolve(ROOT_DIR, dir);
     if (!fs.existsSync(dirPath)) continue;
 
     const files = walkFiles(dirPath)
-      .map((file) => path.relative(rootDir, file).replace(/\\/g, '/'))
+      .map((file) => path.relative(ROOT_DIR, file).replace(/\\/g, '/'))
       .sort();
 
     for (const relPath of files) {
-      const absolutePath = path.resolve(rootDir, relPath);
+      const absolutePath = path.resolve(ROOT_DIR, relPath);
       const stat = fs.statSync(absolutePath);
       hash.update(relPath + ':');
       hash.update(String(stat.size));
@@ -86,7 +111,7 @@ function computeSourceHash() {
 
 function loadCachedHash() {
   try {
-    const cacheFile = path.resolve(__dirname, '..', INCREMENTAL_CACHE_FILE);
+    const cacheFile = path.resolve(ROOT_DIR, INCREMENTAL_CACHE_FILE);
     if (fs.existsSync(cacheFile)) {
       return fs.readFileSync(cacheFile, 'utf8').trim();
     }
@@ -96,7 +121,7 @@ function loadCachedHash() {
 
 function saveCurrentHash(hash) {
   try {
-    const cacheFile = path.resolve(__dirname, '..', INCREMENTAL_CACHE_FILE);
+    const cacheFile = path.resolve(ROOT_DIR, INCREMENTAL_CACHE_FILE);
     const viteDir = path.dirname(cacheFile);
     if (!fs.existsSync(viteDir)) {
       fs.mkdirSync(viteDir, { recursive: true });
@@ -106,7 +131,7 @@ function saveCurrentHash(hash) {
 }
 
 function viteBuildExists() {
-  const outDir = path.resolve(__dirname, '../out');
+  const outDir = path.resolve(ROOT_DIR, 'out');
   const mainDir = path.join(outDir, 'main');
   const rendererDir = path.join(outDir, 'renderer');
 
@@ -222,7 +247,7 @@ function createDmgWithPrepackaged(appDir, targetArch) {
   const appPath = path.join(appDir, appName);
 
   execSync(
-    `node ./node_modules/electron-builder/cli.js --config packages/desktop/electron-builder.yml --mac dmg --${targetArch} --prepackaged "${appPath}" --publish=never`,
+    `node ${ELECTRON_BUILDER_CLI} --config ${activeElectronBuilderConfig} --mac dmg --${targetArch} --prepackaged "${appPath}" --publish=never`,
     {
       stdio: 'inherit',
       shell: process.platform === 'win32',
@@ -232,7 +257,7 @@ function createDmgWithPrepackaged(appDir, targetArch) {
 
 function buildWithDmgRetry(cmd, targetArch) {
   const isMac = process.platform === 'darwin';
-  const outDir = path.resolve(__dirname, '../out');
+  const outDir = path.resolve(ROOT_DIR, 'out');
 
   try {
     execSync(cmd, { stdio: 'inherit', shell: process.platform === 'win32' });
@@ -269,7 +294,7 @@ function buildWithDmgRetry(cmd, targetArch) {
 
 // Clean stale Windows packaging outputs from previous runs
 function cleanupWindowsPackOutput() {
-  const outDir = path.resolve(__dirname, '../out');
+  const outDir = path.resolve(ROOT_DIR, 'out');
   if (!fs.existsSync(outDir)) return;
 
   const removed = [];
@@ -313,12 +338,25 @@ const skipVite = args.includes('--skip-vite');
 const skipNative = args.includes('--skip-native');
 const packOnly = args.includes('--pack-only');
 const forceBuild = args.includes('--force');
+const withGcapcore = args.includes('--with-gcapcore') || args.includes('--with-council-sidecar');
+const skipGcapcore = args.includes('--skip-gcapcore') || args.includes('--skip-council-sidecar');
 
 const builderArgs = args
   .filter((arg) => {
     // Filter out 'auto', architecture flags, and special flags
     if (arg === 'auto') return false;
-    if (arg === '--skip-vite' || arg === '--skip-native' || arg === '--pack-only' || arg === '--force') return false;
+    if (
+      arg === '--skip-vite' ||
+      arg === '--skip-native' ||
+      arg === '--pack-only' ||
+      arg === '--force' ||
+      arg === '--with-gcapcore' ||
+      arg === '--skip-gcapcore' ||
+      arg === '--with-council-sidecar' ||
+      arg === '--skip-council-sidecar'
+    ) {
+      return false;
+    }
     if (archList.includes(arg)) return false;
     if (arg.startsWith('--') && archList.includes(arg.slice(2))) return false;
     return true;
@@ -328,7 +366,7 @@ const builderArgs = args
 // Get target architecture from electron-builder.yml
 function getTargetArchFromConfig(platform) {
   try {
-    const configPath = path.resolve(__dirname, '../packages/desktop/electron-builder.yml');
+    const configPath = path.resolve(ROOT_DIR, ELECTRON_BUILDER_CONFIG);
     const content = fs.readFileSync(configPath, 'utf8');
 
     const platformRegex = new RegExp(`^${platform}:\\s*$`, 'm');
@@ -369,7 +407,7 @@ const archArgs = [...new Set(rawArchArgs)];
 if (archArgs.length > 1) {
   // Multiple unique architectures specified - let electron-builder handle it
   multiArch = true;
-  targetArch = archArgs[0]; // Use first arch for webpack build
+  targetArch = archArgs[0]; // Use first arch for Vite build-time env
   console.log(`🔨 Multi-architecture build detected: ${archArgs.join(', ')}`);
 } else if (args[0] === 'auto') {
   if (archArgs.length === 1) {
@@ -392,25 +430,231 @@ if (archArgs.length > 1) {
 console.log(`🔨 Building for architecture: ${targetArch}`);
 console.log(`📋 Builder arguments: ${builderArgs || '(none)'}`);
 if (skipVite) console.log('⚡ --skip-vite: Will skip Vite compilation if output exists');
-if (skipNative) console.log('⚡ --skip-native: Will skip native module rebuilding');
+if (skipNative) {
+  console.log('⚡ --skip-native accepted for compatibility; native rebuilds are already disabled in builder config');
+}
 if (packOnly) console.log('⚡ --pack-only: Will skip electron-builder distributable creation');
 if (forceBuild) console.log('⚡ --force: Force full rebuild');
+if (withGcapcore) console.log('⚡ --with-gcapcore: Will force-refresh bundled GCAPCore resources');
+if (skipGcapcore) console.log('⚡ --skip-gcapcore: Will exclude bundled GCAPCore resources');
 
-const packageJsonPath = path.resolve(__dirname, '../package.json');
+function validatePackageMain() {
+  const packageJsonPath = path.resolve(ROOT_DIR, 'package.json');
+  const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+  if (packageJson.main !== EXPECTED_PACKAGE_MAIN) {
+    throw new Error(
+      `package.json main must be ${EXPECTED_PACKAGE_MAIN} for electron-builder; found ${packageJson.main || '(missing)'}`
+    );
+  }
+}
+
+function shouldPrepareGcapcore() {
+  if (skipGcapcore) return false;
+  if (withGcapcore) return true;
+  if (process.env.HEADMASTER_REFRESH_GCAPCORE === '1') return true;
+  if (process.env.HEADMASTER_INCLUDE_COUNCIL_SIDECAR === '1') return true;
+  if (!gcapcoreVersionMatches(targetArch)) return true;
+  if (!gcapcoreResourcesComplete(targetArch)) return true;
+  return !gcapcoreExists(targetArch);
+}
+
+function shouldPackageGcapcore() {
+  return !skipGcapcore;
+}
+
+function prepareGcapcore(targetArch) {
+  const { prepareAioncore: prepareSidecarRuntime } = require('../packages/shared-scripts/src/prepare-aioncore.js');
+  const { resolveGcapcoreVersion } = require('./resolveGcapcoreVersion.js');
+  if (
+    !upstreamCoreExists(targetArch) ||
+    !upstreamCoreVersionMatches(targetArch) ||
+    withGcapcore ||
+    process.env.HEADMASTER_REFRESH_GCAPCORE === '1'
+  ) {
+    prepareSidecarRuntime({
+      projectRoot: ROOT_DIR,
+      platform: process.platform,
+      arch: targetArch,
+      version:
+        process.env.HEADMASTER_GCAPCORE_VERSION ||
+        process.env.HEADMASTER_COUNCIL_SIDECAR_VERSION ||
+        process.env.HEADMASTER_CORE_VERSION ||
+        resolveGcapcoreVersion(ROOT_DIR),
+    });
+  }
+  materializeGcapcoreFromUpstream(targetArch, { force: true });
+  const { prepareOfficecliResource } = require('../packages/shared-scripts/src/gcapcore-resources.js');
+  prepareOfficecliResource({
+    projectRoot: ROOT_DIR,
+    platform: process.platform,
+    arch: targetArch,
+    version: process.env.HEADMASTER_OFFICECLI_VERSION || 'latest',
+  });
+}
+
+function getGcapcoreRuntimeKey(targetArch) {
+  return `${process.platform}-${targetArch}`;
+}
+
+function getGcapcoreBinaryName() {
+  return process.platform === 'win32' ? 'gcapcore.exe' : 'gcapcore';
+}
+
+function getUpstreamCoreBinaryName() {
+  return process.platform === 'win32' ? 'aioncore.exe' : 'aioncore';
+}
+
+function getGcapcoreRuntimeDir(targetArch) {
+  const { getGcapcoreRuntimeDir: resolveRuntimeDir } = require('../packages/shared-scripts/src/gcapcore-resources.js');
+  return resolveRuntimeDir(ROOT_DIR, process.platform, targetArch);
+}
+
+function getUpstreamCoreRuntimeDir(targetArch) {
+  return path.join(ROOT_DIR, 'resources', 'bundled-aioncore', getGcapcoreRuntimeKey(targetArch));
+}
+
+function gcapcoreExists(targetArch) {
+  const runtimeDir = getGcapcoreRuntimeDir(targetArch);
+  return fs.existsSync(path.join(runtimeDir, getGcapcoreBinaryName()));
+}
+
+function upstreamCoreExists(targetArch) {
+  const runtimeDir = getUpstreamCoreRuntimeDir(targetArch);
+  return fs.existsSync(path.join(runtimeDir, getUpstreamCoreBinaryName()));
+}
+
+function expectedGcapcoreVersion() {
+  const { resolveGcapcoreVersion } = require('./resolveGcapcoreVersion.js');
+  return (
+    process.env.HEADMASTER_GCAPCORE_VERSION ||
+    process.env.HEADMASTER_COUNCIL_SIDECAR_VERSION ||
+    process.env.HEADMASTER_CORE_VERSION ||
+    resolveGcapcoreVersion(ROOT_DIR)
+  ).trim();
+}
+
+function versionsMatch(actual, expected) {
+  return actual === expected || actual === (expected.startsWith('v') ? expected.slice(1) : `v${expected}`);
+}
+
+function upstreamCoreVersionMatches(targetArch) {
+  if (!upstreamCoreExists(targetArch)) return false;
+  try {
+    const expected = expectedGcapcoreVersion();
+    if (!expected || expected === 'latest') return true;
+    const manifestPath = path.join(getUpstreamCoreRuntimeDir(targetArch), 'manifest.json');
+    const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+    const actual = typeof manifest.version === 'string' ? manifest.version.trim() : '';
+    return versionsMatch(actual, expected);
+  } catch {
+    return false;
+  }
+}
+
+function gcapcoreResourcesComplete(targetArch) {
+  if (!gcapcoreExists(targetArch)) return false;
+  try {
+    const { assertGcapcoreResources } = require('../packages/shared-scripts/src/gcapcore-resources.js');
+    assertGcapcoreResources({
+      resourcesDir: path.resolve(ROOT_DIR, 'resources'),
+      electronPlatformName: process.platform,
+      targetArch,
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function gcapcoreVersionMatches(targetArch) {
+  if (!gcapcoreExists(targetArch)) return false;
+  try {
+    const expected = expectedGcapcoreVersion();
+    if (!expected || expected === 'latest') return true;
+
+    const manifestPath = path.join(getGcapcoreRuntimeDir(targetArch), 'manifest.json');
+    const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+    const actual = typeof manifest.version === 'string' ? manifest.version.trim() : '';
+    return versionsMatch(actual, expected);
+  } catch {
+    return false;
+  }
+}
+
+function materializeGcapcoreFromUpstream(targetArch, options = {}) {
+  if (!options.force && gcapcoreExists(targetArch)) return;
+  const { importGcapcoreResourcesFromUpstream } = require('../packages/shared-scripts/src/gcapcore-resources.js');
+  importGcapcoreResourcesFromUpstream({
+    projectRoot: ROOT_DIR,
+    platform: process.platform,
+    arch: targetArch,
+  });
+}
+
+function validatePackagedResourceInputs(targetArch) {
+  const requiredPaths = ['public', 'resources/app.png'];
+  for (const relPath of requiredPaths) {
+    if (!fs.existsSync(path.resolve(ROOT_DIR, relPath))) {
+      throw new Error(`Missing packaged resource input: ${relPath}`);
+    }
+  }
+
+  const optionalHubDir = path.resolve(ROOT_DIR, 'resources/hub');
+  if (!fs.existsSync(optionalHubDir)) {
+    fs.mkdirSync(optionalHubDir, { recursive: true });
+  }
+
+  const sidecarRoot = path.resolve(ROOT_DIR, 'resources/bundled-gcapcore');
+  if (!fs.existsSync(sidecarRoot)) {
+    fs.mkdirSync(sidecarRoot, { recursive: true });
+  }
+
+  if (!skipGcapcore && !gcapcoreExists(targetArch)) {
+    materializeGcapcoreFromUpstream(targetArch);
+  }
+
+  if (!skipGcapcore && !gcapcoreExists(targetArch)) {
+    throw new Error(
+      `Missing GCAPCore sidecar for ${getGcapcoreRuntimeKey(targetArch)}. Run with --with-gcapcore to prepare it, or --skip-gcapcore for a thin remote-only build.`
+    );
+  }
+
+  if (!skipGcapcore) {
+    const { assertGcapcoreResources } = require('../packages/shared-scripts/src/gcapcore-resources.js');
+    assertGcapcoreResources({
+      resourcesDir: path.resolve(ROOT_DIR, 'resources'),
+      electronPlatformName: process.platform,
+      targetArch,
+    });
+  }
+}
+
+function createEffectiveBuilderConfig({ packageGcapcore }) {
+  const sourcePath = path.resolve(ROOT_DIR, ELECTRON_BUILDER_CONFIG);
+  let content = fs.readFileSync(sourcePath, 'utf8');
+
+  if (!packageGcapcore) {
+    content = content.replace(
+      /\n\s*# GCAPCore sidecar \(pre-compiled per platform\/arch, ships its own runtime\)\r?\n\s*- from: resources\/bundled-gcapcore\r?\n\s+to: bundled-gcapcore\r?\n/,
+      '\n'
+    );
+  }
+
+  const generatedPath = path.resolve(ROOT_DIR, 'out', 'electron-builder.effective.yml');
+  fs.mkdirSync(path.dirname(generatedPath), { recursive: true });
+  fs.writeFileSync(generatedPath, content);
+  return path.relative(ROOT_DIR, generatedPath).replace(/\\/g, '/');
+}
 
 try {
-  // 1. Ensure package.json main entry is correct for electron-vite
-  const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
-  if (packageJson.main !== './out/main/index.js') {
-    packageJson.main = './out/main/index.js';
-    fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2) + '\n');
-  }
+  // 1. Validate package metadata instead of rewriting tracked files during a build.
+  validatePackageMain();
 
   // 2. Check if we can skip Vite build (incremental build)
   const skipViteBuild = shouldSkipViteBuild(skipVite, forceBuild);
 
   if (!skipViteBuild) {
-    const outDir = path.resolve(__dirname, '../out');
+    const outDir = path.resolve(ROOT_DIR, 'out');
     if (!process.env.HEADMASTER_SKIP_OUT_CLEAN && fs.existsSync(outDir)) {
       console.log('🧹 Cleaning out/ before Vite build...');
       fs.rmSync(outDir, { recursive: true, force: true });
@@ -418,7 +662,7 @@ try {
 
     // Run electron-vite to build all bundles (main + preload + renderer)
     console.log(`📦 Building ${targetArch}...`);
-    execSync(`bunx electron-vite build --config packages/desktop/electron.vite.config.ts`, {
+    execSync(`bunx electron-vite build --config ${ELECTRON_VITE_CONFIG}`, {
       stdio: 'inherit',
       shell: process.platform === 'win32',
       env: {
@@ -446,7 +690,7 @@ try {
   });
 
   // 3. Verify electron-vite output
-  const outDir = path.resolve(__dirname, '../out');
+  const outDir = path.resolve(ROOT_DIR, 'out');
   if (!fs.existsSync(outDir)) {
     throw new Error('electron-vite did not generate out/ directory');
   }
@@ -469,30 +713,31 @@ try {
     return;
   }
 
-  // 5. Prepare AionCore sidecar binary (Council / ACP runtime)
-  if (process.env.HEADMASTER_SKIP_AIONCORE_PREP === '1') {
-    console.log('⏭️  Skipping AionCore sidecar prepare (HEADMASTER_SKIP_AIONCORE_PREP=1)');
+  // 5. Prepare GCAPCore sidecar resources when missing or explicitly refreshed.
+  // Council, MCP, cron, Office CLI, and preview compatibility rely on this core
+  // surface in full desktop builds.
+  const packageGcapcore = shouldPackageGcapcore();
+  if (shouldPrepareGcapcore()) {
+    console.log('📦 Preparing GCAPCore sidecar resources...');
+    prepareGcapcore(targetArch);
   } else {
-    console.log('📦 Preparing AionCore sidecar binary...');
-    const { prepareAioncore } = require('../packages/shared-scripts/src/prepare-aioncore.js');
-    const { resolveAioncoreVersion } = require('./resolveAioncoreVersion.js');
-    const projectRoot = path.resolve(__dirname, '..');
-    prepareAioncore({
-      projectRoot,
-      platform: process.platform,
-      arch: targetArch,
-      version: resolveAioncoreVersion(projectRoot),
-    });
+    console.log('📦 Using staged GCAPCore sidecar resources');
   }
 
-  // 6. Prepare optional hub resources (index.json + extension zips for offline fallback).
+  // 6. Validate packaged resources and prepare optional hub resources
+  // (index.json + extension zips for offline fallback).
+  validatePackagedResourceInputs(targetArch);
+  activeElectronBuilderConfig = createEffectiveBuilderConfig({ packageGcapcore });
+  if (!packageGcapcore) {
+    console.log('⏭️  Excluding GCAPCore sidecar from packaged resources');
+  }
+
   if (process.env.HEADMASTER_HUB_REQUIRED === '1') {
     execSync('node scripts/prepareHubResources.js', { stdio: 'inherit', env: process.env });
   } else {
     console.log('⏭️  Skipping optional hub resource prepare');
   }
 
-  // 6. 运行 electron-builder 生成分发包（DMG/ZIP/EXE等）
   // Run electron-builder to create distributables (DMG/ZIP/EXE, etc.)
   // Always disable auto-publish to avoid electron-builder's implicit tag-based publishing
   // Publishing is handled by a separate release job in CI
@@ -510,45 +755,38 @@ try {
     `📦 Compression level: ${process.env.ELECTRON_BUILDER_COMPRESSION_LEVEL} (${isCI ? 'CI build' : 'local build'})`
   );
 
-  // 根据模式添加架构标志
   // Add arch flags based on mode
   let archFlag = '';
   if (multiArch) {
-    // 多架构模式：将所有架构标志传递给 electron-builder
     // Multi-arch mode: pass all arch flags to electron-builder
     archFlag = archArgs.map((arch) => `--${arch}`).join(' ');
     console.log(`🚀 Packaging for multiple architectures: ${archArgs.join(', ')}...`);
   } else {
-    // 单架构模式：使用确定的目标架构
     // Single arch mode: use the determined target arch
     archFlag = `--${targetArch}`;
     console.log(`🚀 Creating distributables for ${targetArch}...`);
   }
 
-  // 为 Windows 构建添加架构检测脚本
   // Add architecture detection scripts for Windows builds
-  // 使用 .onVerifyInstDir 避免与 electron-builder 冲突
   // Use .onVerifyInstDir to avoid conflicts with electron-builder
   let nsisInclude = '';
   if (builderArgs.includes('--win') || builderArgs.includes('--all')) {
     if (!multiArch) {
-      // 单架构构建：添加对应架构的检测脚本
       // Single-arch build: Add architecture-specific detection script
       if (targetArch === 'arm64') {
         const arm64Script = 'resources/windows-installer-arm64.nsh';
-        if (fs.existsSync(path.resolve(__dirname, '..', arm64Script))) {
+        if (fs.existsSync(path.resolve(ROOT_DIR, arm64Script))) {
           nsisInclude += ` --config.nsis.include="${arm64Script}"`;
           console.log(`📋 Including Windows ARM64 architecture check script`);
         }
       } else if (targetArch === 'x64') {
         const x64Script = 'resources/windows-installer-x64.nsh';
-        if (fs.existsSync(path.resolve(__dirname, '..', x64Script))) {
+        if (fs.existsSync(path.resolve(ROOT_DIR, x64Script))) {
           nsisInclude += ` --config.nsis.include="${x64Script}"`;
           console.log(`📋 Including Windows x64 architecture check script`);
         }
       }
     }
-    // 多架构构建：暂不支持架构检测脚本
     // Multi-arch builds: Architecture detection not supported yet
   }
 
@@ -556,9 +794,9 @@ try {
     const winUnpackedDir = path.join(outDir, 'win-unpacked');
     let cleaned = tryRemoveDir(winUnpackedDir);
     if (!cleaned) {
-      const aionRunning = isProcessRunningWindows('Headmaster.exe');
+      const headmasterRunning = isProcessRunningWindows('Headmaster.exe');
       const electronRunning = isProcessRunningWindows('electron.exe');
-      if (aionRunning || electronRunning) {
+      if (headmasterRunning || electronRunning) {
         console.log('⚠️  Detected running Headmaster/Electron process. Attempting to close...');
         killWindowsProcesses(['Headmaster.exe', 'electron.exe']);
         cleaned = tryRemoveDir(winUnpackedDir);
@@ -581,7 +819,7 @@ try {
     ? ` --config.directories.output="${packOutputDir.replace(/\\/g, '/')}"`
     : '';
 
-  const builderCommand = `node ./node_modules/electron-builder/cli.js --config packages/desktop/electron-builder.yml ${builderArgs} ${archFlag} ${nsisInclude} ${publishArg}${packOutputOverride}`;
+  const builderCommand = `node ${ELECTRON_BUILDER_CLI} --config ${activeElectronBuilderConfig} ${builderArgs} ${archFlag} ${nsisInclude} ${publishArg}${packOutputOverride}`;
   try {
     buildWithDmgRetry(builderCommand, targetArch);
 
