@@ -1,5 +1,27 @@
 # Master To-Do
 
+## ⏭️ NEXT: deploy identity-linking fix + relink admin (2026-07-02)
+
+Console (Supabase-authenticated) and desktop (HermesHQ-native username/password) were found to
+resolve to the same `HermesHQ.users` table already via `combined_auth.get_authenticated_user` —
+but nothing linked a Supabase account to a HermesHQ user unless an admin manually gave a User row
+a matching `email`. Brand-new console signups (`gcap-console`'s Supabase `signUp()`) never touched
+HermesHQ at all, so they got a session but could never get a runtime provisioned.
+
+**Code fix pushed to `gcaplabs-hermeshq` `main` (`c2f03e2`), NOT yet deployed to the VPS:**
+
+- `verify_supabase_token` auto-provisions a `User` (role=`pending`, same queue as native
+  open-signup) when a verified Supabase JWT has no matching email, instead of returning `None`.
+- `UserUpdate`/`update_user` gained `username`/`email` fields with uniqueness checks — previously
+  there was no way to rename/relink an existing user via the API at all.
+- 12 new tests (`test_supabase_auth.py`, `test_users_update.py`); full suite still green (343
+  passed, 23 skipped, same one Windows-only `fcntl` exclusion as before).
+
+**Remaining — needs the VPS session** (deploy access this session doesn't have): pull `c2f03e2`,
+rebuild/redeploy HermesHQ, then relink the bootstrap admin to `admin@gcaplabs.com` /
+`Lana2003!!` **in this exact order** (reversing it creates a stray duplicate `pending` user
+instead of linking to admin — see the handoff prompt used for this).
+
 ## ✅ RESOLVED 2026-07-02: `gcaplabs-hermeshq` branch `wip` (60dd361) + full VPS rebuild/smoke
 
 **Update:** the VPS Claude session handled this correctly on its own — orientation caught that a
