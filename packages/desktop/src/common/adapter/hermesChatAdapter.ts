@@ -18,13 +18,8 @@ import {
   cancelResponse,
   gatewayRpcRequest,
   onGatewayEvent,
-  probeCapabilities,
-  stopRun,
   submitResponseAndStream,
-  submitRunAndStream,
-  submitRunApproval,
   supportsResponsesApi,
-  supportsRunsApi,
 } from './httpBridge';
 import { getHermesConversationProfile, rememberOpenHermesConversation } from './hermesSessionAdapter';
 
@@ -66,7 +61,6 @@ type ActiveTurn = {
   flushHandle: ReturnType<typeof setTimeout> | null;
   timeout: ReturnType<typeof setTimeout>;
   responseId?: string;
-  runId?: string;
 };
 
 const STREAM_DELTA_FLUSH_MS = 32;
@@ -531,14 +525,8 @@ async function confirmPendingRequest(params: IConfirmMessageParams): Promise<voi
 
   const responseValue = confirmationValueFromParams(params);
 
-  // If this conversation is using the Runs API, resolve via HTTP
-  const runTurn = [...turnsByLive.values()].find((t) => t.conversationId === params.conversation_id);
-  if (runTurn?.runId && request.kind === 'approval') {
-    await submitRunApproval(runTurn.runId, normalizeConfirmationChoice(responseValue));
-    removePendingRequest(params.conversation_id, request.requestId);
-    return;
-  }
-
+  // All turn types (local + remote) flow through `submitResponseAndStream`,
+  // so resume goes through the same `respondToPendingRequest` path below.
   await respondToPendingRequest(request, responseValue);
   removePendingRequest(params.conversation_id, request.requestId);
 }
@@ -954,14 +942,14 @@ export async function sendHermesMessage(params: {
     return { msg_id: userMsgId, turn_id: turnId, runtime: runningRuntime(turnId) };
   }
 
-  // Probe once (cached 5 min) whether the local runtime supports the Runs API.
-  // If yes, stream over HTTP/SSE; if no (or run creation fails), fall back to WS.
-  const caps = await probeCapabilities();
-  const useRunsApi = supportsRunsApi(caps);
-
-  if (useRunsApi) {
+  // Local-dashboard mode: also use the Agent37 `/v1/responses` transport
+  // (the Hermes Python runtime exposes the Agent37 gateway surface when up
+  // to date — see the transport note in `httpBridge.ts`). The local session
+  // may live behind the bundled Hermes dashboard's reverse proxy; the
+  // gateway-port detection in `getRuntimeV1BaseUrl` handles the routing.
+  try {
     let toolCallIndex = 0;
-    const runResult = await submitRunAndStream(text, liveSessionId, {
+    const result = await submitResponseAndStream(text, liveSessionId, {
       onChunk(chunk) {
         if (!chunk) return;
         turn.sawContent = true;
@@ -990,35 +978,60 @@ export async function sendHermesMessage(params: {
       onReasoning(text: string) {
         emitResponse(turn, 'thought', { subject: 'reasoning', description: text });
       },
-      onDone(usage) {
+      onInteractiveRequest(data) {
+        // Interactive prompts are surfaced through the same PendingInteractive
+        // pipeline as the remote path; respondToPendingRequest handles resume.
+        registerPendingRequest({
+          kind: data.kind,
+          conversationId: turn.conversationId,
+          liveSessionId: turn.liveSessionId,
+          requestId: data.request_id,
+          confirmation: {
+            action: data.kind,
+            id: data.request_id,
+            call_id: data.request_id,
+            description: data.description ?? data.prompt ?? data.question ?? data.command ?? '',
+            title: data.description ?? data.prompt ?? data.question ?? 'Interactive request',
+            options: (data.choices ?? []).map((c) => ({ label: c, value: c })),
+            ...(data.env_var ? { command_type: data.env_var } : {}),
+          },
+        });
+      },
+      onDone(usage, outputText) {
+        if (turn.flushHandle) {
+          clearTimeout(turn.flushHandle);
+          turn.flushHandle = null;
+        }
         if (turn.pendingContent) {
           emitResponse(turn, 'content', { content: turn.pendingContent });
           turn.pendingContent = '';
+        } else if (!turn.sawContent && outputText) {
+          emitResponse(turn, 'content', { content: outputText });
         }
         clearTimeout(turn.timeout);
+        emitResponse(turn, 'finish', usage ?? {});
         emitCompleted(turn, usage ? `tokens: ${usage.input_tokens}+${usage.output_tokens}` : '');
         turnsByLive.delete(liveSessionId);
       },
       onError(message) {
-        clearTimeout(turn.timeout);
-        emitResponse(turn, 'tips', { content: message, type: 'error' });
-        emitCompleted(turn, message);
-        turnsByLive.delete(liveSessionId);
-      },
-      onApprovalRequest() {
-        // Approval will be handled via the confirmation UI + submitRunApproval.
-        // The run stays paused awaiting submitRunApproval(runId, choice).
+        finishTurn(liveSessionId, message, message);
       },
     });
 
-    if (runResult) {
-      turn.runId = runResult.runId;
+    if (result) {
+      turn.responseId = result.responseId;
       emitUserCreated();
       return { msg_id: userMsgId, turn_id: turnId, runtime: runningRuntime(turnId) };
     }
-    // run creation failed — fall through to gateway WS path
+    // No response id — fall through to retry-on-missing-session path
+  } catch {
+    // Network/socket error — fall through to the legacy gatewayRpcRequest retry
   }
 
+  // Fallback: legacy WS-RPC `prompt.submit` for older Hermes dashboards that
+  // do not yet expose the Agent37 `/v1/responses` surface. The session.id
+  // lookup retries once on SessionNotFound to recover from a stale local
+  // session id.
   try {
     await gatewayRpcRequest('prompt.submit', { session_id: liveSessionId, text });
   } catch (error) {
@@ -1052,8 +1065,6 @@ export async function stopHermesConversation(
   const turn = turnsByLive.get(liveSessionId);
   if (turn?.responseId) {
     await cancelResponse(turn.responseId);
-  } else if (turn?.runId) {
-    await stopRun(turn.runId);
   } else {
     try {
       await gatewayRpcRequest('session.interrupt', { session_id: liveSessionId });
