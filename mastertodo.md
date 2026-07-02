@@ -109,26 +109,29 @@ has no such magic and needs it built explicitly.
   purely to stop the desktop client's Settings/MCP page from 404ing, not to actually register
   anything with the running agent.
 
-**Scoped plan for next session (two parts, do #1 first — it's the concrete bug the user hit):**
+**Scoped plan — DONE (2026-07-02, code committed + pushed, pending VPS deploy + E2E test):**
 
-1. **Gateway** (`gcaplabs-hermeshq/third_party/agent37/gateway/server/routes/api.ts`): rewrite the
-   `/mcp/servers` GET/POST/PUT/DELETE handlers to read/write the real
-   `$HERMES_HOME/config.yaml`'s `mcp_servers` key (via `resolveHermesHome()`, already imported in
-   this file) instead of the fake JSON store. Need a YAML lib (check `package.json` — may already
-   have one via the Hermes CLI dependency chain, or add `yaml`/`js-yaml`). Keep the HTTP response
-   shape unchanged (already fixed to match `ipcBridge.ts`'s `IMcpServer` contract this session) so
-   the desktop client doesn't need any changes. Write carefully — this is a real config file with
-   other keys (model credentials etc.) that must not get clobbered; read-modify-write, don't
-   overwrite the whole file.
-2. **Console** (`gcaplabs-console`): after a Composio connection completes (user lands back on
-   `/dashboard/agents/{id}/integrations` post-OAuth), create/update a shared Composio MCP server
-   scoped to that toolkit's `auth_config_id` (reuse `findOrCreateManagedAuthConfigId` from
-   `src/lib/composio.ts`, extend with an equivalent for the MCP server + a `PATCH` to append new
-   `auth_config_ids` to an existing shared server rather than creating one per toolkit), generate a
-   per-user instance (`user_id` = Supabase user id, same scoping already used for connections), then
-   `POST` the resulting URL to the user's own gateway's (now-real) `/api/mcp/servers`.
-3. Verify end-to-end: connect Gmail → ask the agent to list emails → it actually calls a Gmail MCP
-   tool. Don't consider this done until that specific test passes.
+1. ✅ **Gateway** (`gcaplabs-hermeshq/third_party/agent37/gateway`): rewrote the `/mcp/servers`
+   GET/POST/PUT/DELETE/toggle handlers to read/write the real `$HERMES_HOME/config.yaml`'s
+   `mcp_servers` key via a new `server/mcpConfigStore.ts` module (read-modify-write, atomic
+   rename, preserves all other config keys). Added `yaml` npm dependency. HTTP response shape
+   unchanged (IMcpServer contract preserved — desktop client needs no changes). 8 tests pass
+   (5 unit + 3 integration). Commits: `532cf8a`, `16ba9fc`, `7c8738c`. Pushed to `origin/main`.
+   **VPS deploy pending**: pull + rebuild `headmaster-hermes-runtime:latest` + recreate
+   provisioned containers (can't SSH to VPS from this machine — SSH unreachable).
+2. ✅ **Console** (`gcaplabs-console2`): after Composio OAuth redirect, the console now calls
+   `POST /api/chat/integrations/register-mcp` which creates/updates a shared Composio MCP server
+   (`headmaster-shared`), creates a per-user instance (`user_id` = Supabase user id), then POSTs
+   the MCP URL to the user's runtime gateway `/api/mcp/servers` → `config.yaml`. On disconnect,
+   removes the auth_config from the shared server and removes the MCP server from the gateway.
+   New: `src/lib/composio.ts` (MCP server/instance management), `src/lib/hermeshq.ts`
+   (registerMcpServer/removeMcpServer), `src/app/api/chat/integrations/register-mcp/route.ts`,
+   updated `ComposioApps.tsx` (calls register-mcp after OAuth redirect), updated disconnect route.
+   Typecheck + build PASS. Commits: `db91a73`, `b80f10e`, `80bbd81`. Pushed to `origin/main`.
+   Vercel auto-deploy triggered (route returns 307 = auth gate, not 404).
+3. ⏳ **Verify end-to-end**: connect Gmail → ask the agent to list emails → it actually calls a
+   Gmail MCP tool. **Blocked on VPS deploy** (Task 1 above) — the runtime image must be rebuilt
+   with the new gateway code before the `/api/mcp/servers` route writes to `config.yaml`.
 
 ### Also discussed, NOT scoped/started: admin fleet management (create/manage multiple agents)
 
