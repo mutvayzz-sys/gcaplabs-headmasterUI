@@ -1,18 +1,39 @@
 # Master To-Do
 
-## ⚠️ DO NOT MERGE AS-IS: `gcaplabs-hermeshq` branch `wip` (60dd361)
+## ✅ RESOLVED 2026-07-02: `gcaplabs-hermeshq` branch `wip` (60dd361) + full VPS rebuild/smoke
 
-Claude on the VPS found uncommitted work in the working tree during orientation and branched it
-off rather than losing it or force-merging — the right defensive move. **But it's stale, not just
-incomplete:** it's rooted at `5b9ed51` (`2026.7.1.5`), 8 commits behind `main` (`2026.7.2.3`), so
-merging it wholesale would **revert** G1 (legacy `NOUS_API_KEY` injection removal), the kimi-code
-unconditional injection, the Dockerfile perf fix (`c258d59`), and the admin default-agent bootstrap
-fix (`a0a8c0c`). The actual new content — human-in-the-loop interactive callbacks
-(approval/clarify/sudo/secret) in the `third_party/agent37/gateway` worker/routes — is real but the
-commit message itself says "Incomplete/untested," and every touched vendored file is a near-total
-rewrite (600–3300 line diffs). Before merging: rebase onto current `main` (or hand-extract just the
-interactive-callback pieces) rather than merging the branch directly. Revisit once the VPS session's
-current task wraps.
+**Update:** the VPS Claude session handled this correctly on its own — orientation caught that a
+direct `git pull` would have collided with local uncommitted changes. It split them: the part that
+was a straight revert of `d1391a5` (re-adding the legacy `NOUS_API_KEY` injection `d1391a5` removed)
+was **dropped**; the part that was real, unrelated WIP (human-in-the-loop interactive callbacks —
+approval/clarify/sudo/secret — across the `agent37` gateway's Python worker + TS adapters) was
+**preserved** on the `wip` branch (`60dd361`) rather than lost or force-merged. `wip` is still stale
+relative to `main` and should be rebased (not merged directly) before it's picked up again — that
+guidance below is unchanged, just no longer urgent since main is clean.
+
+The VPS session then completed its full assigned task:
+
+1. Pulled `main` clean to `593d5b5` (later `769393f`/`fa8974e`); confirmed the legacy NOUS key
+   injection is gone from the running container.
+2. Rebuilt `headmaster-hermes-runtime:latest` with the chown perf fix (`c258d59`) and the
+   `runtime-entrypoint.sh` `config.yaml` materialization; recreated the provisioned container onto it.
+3. **Full smoke test passed**: 401 without bearer → 200 with bearer on `/v1/health`; `/v1/models`
+   returns the kimi catalog with `kimi-k2.7-code` as default; `/v1/responses` streamed a real
+   end-to-end kimi turn (reasoning deltas → output text → "hello beta").
+4. Cold-VPS rehearsal: `provision-host.sh` referenced in the original brief doesn't exist in this
+   repo (the only file by that name on the box is a stale unrelated `openclaw-host-kit` artifact) —
+   but the actual Headmaster equivalent (compose build+up, runtime image build,
+   provision-container create, external health check) was exercised end-to-end multiple times
+   already, with no impact to existing beta data.
+5. **Found and fixed a real bug that would have silently broken every beta chat:**
+   `hermes-agent` treats the `anthropic` Python client as an optional extra, but kimi-code (the
+   beta default model) needs it for `anthropic_messages` API mode — every provisioned container was
+   failing on the first turn with an import error. Fixed via
+   `769393f fix(runtime): install hermes-agent's anthropic extra for kimi-code`, now on `main`
+   (`fa8974e`, `2026.7.2.4`).
+
+This resolves the "Live runtime smoke" and "For Hermes (VPS)" sections below — check marks added
+there; the wip-branch guidance stays in place for whenever that feature gets finished properly.
 
 ## veeplan.md (Agent37-aligned, 2026-06-30)
 
@@ -73,20 +94,23 @@ carries subdomain/forward-auth-token/`/v1` base/model catalog). The `x-headmaste
       failure, just a platform gap). Only one bad file surfaced, not three as the tracker guessed;
       update that number if a future session finds the other two.
 
-### Live runtime smoke (remote mode against `hm-<id>.gcaplabs.com/v1/*`) — after image rebuild
+### Live runtime smoke (remote mode against `hm-<id>.gcaplabs.com/v1/*`) — DONE 2026-07-02
 
-- [ ] Provision → `GET /v1/health` 200 through Traefik+forward-auth (401 w/o bearer, 200 with token).
-- [ ] `GET /v1/models` returns kimi catalog (`kimi-k2.7-code`).
+- [x] Provision → `GET /v1/health` 200 through Traefik+forward-auth (401 w/o bearer, 200 with token).
+- [x] `GET /v1/models` returns kimi catalog (`kimi-k2.7-code` as default).
+- [x] `/v1/responses` streamed a real end-to-end kimi turn (reasoning deltas → output text).
 - [ ] Desktop remote: create session → prompt → stream kimi turn → cancel → list sessions → browse
       files; approval/clarify round-trips via `POST /v1/responses/{id}/interactive`; status shows Active.
+      (Backend side is proven; still need the desktop client itself exercised against it — in
+      progress, see below.)
 - [ ] Console: signup → approve → dashboard → chat streams a kimi turn.
 
-**➡️ For Hermes (VPS — he's driving this, going well):** rebuild `headmaster-hermes-runtime:latest`
-with the entrypoint + Dockerfile perf fix (`c258d59`) and recreate provisioned containers so they
-pick up `runtime-entrypoint.sh` materializing `config.yaml` from `HERMES_DEFAULT_*`. Build via
-Portainer/Cockpit if SSH-over-tunnel is flaky under load. Then run the full chat smoke + beta
-cold-VPS rehearsal (`provision-host.sh` + compose up + build image + create instance from a clean
-box → external `hm-<id>.gcaplabs.com/v1/health` = 200).
+**Rebuild done 2026-07-02:** `headmaster-hermes-runtime:latest` rebuilt with the entrypoint +
+Dockerfile perf fix (`c258d59`) and the `anthropic`-extra fix (`769393f`); provisioned container
+recreated onto it. `provision-host.sh` doesn't exist in this repo (the file by that name on the box
+is a stale, unrelated `openclaw-host-kit` artifact) — the actual Headmaster cold-start equivalent
+(compose build+up, image build, provision-container create, external health check) was exercised
+end-to-end instead, repeatedly, with no data impact.
 
 ### Tracker updates
 
