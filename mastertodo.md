@@ -1,26 +1,52 @@
 # Master To-Do
 
-## ⏭️ NEXT: deploy identity-linking fix + relink admin (2026-07-02)
+## ✅ RESOLVED 2026-07-02: console/desktop identity linking — verified live end-to-end
 
 Console (Supabase-authenticated) and desktop (HermesHQ-native username/password) were found to
 resolve to the same `HermesHQ.users` table already via `combined_auth.get_authenticated_user` —
 but nothing linked a Supabase account to a HermesHQ user unless an admin manually gave a User row
 a matching `email`. Brand-new console signups (`gcap-console`'s Supabase `signUp()`) never touched
-HermesHQ at all, so they got a session but could never get a runtime provisioned.
+HermesHQ at all, so they got a session but could never get a runtime provisioned. This is now
+fully fixed, deployed, and confirmed working live against `console.gcaplabs.com` — a real chat
+turn streamed and rendered correctly (see "Live smoke test" below). Three separate bugs had to be
+found and fixed to get there; all are pushed and deployed.
 
-**Code fix pushed to `gcaplabs-hermeshq` `main` (`c2f03e2`), NOT yet deployed to the VPS:**
+**1. `gcaplabs-hermeshq` — identity linking (`c2f03e2`, `6212159`):**
 
 - `verify_supabase_token` auto-provisions a `User` (role=`pending`, same queue as native
   open-signup) when a verified Supabase JWT has no matching email, instead of returning `None`.
 - `UserUpdate`/`update_user` gained `username`/`email` fields with uniqueness checks — previously
   there was no way to rename/relink an existing user via the API at all.
-- 12 new tests (`test_supabase_auth.py`, `test_users_update.py`); full suite still green (343
-  passed, 23 skipped, same one Windows-only `fcntl` exclusion as before).
+- Bootstrap admin relinked live: username/email both set to `admin@gcaplabs.com`, password
+  `Lana2003!!` — same account now used on both console and desktop.
+- **Real bug found via live testing:** `verify_supabase_token` hardcoded
+  `algorithms=["RS256"]`, but this Supabase project signs with ES256 (EC) keys — every JWT
+  verification silently failed with "Could not validate Supabase token with any JWKS key" → 401
+  on every console API call. Fixed to read each JWKS key's own `alg` field (`6212159`).
+- `hq.gcaplabs.com`'s own native `/register` page removed (`deb0453`) — console/Supabase is now
+  the only signup front door; `OPEN_SIGNUP` confirmed already `false` on the live box.
+- 13 new/changed backend tests, full suite green (344 passed, 23 skipped, one pre-existing
+  Windows-only `fcntl` exclusion in `test_regressions.py`).
 
-**Remaining — needs the VPS session** (deploy access this session doesn't have): pull `c2f03e2`,
-rebuild/redeploy HermesHQ, then relink the bootstrap admin to `admin@gcaplabs.com` /
-`Lana2003!!` **in this exact order** (reversing it creates a stray duplicate `pending` user
-instead of linking to admin — see the handoff prompt used for this).
+**2. `gcap-console` — chat rendering bug (`1f0ce02`):** once auth was fixed, the first real
+end-to-end chat turn streamed correctly server-side (confirmed by reading the raw SSE response
+directly) but rendered as a blank assistant bubble in the UI. Root cause:
+`src/app/dashboard/page.tsx`'s SSE parser read `evt.delta` for
+`response.output_text.delta`/`response.reasoning.delta` events, but the gateway sends the chunk
+as `{"text": "..."}` — `evt.delta` never existed, so every turn silently accumulated an empty
+string. Also fixed `response.failed` reading `evt.error` as a string when it's actually
+`{message}`. Confirmed fixed live — a full turn with real reasoning + output text now renders.
+
+**Live smoke test (2026-07-02, done via browser automation against the real production URLs):**
+signed up `admin@gcaplabs.com` on `console.gcaplabs.com` → hit the Supabase "Confirm email"
+redirecting to `localhost` (Supabase project's Site URL was still the default — owner fixed via
+dashboard: Site URL → `https://console.gcaplabs.com`, confirm-email disabled to match what the
+app code already assumed) → logged in → container provisioned → sent a real chat message → it
+streamed and rendered correctly end-to-end.
+
+**Still open:** desktop-side confirmation — log into the desktop app with
+`admin@gcaplabs.com` / `Lana2003!!` and confirm it shows the same session history as console
+(same container, so it should, but not yet manually verified from the desktop client itself).
 
 ## ✅ RESOLVED 2026-07-02: `gcaplabs-hermeshq` branch `wip` (60dd361) + full VPS rebuild/smoke
 

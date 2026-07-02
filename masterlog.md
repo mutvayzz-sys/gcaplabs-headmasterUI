@@ -118,6 +118,46 @@ end-to-end. It also found and fixed a real bug: `hermes-agent` treats the `anthr
 as optional, but kimi-code needs it for `anthropic_messages` mode — every provisioned container was
 failing on the first turn with an import error. Fixed via `769393f`, now on `main` (`fa8974e`).
 
+### Console/desktop identity linking — three bugs found and fixed via live E2E testing
+
+Follow-up to the wip-branch session above. The owner asked for console (Supabase auth) and desktop
+(HermesHQ native auth) to resolve to the same account/chat for `admin`. Traced the actual auth
+code: `combined_auth.get_authenticated_user` already tries Supabase JWT then falls back to native
+JWT, resolving both to the same `HermesHQ.users` row keyed by `user.id` → one container. The only
+gap was that `verify_supabase_token` returned `None` when no `User.email` matched, instead of
+linking or creating one — so brand-new console signups could never get a runtime, and existing
+native accounts (the bootstrap admin) had no `email` set at all.
+
+**Fix 1 (`c2f03e2`):** auto-provision a `pending` `User` on first Supabase login with no email
+match (same approval queue as native open-signup); added `username`/`email` to the admin
+`UserUpdate` API so an existing account can be relinked. Also removed `hq.gcaplabs.com`'s own
+native `/register` page (`deb0453`) — console/Supabase is now the sole front door.
+
+Handed off to the VPS session to deploy + relink the admin row to `admin@gcaplabs.com`. It also
+caught and correctly resolved a second uncommitted-work collision on `main` on its own (same
+defensive pattern as the wip-branch handling above) before completing the deploy.
+
+**Live testing then surfaced two more real bugs**, found by actually signing up, logging in, and
+chatting via browser automation against `console.gcaplabs.com` (not just unit tests):
+
+- **Fix 2 (`6212159`):** `verify_supabase_token` hardcoded `algorithms=["RS256"]` in
+  `jwt.decode`, but this Supabase project's JWKS keys are ES256 (EC) — every key failed
+  validation regardless of token validity, 401'ing every console API call. Root-caused via VPS
+  session confirming JWKS URL/config/network were all fine and pulling the exact log line
+  ("Could not validate Supabase token with any JWKS key"). Fixed to read each key's own `alg`.
+- **Fix 3 (`1f0ce02`, gcap-console):** with auth fixed, the first real chat turn streamed
+  correctly server-side (verified by reading the raw SSE response directly in-browser) but
+  rendered as a blank bubble. `dashboard/page.tsx`'s SSE parser read `evt.delta`; the gateway
+  actually sends `{"text": ...}`. One-field-name bug, silently ate every response.
+
+Also found mid-flow: the Supabase project's "Confirm email" was on (console's code assumes it's
+off) and its Site URL was still the default `localhost` — confirmation emails pointed nowhere
+useful. Owner fixed both in the Supabase dashboard directly.
+
+**End state, verified live:** sign up/login as `admin@gcaplabs.com` on console → container
+provisions → real chat turn streams and renders correctly. Desktop-side confirmation (same
+credentials should show the same session history) still pending manual check.
+
 ## 2026-07-01
 
 ### "Headmaster: Inactive" → desktop /v1 migration is only half-done
