@@ -568,7 +568,7 @@ export async function cancelResponse(responseId: string): Promise<void> {
 export async function submitRemoteInteractive(
   responseId: string,
   requestId: string,
-  responseValue: string,
+  responseValue: string
 ): Promise<void> {
   await fetch(`${getRuntimeV1BaseUrl()}/responses/${encodeURIComponent(responseId)}/interactive`, {
     method: 'POST',
@@ -737,11 +737,18 @@ export async function httpRequest<T>(
     headers['Content-Type'] = 'application/json';
   }
 
-  // Inject the Hermes session token for REST calls. Header name is
-  // `X-Hermes-Session-Token` (verified at hermes_cli/web_server.py:186 —
-  // NOT `Authorization: Bearer`). Skipped in the WebUI browser path where
-  // the same-origin reverse proxy already attaches the token.
-  if (!isWebUiBrowserMode()) {
+  if (isRemoteContainerMode()) {
+    // Remote container's /api/* routes sit behind the same gateway as /v1 and
+    // expect the provisioned Bearer token, not the local-dashboard session
+    // token (which is never populated when the container issues a
+    // forward_auth_token — see AuthContext.applyProvisionGlobals).
+    const bearer = getRuntimeBearerToken();
+    if (bearer) headers.Authorization = `Bearer ${bearer}`;
+  } else if (!isWebUiBrowserMode()) {
+    // Inject the Hermes session token for REST calls. Header name is
+    // `X-Hermes-Session-Token` (verified at hermes_cli/web_server.py:186 —
+    // NOT `Authorization: Bearer`). Skipped in the WebUI browser path where
+    // the same-origin reverse proxy already attaches the token.
     const token = getSessionToken();
     if (token) headers['X-Hermes-Session-Token'] = token;
     const sessionKey = getSessionKey();
@@ -1147,9 +1154,16 @@ function ensureWs(): void {
 }
 
 function connectWs(): void {
+  // Remote container mode has no /api/ws endpoint (Agent37 runtime uses /v1
+  // REST only) — mirrors the isRemoteContainerMode() guard in connectRpcWs().
+  if (isRemoteContainerMode()) {
+    console.debug('[ensureWs] skipped: remote container mode (use /v1 REST instead)');
+    return;
+  }
+
   // Guard: don't attempt WS connection when backend port is 0 (dashboard
   // not ready). Prevents reconnect storm against the 9119 fallback.
-  if (typeof window !== 'undefined' && !isWebUiBrowserMode() && !isRemoteContainerMode()) {
+  if (typeof window !== 'undefined' && !isWebUiBrowserMode()) {
     const port = getBackendPort();
     if (port <= 0) {
       console.debug('[ensureWs] skipped: backend port is 0 (dashboard not ready)');
@@ -1157,7 +1171,13 @@ function connectWs(): void {
     }
   }
 
-  const url = getWsUrl();
+  let url: string;
+  try {
+    url = getWsUrl();
+  } catch (e) {
+    console.debug('[ensureWs] skipped: getWsUrl threw', e);
+    return;
+  }
   console.debug('[ensureWs] connecting to', url);
   try {
     ws = new WebSocket(url);
