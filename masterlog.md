@@ -19,7 +19,14 @@ running agent without a container restart.
 - **gcaplabs-headmasterUI:** deleted unused `stubProvider` from `httpBridge.ts` and removed helper/test
   references.
 
-Deployment/E2E still needs the VPS-capable runtime rebuild and a live Gmail MCP prompt test.
+Pushed all three repos. VPS deploy completed: pulled `gcaplabs-hermeshq`, rebuilt
+`headmaster-hermes-runtime:latest`, backed up control-plane + runtime homes, recreated both active
+runtime containers on the new image while preserving their `hermes-home-*` named volumes, and verified
+both live `/v1/health` and `/api/mcp/reload`. Also smoke-tested disabled MCP server create → reload →
+delete on `hm-18016c48-cda.gcaplabs.com`.
+
+Remaining manual E2E: reconnect/refresh Gmail OAuth if needed, then ask the agent to list recent
+emails and confirm Gmail MCP tools are available/called.
 
 ### Verification pass: audit + gap fixes (G1–G3 done, uncommitted) + architecture direction
 

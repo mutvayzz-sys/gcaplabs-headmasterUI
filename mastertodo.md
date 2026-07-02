@@ -1,6 +1,6 @@
 # Master To-Do
 
-## 🔧 IN PROGRESS 2026-07-02 (stub removal + Composio MCP reload)
+## ✅ DONE 2026-07-02: stub removal + Composio MCP reload
 
 This pass turns the remaining Composio MCP registration work into a live reload path instead of a
 "write config and restart container" path.
@@ -30,13 +30,22 @@ This pass turns the remaining Composio MCP registration work into a live reload 
 - **Desktop (`gcaplabs-headmasterUI`)**
   - Removed the unused `stubProvider` export and all test/helper references.
 
-### Still required after merge/deploy
+### Deploy / verification
 
-- Rebuild/recreate runtime containers from the updated `gcaplabs-hermeshq` image without deleting
-  `/home/hermes` volumes or chat/config state.
-- Verify live: connect/retry Gmail in `console.gcaplabs.com`, confirm registration response includes
-  `registered: true` and a non-null reload summary.
-- E2E: ask `List my 3 most recent emails` and confirm the agent has/calls Gmail MCP tools.
+- Pushed commits to all three repos.
+- VPS `gcaplabs-hermeshq` pulled latest, rebuilt `headmaster-hermes-runtime:latest`, and recreated
+  both active runtime containers using the existing per-user `hermes-home-*` named volumes.
+- Pre-deploy backups were written under `/home/m4/headmaster-stack/backups/`:
+  `pre-mcp-reload-20260702T160122Z.tar.gz` plus `runtime-homes-20260702T160122Z/`.
+- Live runtime smoke passed on both recreated containers: `/v1/health` returned healthy and
+  `POST /api/mcp/reload` returned a valid summary.
+- Disabled MCP config smoke passed on `hm-18016c48-cda.gcaplabs.com`: create disabled server → reload
+  → delete server → confirm removed.
+
+### Still required manually
+
+- Reconnect/refresh Gmail OAuth in `console.gcaplabs.com` if Google still blocks the existing token,
+  then ask `List my 3 most recent emails` and confirm the agent uses Gmail MCP tools.
 
 ## 🔧 IN PROGRESS 2026-07-02 (later session): compat-router shape bugs, console2 → gcaplabs-console merge, real Composio integration
 
