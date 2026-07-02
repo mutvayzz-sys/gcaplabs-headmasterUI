@@ -1,5 +1,19 @@
 # Master To-Do
 
+## ⚠️ DO NOT MERGE AS-IS: `gcaplabs-hermeshq` branch `wip` (60dd361)
+
+Claude on the VPS found uncommitted work in the working tree during orientation and branched it
+off rather than losing it or force-merging — the right defensive move. **But it's stale, not just
+incomplete:** it's rooted at `5b9ed51` (`2026.7.1.5`), 8 commits behind `main` (`2026.7.2.3`), so
+merging it wholesale would **revert** G1 (legacy `NOUS_API_KEY` injection removal), the kimi-code
+unconditional injection, the Dockerfile perf fix (`c258d59`), and the admin default-agent bootstrap
+fix (`a0a8c0c`). The actual new content — human-in-the-loop interactive callbacks
+(approval/clarify/sudo/secret) in the `third_party/agent37/gateway` worker/routes — is real but the
+commit message itself says "Incomplete/untested," and every touched vendored file is a near-total
+rewrite (600–3300 line diffs). Before merging: rebase onto current `main` (or hand-extract just the
+interactive-callback pieces) rather than merging the branch directly. Revisit once the VPS session's
+current task wraps.
+
 ## veeplan.md (Agent37-aligned, 2026-06-30)
 
 The beta roadmap is `veeplan.md` (Phases 0–7) +
