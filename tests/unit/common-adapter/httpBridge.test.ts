@@ -17,7 +17,6 @@ import {
   httpPut,
   httpPatch,
   httpDelete,
-  stubProvider,
   withResponseMap,
   BackendHttpError,
   isBackendHttpError,
@@ -251,18 +250,6 @@ describe('httpBridge', () => {
       const result = await httpGet('/api/x').invoke();
 
       expect(result).toBeUndefined();
-    });
-  });
-
-  describe('stubProvider', () => {
-    it('returns default value and logs warning', async () => {
-      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-
-      const provider = stubProvider('test', 42);
-      const result = await provider.invoke();
-
-      expect(result).toBe(42);
-      expect(warnSpy).toHaveBeenCalledWith('[httpBridge] stub: test not yet implemented in backend');
     });
   });
 

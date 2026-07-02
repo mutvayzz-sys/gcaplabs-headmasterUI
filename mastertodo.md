@@ -1,5 +1,43 @@
 # Master To-Do
 
+## 🔧 IN PROGRESS 2026-07-02 (stub removal + Composio MCP reload)
+
+This pass turns the remaining Composio MCP registration work into a live reload path instead of a
+"write config and restart container" path.
+
+### Implemented locally this pass
+
+- **Gateway / runtime (`gcaplabs-hermeshq`)**
+  - `/api/mcp/servers/import` now writes the real `$HERMES_HOME/config.yaml` `mcp_servers` store via
+    `mcpConfigStore.ts`, not the dead `api-compat.json` MCP array.
+  - Runtime image now copies `backend/hermes-agent-patches/*.patch` and applies them after cloning
+    `NousResearch/hermes-agent` in `backend/runtime.Dockerfile`.
+  - Added `backend/hermes-agent-patches/0001-reload-mcp-from-config.patch`, which adds
+    `tools.mcp_tool.reload_mcp_from_config()` to the vendored Hermes runtime during image build.
+  - `server/workers/hermes_worker.py` supports JSONL `mcp.reload`.
+  - `HermesWorkerAdapter.reloadMcp()` forwards to the worker with a 130s timeout.
+  - Gateway exposes `POST /api/mcp/reload` and returns `{added, removed, reconnected, tool_count,
+    server_count}`.
+- **Console (`gcaplabs-console2`)**
+  - `src/lib/hermeshq.ts` has `reloadMcp()` for `POST /api/mcp/reload`.
+  - `register-mcp` registers the Composio MCP URL with `x-api-key`, then calls reload and returns the
+    reload summary.
+  - `.env.example` was already scrubbed to placeholders; no real Supabase keys remain there.
+  - Removed dead `src/config/agents.ts`, fixed dashboard heading to single-agent wording, and added
+    Composio pagination TODOs.
+  - `removeToolkitFromSharedMcp()` no longer deletes the shared MCP server when the last auth config
+    is removed; it PATCHes the shared server only.
+- **Desktop (`gcaplabs-headmasterUI`)**
+  - Removed the unused `stubProvider` export and all test/helper references.
+
+### Still required after merge/deploy
+
+- Rebuild/recreate runtime containers from the updated `gcaplabs-hermeshq` image without deleting
+  `/home/hermes` volumes or chat/config state.
+- Verify live: connect/retry Gmail in `console.gcaplabs.com`, confirm registration response includes
+  `registered: true` and a non-null reload summary.
+- E2E: ask `List my 3 most recent emails` and confirm the agent has/calls Gmail MCP tools.
+
 ## 🔧 IN PROGRESS 2026-07-02 (later session): compat-router shape bugs, console2 → gcaplabs-console merge, real Composio integration
 
 **Context:** this session found and fixed why Headmaster desktop chat was totally broken (not the

@@ -101,7 +101,6 @@ export interface MockHttpBridge {
     httpPut: typeof import('@/common/adapter/httpBridge').httpPut;
     httpPatch: typeof import('@/common/adapter/httpBridge').httpPatch;
     httpDelete: typeof import('@/common/adapter/httpBridge').httpDelete;
-    stubProvider: typeof import('@/common/adapter/httpBridge').stubProvider;
     withResponseMap: typeof import('@/common/adapter/httpBridge').withResponseMap;
     wsEmitter: typeof import('@/common/adapter/httpBridge').wsEmitter;
     wsMappedEmitter: typeof import('@/common/adapter/httpBridge').wsMappedEmitter;
@@ -239,7 +238,6 @@ class MockHttpBridgeImpl implements MockHttpBridge {
     httpPut: typeof import('@/common/adapter/httpBridge').httpPut;
     httpPatch: typeof import('@/common/adapter/httpBridge').httpPatch;
     httpDelete: typeof import('@/common/adapter/httpBridge').httpDelete;
-    stubProvider: typeof import('@/common/adapter/httpBridge').stubProvider;
     withResponseMap: typeof import('@/common/adapter/httpBridge').withResponseMap;
     wsEmitter: typeof import('@/common/adapter/httpBridge').wsEmitter;
     wsMappedEmitter: typeof import('@/common/adapter/httpBridge').wsMappedEmitter;
@@ -341,15 +339,6 @@ class MockHttpBridgeImpl implements MockHttpBridge {
       httpPut: createFactory('PUT'),
       httpPatch: createFactory('PATCH'),
       httpDelete: createFactory('DELETE'),
-
-      stubProvider: vi.fn((name: string, defaultValue: unknown) => {
-        // eslint-disable-next-line no-console
-        console.warn(`stubProvider('${name}') called with default:`, defaultValue);
-        return {
-          provider: () => {},
-          invoke: async () => defaultValue,
-        };
-      }) as typeof import('@/common/adapter/httpBridge').stubProvider,
 
       withResponseMap: <Raw, Mapped, Params>(
         inner: ProviderLike<Raw, Params>,

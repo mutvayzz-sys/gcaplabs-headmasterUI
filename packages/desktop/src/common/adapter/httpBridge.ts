@@ -887,20 +887,6 @@ export function httpDelete<Data, Params = undefined>(
   };
 }
 
-/**
- * Stub provider for features not yet implemented in the backend.
- * Returns a sensible default value and logs a warning.
- */
-export function stubProvider<Data, Params = undefined>(name: string, defaultValue: Data): ProviderLike<Data, Params> {
-  return {
-    provider: () => {},
-    invoke: (async (_params?: Params) => {
-      console.warn(`[httpBridge] stub: ${name} not yet implemented in backend`);
-      return defaultValue;
-    }) as ProviderLike<Data, Params>['invoke'],
-  };
-}
-
 /** In-process provider registry (renderer event bus). Used where upstream used IPC .provider() hooks. */
 export function callbackProvider<Data, Params = undefined>(
   _name: string,

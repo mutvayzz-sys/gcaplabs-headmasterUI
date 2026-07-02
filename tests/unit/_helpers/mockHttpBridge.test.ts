@@ -170,19 +170,6 @@ describe('mockHttpBridge helper', () => {
     expect(result).toEqual({ user: 'u123', post: 'p456' });
   });
 
-  it('stubProvider returns default value and logs warning', async () => {
-    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-    const module = mock.asModule();
-
-    const provider = module.stubProvider('test-stub', 42);
-    const result = await provider.invoke();
-
-    expect(result).toBe(42);
-    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining("stubProvider('test-stub')"), 42);
-
-    warnSpy.mockRestore();
-  });
-
   it('withResponseMap wraps invoke and applies mapper', async () => {
     mock.onGet('/api/data', () => ({ raw: 'abc' }));
 

@@ -2,6 +2,25 @@
 
 ## 2026-07-02
 
+### Stub removal + Composio MCP reload implementation
+
+Implemented the remaining code path needed for Composio OAuth connects to become usable by the
+running agent without a container restart.
+
+- **gcaplabs-hermeshq / gateway:** `/api/mcp/servers/import` now writes real `config.yaml` MCP config;
+  added `POST /api/mcp/reload`; added worker protocol type `mcp.reload`; `HermesWorkerAdapter` calls
+  the Python worker with a 130s timeout; `hermes_worker.py` invokes `tools.mcp_tool.reload_mcp_from_config()`.
+- **Runtime image:** `backend/runtime.Dockerfile` applies `backend/hermes-agent-patches/*.patch` after
+  cloning upstream Hermes Agent. Patch `0001-reload-mcp-from-config.patch` adds the reload helper to
+  `tools/mcp_tool.py` during Docker build.
+- **gcaplabs-console2:** `register-mcp` now registers Composio with `x-api-key`, calls runtime MCP
+  reload, and returns the reload summary; `removeToolkitFromSharedMcp()` no longer deletes the shared
+  Composio MCP server; dead `src/config/agents.ts` removed; single-agent heading fixed.
+- **gcaplabs-headmasterUI:** deleted unused `stubProvider` from `httpBridge.ts` and removed helper/test
+  references.
+
+Deployment/E2E still needs the VPS-capable runtime rebuild and a live Gmail MCP prompt test.
+
 ### Verification pass: audit + gap fixes (G1–G3 done, uncommitted) + architecture direction
 
 **Static audit (3 agents) confirmed Phases 0–7 are genuinely done**, with four small residual
