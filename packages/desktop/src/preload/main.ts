@@ -54,7 +54,22 @@ contextBridge.exposeInMainWorld('electronAPI', {
   restartRuntime: () => ipcRenderer.invoke('runtime:restart'),
   // Runtime detection for startup
   checkHermesRuntime: () => ipcRenderer.invoke('runtime:check-and-prompt'),
-  // HermesHQ server config — URL and stored JWT for multi-user auth
+  // Agent37 Console2 BFF config — stored URL + token for multi-user auth.
+  // Canonical names are `agent37:*`; the `hermeshq:*` aliases are kept for
+  // one release as a transition shim. The IPC channels are stable and
+  // served by `agent37ProvisionBridge.ts` (registered as the
+  // `hermeshq:*` channel family).
+  getAgent37Config: () => ipcRenderer.invoke('hermeshq:get-config'),
+  getAgent37Provision: () => ipcRenderer.invoke('hermeshq:get-provision'),
+  setAgent37Url: (url: string) => ipcRenderer.invoke('hermeshq:set-url', url),
+  setAgent37Token: (token: string) => ipcRenderer.invoke('hermeshq:set-token', token),
+  clearAgent37Token: () => ipcRenderer.invoke('hermeshq:clear-token'),
+  clearAgent37Provision: () => ipcRenderer.invoke('hermeshq:clear-provision'),
+  provisionAgent37: (request: { client: 'headmaster_desktop'; version: string; platform: NodeJS.Platform }) =>
+    ipcRenderer.invoke('hermeshq:provision', request),
+  validateAgent37Runtime: (request: { runtime_id: string; requested_capability: string }) =>
+    ipcRenderer.invoke('hermeshq:validate-runtime', request),
+  // Legacy `hermeshq:*` aliases — kept for one release.
   getHermeshqConfig: () => ipcRenderer.invoke('hermeshq:get-config'),
   getHermeshqProvision: () => ipcRenderer.invoke('hermeshq:get-provision'),
   setHermeshqUrl: (url: string) => ipcRenderer.invoke('hermeshq:set-url', url),

@@ -268,6 +268,9 @@ export function setHermesRuntimeRestarter(restarter: Restarter): void {
   runtimeRestarter = restarter;
 }
 
+// Canonical name — new main-process code should use this.
+export const setAgent37RuntimeRestarter = setHermesRuntimeRestarter;
+
 export function broadcastApiServerKey(_key: string | null): void {
   // No-op: Agent37 bearer tokens live in IPC, not the renderer window. The
   // local Hermes dashboard does not need an API key when the runtime is fully

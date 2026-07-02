@@ -112,7 +112,7 @@ function isAionrsCompatibleProvider(provider: IProvider): boolean {
  * exists in the current provider list, otherwise falls back to the first
  * compatible provider/model pair.
  *
- * If HermesHQ provisioned a default model (window.__hermeshqProvision.default_model),
+ * If the Agent37 Console2 BFF provisioned a default model (window.__agent37Provision.default_model),
  * that takes priority over the saved local preference. This ensures the admin-
  * assigned model per agent is used for new conversations.
  */
@@ -128,7 +128,7 @@ export async function getDefaultAionrsModel(): Promise<TProviderWithModel> {
     throw new Error('No enabled model provider for the runtime');
   }
 
-  // 1. Check HermesHQ provisioned default model (admin-assigned per agent)
+  // 1. Check Agent37 Console2 BFF provisioned default model (admin-assigned per agent)
   const provisionedDefault = readProvisionedDefaultModel();
   if (provisionedDefault?.model) {
     const provisionedProvider = compatibleProviders.find(

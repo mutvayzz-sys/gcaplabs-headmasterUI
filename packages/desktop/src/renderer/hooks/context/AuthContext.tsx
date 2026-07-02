@@ -37,15 +37,15 @@ interface LoginResult {
   mfaChallengeToken?: string;
 }
 
-interface DesktopHermeshqUser {
+interface DesktopAgent37User {
   id: string;
   username: string;
   role: string;
 }
 
-interface DesktopHermeshqProvision {
+interface DesktopAgent37Provision {
   mode: string;
-  user: DesktopHermeshqUser;
+  user: DesktopAgent37User;
   capabilities: string[];
   runtime: {
     base_url?: string | null;
@@ -63,11 +63,18 @@ interface DesktopHermeshqProvision {
   };
 }
 
-interface DesktopHermeshqConfig {
+interface DesktopAgent37Config {
   url: string;
   token: string;
-  provision?: DesktopHermeshqProvision | null;
+  provision?: DesktopAgent37Provision | null;
 }
+
+// Legacy aliases — kept for one release so any in-flight code that still
+// imports `DesktopHermeshq*` keeps compiling. New code MUST use the
+// `DesktopAgent37*` names.
+type DesktopHermeshqUser = DesktopAgent37User;
+type DesktopHermeshqProvision = DesktopAgent37Provision;
+type DesktopHermeshqConfig = DesktopAgent37Config;
 
 interface RegisterParams {
   username: string;
@@ -99,13 +106,22 @@ const AUTH_USER_ENDPOINT = '/api/auth/user';
 
 const isDesktopRuntime = typeof window !== 'undefined' && Boolean(window.electronAPI);
 
-// Build-time console URL. HermesHQ is retired; this now points at the
-// Headmaster Console BFF, which provisions Agent37 Cloud runtimes.
-const HERMESHQ_URL = (
+// Build-time Console URL. The canonical env var is `VITE_CONSOLE_URL`;
+// `VITE_HERMESHQ_URL` is still read for one release as a transition shim.
+// The console provisions Agent37 Cloud runtimes (no longer a HermesHQ
+// control plane).
+const CONSOLE_URL = (
+  ((import.meta as ImportMeta & { env?: Record<string, string | undefined> }).env?.VITE_CONSOLE_URL as
+    | string
+    | undefined) ??
   ((import.meta as ImportMeta & { env?: Record<string, string | undefined> }).env?.VITE_HERMESHQ_URL as
     | string
-    | undefined) ?? 'https://console.gcaplabs.com'
+    | undefined) ??
+  'https://console.gcaplabs.com'
 ).replace(/\/$/, '');
+// Legacy alias — kept for one release so in-flight code referencing the
+// `HERMESHQ_URL` constant name still works.
+const HERMESHQ_URL = CONSOLE_URL;
 
 async function refreshHermeshqToken(serverUrl: string, token: string): Promise<string | null> {
   try {
@@ -175,7 +191,7 @@ async function fetchCurrentUser(signal?: AbortSignal): Promise<AuthUser | null> 
 }
 
 function resolveDesktopServerUrl(configUrl?: string): string {
-  const url = (configUrl || HERMESHQ_URL).trim().replace(/\/$/, '');
+  const url = (configUrl || CONSOLE_URL).trim().replace(/\/$/, '');
   // Migrate retired control-plane domains so clients with a stale stored URL
   // land on the Agent37-backed Headmaster Console.
   return url
@@ -195,15 +211,21 @@ async function extractRemoteSessionToken(endpointUrl: string): Promise<string | 
   }
 }
 
-async function applyProvisionGlobals(provision: DesktopHermeshqProvision): Promise<void> {
+async function applyProvisionGlobals(provision: DesktopAgent37Provision): Promise<void> {
   if (typeof window === 'undefined') return;
+  // Canonical Agent37 seam; the `__hermeshqProvision` global is kept as a
+  // read-only alias so existing renderer-side consumers (model provider list,
+  // capability gating, app settings) keep working without a rewrite.
   (window as any).__hermeshqProvision = provision;
+  (window as any).__agent37Provision = provision;
   if ((provision as any).session_namespace) {
     (window as any).__hermesSessionKey = (provision as any).session_namespace;
   }
   const containerUrl = provision.runtime?.base_url || provision.cloud_container_config?.endpoint_url;
   if (containerUrl) {
-    window.__cloudContainerEndpoint = containerUrl.replace(/\/$/, '');
+    const normalizedEndpoint = containerUrl.replace(/\/$/, '');
+    window.__cloudContainerEndpoint = normalizedEndpoint;
+    (window as any).__agent37Endpoint = normalizedEndpoint;
     (window as any).__runtimeApiBasePath = provision.runtime?.api_base_path || '/v1';
     const bearerToken =
       provision.cloud_container_config?.forward_auth_token ?? provision.cloud_container_config?.api_server_key;
@@ -217,11 +239,18 @@ async function applyProvisionGlobals(provision: DesktopHermeshqProvision): Promi
     }
   } else {
     delete window.__cloudContainerEndpoint;
+    delete (window as any).__agent37Endpoint;
     delete (window as any).__runtimeApiBasePath;
     delete (window as any).__runtimeBearerToken;
   }
   queueMicrotask(() => {
+    // Fire BOTH event names. The legacy `hermeshq:provision-updated` is the
+    // internal seam; `agent37:provision-updated` is the canonical name and
+    // is what new code should listen on. Removing the legacy fire would
+    // break every renderer consumer that listens today, so keep it as a
+    // shim until a future major cuts over.
     window.dispatchEvent(new CustomEvent('hermeshq:provision-updated'));
+    window.dispatchEvent(new CustomEvent('agent37:provision-updated'));
   });
 }
 
@@ -236,7 +265,7 @@ function getRendererPlatform(): NodeJS.Platform {
   return 'win32';
 }
 
-async function provisionDesktopSession(): Promise<{ provision: DesktopHermeshqProvision } | { error: string }> {
+async function provisionDesktopSession(): Promise<{ provision: DesktopAgent37Provision } | { error: string }> {
   const result = await window.electronAPI?.provisionHermeshq?.({
     client: 'headmaster_desktop',
     version: __APP_VERSION__,
@@ -250,10 +279,10 @@ async function provisionDesktopSession(): Promise<{ provision: DesktopHermeshqPr
     return { error: reason };
   }
 
-  return { provision: result.provision as DesktopHermeshqProvision };
+  return { provision: result.provision as DesktopAgent37Provision };
 }
 
-function provisionUserToAuthUser(user: DesktopHermeshqUser): AuthUser {
+function provisionUserToAuthUser(user: DesktopAgent37User): AuthUser {
   return {
     id: user.id,
     username: user.username,
@@ -270,7 +299,7 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
     try {
       if (isDesktopRuntime) {
         // Desktop mode: validate stored HermesHQ JWT against the baked-in server URL
-        const config = (await window.electronAPI?.getHermeshqConfig?.()) as DesktopHermeshqConfig | undefined;
+        const config = (await window.electronAPI?.getAgent37Config?.()) as DesktopAgent37Config | undefined;
         const serverUrl = resolveDesktopServerUrl(config?.url);
         const token = config?.token ?? '';
 
@@ -529,7 +558,7 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
   const verifyMfa = useCallback(
     async (params: { mfaChallengeToken: string; code: string; remember?: boolean }): Promise<LoginResult> => {
       if (isDesktopRuntime) {
-        const config = (await window.electronAPI?.getHermeshqConfig?.()) as DesktopHermeshqConfig | undefined;
+        const config = (await window.electronAPI?.getAgent37Config?.()) as DesktopAgent37Config | undefined;
         const serverUrl = resolveDesktopServerUrl(config?.url);
         if (!serverUrl) {
           return { success: false, message: 'Server not configured.', code: 'serverError' };

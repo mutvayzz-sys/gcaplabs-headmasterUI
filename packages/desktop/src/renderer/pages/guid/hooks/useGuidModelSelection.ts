@@ -98,7 +98,7 @@ export const useGuidModelSelection = (agentKey: ProviderAgentKey = 'aionrs'): Gu
       let defaultModel: IProvider | undefined;
       let resolvedUseModel: string;
 
-      // 1. Check HermesHQ provisioned default model (admin-assigned per agent)
+      // 1. Check Agent37 Console2 BFF provisioned default model (admin-assigned per agent)
       const provisionedDefault = readProvisionedDefaultModel();
       if (provisionedDefault?.model) {
         const provisionedProvider = modelList.find((m) => m.id === provisionedDefault.provider);

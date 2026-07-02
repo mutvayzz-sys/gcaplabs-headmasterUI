@@ -27,14 +27,17 @@ export const fetchProviders = async (): Promise<IProvider[]> => {
 };
 
 /**
- * Read the provisioned provider catalog from the HermesHQ provision snapshot
- * stored on window.__hermeshqProvision. These are the admin-controlled
- * providers shipped in the provision response — they take priority over the
- * local runtime's /api/model/options (which only sees local .env keys).
+ * Read the provisioned provider catalog from the Agent37 Console2 BFF
+ * provision snapshot (canonical: `window.__agent37Provision`; legacy alias
+ * `window.__hermeshqProvision` is still read for one release). These are
+ * the admin-controlled providers shipped in the provision response — they
+ * take priority over the local runtime's /api/model/options (which only
+ * sees local .env keys).
  */
 export function readProvisionedProviders(): IProvider[] {
   if (typeof window === 'undefined') return [];
-  const provision = (window as any).__hermeshqProvision as { providers?: Array<Record<string, unknown>> } | undefined;
+  const provision = ((window as any).__agent37Provision ??
+    (window as any).__hermeshqProvision) as { providers?: Array<Record<string, unknown>> } | undefined;
   if (!provision?.providers || !Array.isArray(provision.providers)) return [];
   return provision.providers
     .filter((p) => p && typeof p.slug === 'string' && typeof p.name === 'string')
@@ -63,7 +66,8 @@ export function readProvisionedDefaultModel(): {
   base_url: string;
 } | null {
   if (typeof window === 'undefined') return null;
-  const provision = (window as any).__hermeshqProvision as
+  const provision = ((window as any).__agent37Provision ??
+    (window as any).__hermeshqProvision) as
     | { default_model?: string | null; default_provider?: string | null; default_base_url?: string | null }
     | undefined;
   if (!provision?.default_model) return null;
@@ -97,7 +101,8 @@ export const useProvidersQuery = () => {
  * and exposes helpers consumed by both conversation and channel settings.
  *
  * Provider sources (in priority order):
- * 1. HermesHQ provisioned providers (window.__hermeshqProvision.providers) —
+ * 1. Agent37 Console2 BFF provisioned providers
+ *    (window.__agent37Provision.providers) —
  *    admin-controlled catalog shipped in the provision response
  * 2. Local runtime /api/model/options — fallback, sees local .env API keys
  * 3. Google Auth provider — injected if Google Auth is available
@@ -107,12 +112,18 @@ export const useModelProviderList = (): ModelProviderListResult => {
   const { data: modelConfig } = useProvidersQuery();
 
   // Track provisioned providers so we re-render when the provision snapshot
-  // arrives (dispatched via the 'hermeshq:provision-updated' DOM event).
+  // arrives (dispatched via the 'agent37:provision-updated' DOM event; the
+  // legacy 'hermeshq:provision-updated' is also listened to as a one-release
+  // shim).
   const [provisionedProviders, setProvisionedProviders] = useState<IProvider[]>(() => readProvisionedProviders());
   useEffect(() => {
     const handler = () => setProvisionedProviders(readProvisionedProviders());
+    window.addEventListener('agent37:provision-updated', handler);
     window.addEventListener('hermeshq:provision-updated', handler);
-    return () => window.removeEventListener('hermeshq:provision-updated', handler);
+    return () => {
+      window.removeEventListener('agent37:provision-updated', handler);
+      window.removeEventListener('hermeshq:provision-updated', handler);
+    };
   }, []);
 
   // Mutable cache for available-model filtering
@@ -148,7 +159,7 @@ export const useModelProviderList = (): ModelProviderListResult => {
   }, []);
 
   const providers = useMemo(() => {
-    // Provisioned providers from HermesHQ take priority. Fall back to local
+    // Provisioned providers from the Agent37 Console2 BFF take priority. Fall back to local
     // runtime providers only if the provision didn't ship any.
     let list: IProvider[];
     if (provisionedProviders.length > 0) {

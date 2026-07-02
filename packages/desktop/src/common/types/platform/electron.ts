@@ -22,6 +22,31 @@ export interface ElectronBridgeAPI {
   setRemoteConnectionConfig?: (config: { host: string; port: number; token: string }) => Promise<unknown>;
   restartRuntime?: () => Promise<{ ok: boolean; port?: number; error?: string }>;
   checkHermesRuntime?: () => Promise<{ detected: boolean; path?: string; choice?: string; customPath?: string }>;
+  // Agent37 Console2 BFF config — canonical names. The `getHermeshq*`
+  // aliases below are kept for one release as a transition shim.
+  getAgent37Config?: () => Promise<{ url: string; token: string; provision?: unknown | null }>;
+  getAgent37Provision?: () => Promise<unknown | null>;
+  setAgent37Url?: (url: string) => Promise<{ success: boolean }>;
+  setAgent37Token?: (token: string) => Promise<{ success: boolean }>;
+  clearAgent37Token?: () => Promise<{ success: boolean }>;
+  clearAgent37Provision?: () => Promise<{ success: boolean }>;
+  provisionAgent37?: (request: {
+    client: 'headmaster_desktop';
+    version: string;
+    platform: NodeJS.Platform;
+  }) => Promise<{
+    success: boolean;
+    provision?: unknown;
+    status?: number;
+    error?: string;
+  }>;
+  validateAgent37Runtime?: (request: { runtime_id: string; requested_capability: string }) => Promise<{
+    success: boolean;
+    validation?: unknown;
+    status?: number;
+    error?: string;
+  }>;
+  // Legacy `hermeshq:*` aliases — kept for one release.
   getHermeshqConfig?: () => Promise<{ url: string; token: string; provision?: unknown | null }>;
   getHermeshqProvision?: () => Promise<unknown | null>;
   setHermeshqUrl?: (url: string) => Promise<{ success: boolean }>;

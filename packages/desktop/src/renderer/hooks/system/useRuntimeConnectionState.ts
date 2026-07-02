@@ -34,7 +34,10 @@ export function useRuntimeConnectionState(): RuntimeConnectionSnapshot {
     // Remote container mode: probe /v1/health directly (no WS available).
     // The Agent37 runtime has no /api/ws endpoint, so the WS probe below would
     // always fail. This makes the status indicator reflect real runtime health.
-    if (typeof window !== 'undefined' && (window as any).__cloudContainerEndpoint) {
+    if (
+      typeof window !== 'undefined' &&
+      ((window as any).__agent37Endpoint ?? (window as any).__cloudContainerEndpoint)
+    ) {
       const healthy = await probeRemoteHealth();
       if (healthy) {
         connectedRef.current = true;

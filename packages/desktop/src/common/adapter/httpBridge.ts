@@ -473,20 +473,14 @@ async function consumeResponseStream(
       case 'response.tool_call.failed':
         callbacks.onToolEvent(String(data.tool ?? 'tool'), 'failed', String(data.error ?? ''));
         break;
-      case 'response.interactive.requested':
-        if (data.kind && data.request_id && typeof data.kind === 'string' && typeof data.request_id === 'string') {
-          callbacks.onInteractiveRequest?.({
-            kind: data.kind as 'approval' | 'clarify' | 'sudo' | 'secret',
-            request_id: String(data.request_id),
-            description: typeof data.description === 'string' ? data.description : undefined,
-            question: typeof data.question === 'string' ? data.question : undefined,
-            choices: Array.isArray(data.choices) ? data.choices.map(String) : undefined,
-            command: typeof data.command === 'string' ? data.command : undefined,
-            env_var: typeof data.env_var === 'string' ? data.env_var : undefined,
-            prompt: typeof data.prompt === 'string' ? data.prompt : undefined,
-          });
-        }
-        break;
+      // Note: `response.interactive.requested` was a HermesHQ/Hermes-dialect
+      // event. Agent37's gateway has no such event in its eight-event stream
+      // contract (response.created / reasoning.delta / tool_call.{started,
+      // completed, failed} / output_text.delta / response.completed /
+      // response.failed). The renderer-side PendingInteractiveRequest
+      // pipeline in hermesChatAdapter.ts remains in place for the local
+      // dashboard WS-RPC mode only; remote Agent37 mode flows through
+      // `cancelResponse` + a new `POST /v1/responses` turn.
       case 'response.completed':
         sawTerminal = true;
         callbacks.onDone(data.usage as ResponseUsage | null | undefined, String(data.output_text ?? ''));
@@ -565,21 +559,27 @@ export async function cancelResponse(responseId: string): Promise<void> {
  * Submit a response to an interactive prompt (approval/clarify/sudo/secret)
  * on a running response in remote container mode.
  */
+/**
+ * @deprecated Agent37 Cloud has no mid-turn `/v1/responses/{id}/interactive`
+ * endpoint. The gateway's stream contract is purely response-style; human
+ * input resumes the session by sending a new `POST /v1/responses` turn on
+ * the same `session_id`. The HermesHQ dialect's approval/clarify/sudo/secret
+ * was a local-dashboard WS-RPC concern that does not map onto Agent37. See
+ * `respondToPendingRequest` in `hermesChatAdapter.ts` for the Agent37-native
+ * resume path: cancel the in-flight turn, then post a fresh `input` on the
+ * session that carries the human's decision.
+ *
+ * Kept as a no-op so older call sites that still import it do not break the
+ * build. New code MUST NOT call this — it will be removed in a later pass.
+ */
 export async function submitRemoteInteractive(
-  responseId: string,
-  requestId: string,
-  responseValue: string
+  _responseId: string,
+  _requestId: string,
+  _responseValue: string
 ): Promise<void> {
-  await fetch(`${getRuntimeV1BaseUrl()}/responses/${encodeURIComponent(responseId)}/interactive`, {
-    method: 'POST',
-    headers: runtimeHeaders(true),
-    body: JSON.stringify({
-      request_id: requestId,
-      response: responseValue,
-    }),
-  }).catch(() => {});
+  // Intentionally empty: Agent37 has no mid-turn interactive endpoint. See
+  // the deprecation note above. Callers must use cancel + a new turn.
 }
-
 function getWsUrl(): string {
   if (isRemoteContainerMode()) {
     // Agent37 runtime has no /api/ws endpoint — remote mode uses /v1 REST only.

@@ -20,7 +20,6 @@ import {
   onGatewayEvent,
   probeCapabilities,
   stopRun,
-  submitRemoteInteractive,
   submitResponseAndStream,
   submitRunAndStream,
   submitRunApproval,
@@ -71,6 +70,28 @@ type ActiveTurn = {
 };
 
 const STREAM_DELTA_FLUSH_MS = 32;
+
+/**
+ * Format the human's decision to an Agent37 interactive prompt as the next
+ * `input` on the session. The model already has its own question + tool call
+ * in the session's full history; this is just a one-line continuation that
+ * carries the human's choice back to it.
+ */
+function formatInteractiveResume(
+  request: PendingInteractiveRequest,
+  responseValue: string
+): string {
+  switch (request.kind) {
+    case 'approval':
+      return `User decision: ${responseValue}`;
+    case 'clarify':
+      return responseValue;
+    case 'sudo':
+    case 'secret':
+      // Caller must have short-circuited before this; we never reach here.
+      return responseValue;
+  }
+}
 
 type PendingInteractiveRequestKind = 'approval' | 'clarify' | 'sudo' | 'secret';
 
@@ -410,13 +431,52 @@ const buildMaskedRequest = (
 };
 
 async function respondToPendingRequest(request: PendingInteractiveRequest, responseValue: string): Promise<void> {
-  // Remote container mode: use the /v1/responses/{id}/interactive endpoint.
+  // Remote (Agent37) mode: the gateway has no mid-turn interactive endpoint
+  // and the stream contract has no `response.interactive.requested` event.
+  // Resume the session by cancelling the in-flight turn and posting a fresh
+  // `input` on the same `session_id` so the model sees the human's decision
+  // as the next user turn. The full conversation history is held by the
+  // gateway, so the agent has the original question + its own tool call in
+  // context when it consumes the resume turn.
   if (supportsResponsesApi()) {
     const turn = turnsByLive.get(request.liveSessionId);
-    if (!turn?.responseId) {
-      throw new Error('No active response to respond to');
+    if (!turn) {
+      throw new Error('No active turn to respond to');
     }
-    await submitRemoteInteractive(turn.responseId, request.requestId, responseValue);
+    // `sudo` and `secret` carry credentials. Agent37 sessions persist their
+    // full history to disk, so we MUST NOT pass the value as plain `input` —
+    // it would land in the session transcript. Cancel the turn and surface a
+    // user-visible error instead. A real sudo/secret flow on Agent37 needs
+    // the gateway to add a non-persisted credential channel, which is not
+    // in the current contract (https://www.agent37.com/docs/agents-api/chat).
+    if (request.kind === 'sudo' || request.kind === 'secret') {
+      if (turn.responseId) await cancelResponse(turn.responseId);
+      throw new Error(
+        `${request.kind} prompts are not supported over Agent37 — re-run the command with credentials provided another way.`
+      );
+    }
+    if (turn.responseId) {
+      await cancelResponse(turn.responseId);
+    }
+    // Re-issue the user's decision as a fresh turn on the same session.
+    const resumeText = formatInteractiveResume(request, responseValue);
+    await submitResponseAndStream(resumeText, turn.liveSessionId, {
+      onChunk() {
+        /* no-op: the resume turn's content is rendered by the existing turn pipeline below */
+      },
+      onToolEvent() {
+        /* no-op */
+      },
+      onReasoning() {
+        /* no-op */
+      },
+      onDone() {
+        /* no-op */
+      },
+      onError(message) {
+        finishTurn(turn.liveSessionId, message, message);
+      },
+    });
     return;
   }
   // Local dashboard mode: use legacy WS-RPC.

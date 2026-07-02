@@ -25,9 +25,11 @@ export interface CapabilityContext {
 }
 
 function readCapabilitiesFromWindow(): CapabilityContext {
-  // Try to read from the provision snapshot stored on window
-  // The AuthContext sets this after successful provision
-  const provision = (window as any).__hermeshqProvision as Record<string, unknown> | undefined;
+  // The AuthContext sets this after successful provision. The canonical
+  // Agent37 global is `__agent37Provision`; the legacy `__hermeshqProvision`
+  // is kept as a read alias for one release.
+  const provision = ((window as any).__agent37Provision ??
+    (window as any).__hermeshqProvision) as Record<string, unknown> | undefined;
   if (provision) {
     const caps = Array.isArray(provision.capabilities)
       ? provision.capabilities.filter((c): c is string => typeof c === 'string')
@@ -41,7 +43,6 @@ function readCapabilitiesFromWindow(): CapabilityContext {
       mode: typeof provision.mode === 'string' ? provision.mode : 'headmaster_local',
     };
   }
-
   // Fallback: all capabilities enabled (backward compatibility)
   return {
     capabilities: [...ALL_CAPABILITIES],
@@ -54,8 +55,14 @@ export function useCapabilities(): CapabilityContext {
   const [caps, setCaps] = useState(() => readCapabilitiesFromWindow());
   useEffect(() => {
     const handler = () => setCaps(readCapabilitiesFromWindow());
+    // Listen on BOTH names — the AuthContext fires both as a transition
+    // shim. New code should listen on `agent37:provision-updated`.
+    window.addEventListener('agent37:provision-updated', handler);
     window.addEventListener('hermeshq:provision-updated', handler);
-    return () => window.removeEventListener('hermeshq:provision-updated', handler);
+    return () => {
+      window.removeEventListener('agent37:provision-updated', handler);
+      window.removeEventListener('hermeshq:provision-updated', handler);
+    };
   }, []);
   return caps;
 }

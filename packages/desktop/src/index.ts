@@ -74,10 +74,10 @@ import {
   setIsQuitting,
 } from './process/utils/tray';
 import { readCloseToTraySetting } from './process/utils/closeToTraySetting';
-import { getConnectionMode, getRemoteConfig, getHermeshqProvision } from './process/connection/connectionConfig';
+import { getConnectionMode, getRemoteConfig, getAgent37Provision } from './process/connection/connectionConfig';
 import {
-  validateHermeshqRuntimeAccess,
-  setHermesRuntimeRestarter,
+  validateAgent37RuntimeAccess,
+  setAgent37RuntimeRestarter,
 } from './process/services/agent37ProvisionService';
 // @ts-expect-error - electron-squirrel-startup doesn't have types
 import electronSquirrelStartup from 'electron-squirrel-startup';
@@ -221,7 +221,7 @@ initBridges({ hermesBootstrap });
 // When provision writes new env vars (e.g. KIMI_API_KEY) to .env, the running
 // Hermes process won't pick them up. Inject a restarter so the Agent37 provision service
 // can restart Hermes after provision completes.
-setHermesRuntimeRestarter(async () => {
+setAgent37RuntimeRestarter(async () => {
   hermesBootstrap.stop();
   const result = await hermesBootstrap.start({ installIfMissing: false });
   console.log(
@@ -409,7 +409,7 @@ ipcMain.handle('runtime:get-status', async () => {
 });
 
 async function startGcapcoreSidecar(): Promise<void> {
-  if (getConnectionMode() === 'remote' || getHermeshqProvision()?.mode === 'headmaster_remote') {
+  if (getConnectionMode() === 'remote' || getAgent37Provision()?.mode === 'headmaster_remote') {
     clearGcapcorePort();
     return;
   }
@@ -440,17 +440,17 @@ async function startGcapcoreSidecar(): Promise<void> {
 // ---------------------------------------------------------------------------
 ipcMain.handle('runtime:restart', async () => {
   try {
-    const provisionModeIsRemote = getHermeshqProvision()?.mode === 'headmaster_remote';
+    const provisionModeIsRemote = getAgent37Provision()?.mode === 'headmaster_remote';
 
     if (getConnectionMode() !== 'remote' && !provisionModeIsRemote) {
-      const validation = await validateHermeshqRuntimeAccess({
+      const validation = await validateAgent37RuntimeAccess({
         runtime_id: 'local-hermes',
         requested_capability: 'runtime_settings',
       });
       if (!validation.success || validation.validation?.allowed !== true) {
         return {
           ok: false,
-          error: validation.error || 'HermesHQ denied runtime restart.',
+          error: validation.error || 'Agent37 Console denied runtime restart.',
         };
       }
     }
@@ -962,7 +962,7 @@ const handleAppReady = async (): Promise<void> => {
     // installIfMissing: true triggers install.ps1 if the venv is absent.
     // Also skip when provision.mode is headmaster_remote so remote users don't
     // spawn a redundant local dashboard alongside their cloud container.
-    const provisionModeIsRemote = getHermeshqProvision()?.mode === 'headmaster_remote';
+    const provisionModeIsRemote = getAgent37Provision()?.mode === 'headmaster_remote';
     if (!remoteModeActive && !provisionModeIsRemote) {
       void (async () => {
         const hermesStartup = await hermesBootstrap.start({ installIfMissing: true });

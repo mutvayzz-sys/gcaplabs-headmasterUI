@@ -113,21 +113,32 @@ const ModelModalContent: React.FC = () => {
   const { data, mutate } = useProvidersQuery();
   const [message, messageContext] = Message.useMessage();
 
-  // HermesHQ-managed providers from provision snapshot (read-only)
-  const [hqProviders, setHqProviders] = useState(() => readProvisionedProviders());
+  // Agent37 Console2 BFF-managed providers from provision snapshot (read-only)
+  const [agent37Providers, setAgent37Providers] = useState(() => readProvisionedProviders());
   useEffect(() => {
-    const handler = () => setHqProviders(readProvisionedProviders());
+    const handler = () => setAgent37Providers(readProvisionedProviders());
+    // Listen on both the canonical `agent37:provision-updated` and the
+    // legacy `hermeshq:provision-updated` (transition shim).
+    window.addEventListener('agent37:provision-updated', handler);
     window.addEventListener('hermeshq:provision-updated', handler);
-    return () => window.removeEventListener('hermeshq:provision-updated', handler);
+    return () => {
+      window.removeEventListener('agent37:provision-updated', handler);
+      window.removeEventListener('hermeshq:provision-updated', handler);
+    };
   }, []);
 
-  // Default model info from HQ provision
-  const hqDefault = useMemo(() => {
-    const p = (window as unknown as { __hermeshqProvision?: { default_model?: string; default_provider?: string } })
-      .__hermeshqProvision;
+  // Default model info from the Agent37 Console2 BFF provision snapshot.
+  // Reads from the canonical `__agent37Provision` global, falling back to
+  // the legacy `__hermeshqProvision` for one release.
+  const agent37Default = useMemo(() => {
+    const w = window as unknown as {
+      __agent37Provision?: { default_model?: string; default_provider?: string };
+      __hermeshqProvision?: { default_model?: string; default_provider?: string };
+    };
+    const p = w.__agent37Provision ?? w.__hermeshqProvision;
     if (!p?.default_model) return null;
     return { model: p.default_model, provider: p.default_provider ?? '' };
-  }, [hqProviders]);
+  }, [agent37Providers]);
 
   /**
    * Create when the provider id is new, update otherwise.
@@ -399,8 +410,8 @@ const ModelModalContent: React.FC = () => {
 
       {/* Content Area */}
       <AionScrollArea className='flex-1 min-h-0' disableOverflow={isPageMode}>
-        {/* HermesHQ-managed providers (read-only) */}
-        {hqProviders.length > 0 && (
+        {/* Agent37 Console2 BFF-managed providers (read-only) */}
+        {agent37Providers.length > 0 && (
           <div className='mb-20px'>
             <div className='flex items-center gap-8px mb-10px'>
               <span className='text-13px font-500 text-t-secondary uppercase tracking-wide'>
@@ -410,7 +421,7 @@ const ModelModalContent: React.FC = () => {
                 HQ
               </Tag>
             </div>
-            {hqDefault && (
+            {agent37Default && (
               <div
                 className='mb-10px rd-8px px-12px py-8px text-12px border border-solid'
                 style={{
@@ -419,12 +430,12 @@ const ModelModalContent: React.FC = () => {
                   color: 'rgb(var(--primary-6))',
                 }}
               >
-                {t('settings.defaultModel', { defaultValue: 'Default model' })}: <strong>{hqDefault.model}</strong>
-                {hqDefault.provider && <span className='ml-6px opacity-70'>via {hqDefault.provider}</span>}
+                {t('settings.defaultModel', { defaultValue: 'Default model' })}: <strong>{agent37Default.model}</strong>
+                {agent37Default.provider && <span className='ml-6px opacity-70'>via {agent37Default.provider}</span>}
               </div>
             )}
             <div className='space-y-8px'>
-              {hqProviders.map((platform) => (
+              {agent37Providers.map((platform) => (
                 <Collapse
                   key={platform.id}
                   activeKey={collapseKey[`hq-${platform.id}`] ? ['models'] : []}
@@ -455,7 +466,7 @@ const ModelModalContent: React.FC = () => {
                       <div key={model}>
                         <div className='flex items-center justify-between px-8px py-10px'>
                           <span className='text-14px text-t-primary'>{model}</span>
-                          {hqDefault?.model === model && (
+                          {agent37Default?.model === model && (
                             <Tag size='small' color='arcoblue'>
                               {t('common.default', { defaultValue: 'Default' })}
                             </Tag>
@@ -472,7 +483,7 @@ const ModelModalContent: React.FC = () => {
           </div>
         )}
 
-        {(!data || data.length === 0) && hqProviders.length === 0 ? (
+        {(!data || data.length === 0) && agent37Providers.length === 0 ? (
           <div className='flex flex-col items-center justify-center py-40px'>
             <Info theme='outline' size='48' className='text-t-secondary mb-16px' />
             <h3 className='text-16px font-500 text-t-primary mb-8px'>{t('settings.noConfiguredModels')}</h3>

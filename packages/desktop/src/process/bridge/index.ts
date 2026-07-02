@@ -19,7 +19,6 @@ import { initConnectionBridge } from './connectionBridge';
 import { initAgent37ProvisionBridge } from './agent37ProvisionBridge';
 import { initFileSystemBridge } from './fsBridge';
 import { initRuntimeDetectionBridge } from './runtimeDetectionBridge';
-import { initContainerLifecycleBridge } from './containerLifecycleBridge';
 import { initTeamBridge } from './teamBridge';
 import { initCredentialsBridge } from './credentialsBridge';
 import { initOAuthBridge } from './oauthBridge';
@@ -49,7 +48,6 @@ export function initAllBridges(deps: BridgeDependencies = {}): void {
   initAgent37ProvisionBridge();
   initFileSystemBridge();
   initTeamBridge();
-  initContainerLifecycleBridge();
   initCredentialsBridge();
   initOAuthBridge();
 }

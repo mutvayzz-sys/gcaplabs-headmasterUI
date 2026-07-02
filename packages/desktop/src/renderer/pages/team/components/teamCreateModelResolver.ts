@@ -68,7 +68,7 @@ async function resolveGeminiDefaultModel(): Promise<string> {
 }
 
 async function resolveAionrsDefaultModel(): Promise<string> {
-  // 1. HermesHQ provisioned default model (admin-assigned per agent)
+  // 1. Agent37 Console2 BFF provisioned default model (admin-assigned per agent)
   const provisioned = readProvisionedDefaultModel();
   if (provisioned?.model) {
     return provisioned.model;

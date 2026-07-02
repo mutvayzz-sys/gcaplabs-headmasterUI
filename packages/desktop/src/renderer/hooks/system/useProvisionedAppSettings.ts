@@ -5,22 +5,24 @@
  */
 
 import { useMemo } from 'react';
-import type { HermeshqProvisionAppSettings } from '@/process/connection/connectionConfig';
+import type { Agent37ProvisionAppSettings } from '@/process/connection/connectionConfig';
 
 /**
- * Read admin-configured app settings (branding, theme, locale) from the
- * HermesHQ provision response. Returns null when unauthenticated or when the
- * provision has not yet been received.
+End Patch
+ * Agent37 Console2 BFF provision response. Returns null when unauthenticated
+ * or when the provision has not yet been received.
  *
  * This is the unified settings source — the desktop should read branding/theme
  * from here instead of local config or separate API calls.
  */
-export function useProvisionedAppSettings(): HermeshqProvisionAppSettings | null {
+export function useProvisionedAppSettings(): Agent37ProvisionAppSettings | null {
   return useMemo(() => {
     if (typeof window === 'undefined') return null;
-    const provision = (window as any).__hermeshqProvision;
+    // Canonical Agent37 global, with the legacy `__hermeshqProvision` kept
+    // as a one-release read alias.
+    const provision = (window as any).__agent37Provision ?? (window as any).__hermeshqProvision;
     if (!provision?.app_settings) return null;
-    return provision.app_settings as HermeshqProvisionAppSettings;
+    return provision.app_settings as Agent37ProvisionAppSettings;
   }, []);
 }
 
