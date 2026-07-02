@@ -1,5 +1,150 @@
 # Master To-Do
 
+## 🔧 IN PROGRESS 2026-07-02 (later session): compat-router shape bugs, console2 → gcaplabs-console merge, real Composio integration
+
+**Context:** this session found and fixed why Headmaster desktop chat was totally broken (not the
+identity-linking bug above — a separate, later regression), then did a full redesign pass on the
+console, then started wiring a real "Integrations" tab. Two follow-up features are scoped below but
+**not yet built** — read the "Next session" block before starting either.
+
+### Done and deployed this session
+
+**`gcaplabs-hermeshq` (`third_party/agent37/gateway`) — commits `af4405b`, `5d674c7`, now live on the
+VPS (`hermes-a48f4b18-b9805f74` / `hm-37c5ff7f-64e.gcaplabs.com`):**
+
+- The `/api` compatibility router (`server/routes/api.ts`) existed locally but was **never deployed**
+  — every `/api/*` route 404'd on the live container, which silently disabled the desktop chat send
+  button (no model ever resolved from `/api/model/options`). Committed + pushed + VPS rebuilt +
+  redeployed (`af4405b`).
+- Found via a _real_ smoke test (not just code review): four routes wrapped array responses in an
+  object envelope (`{jobs:[...]}`, `{artifacts:[...]}`, `{confirmations:[...]}`, `{commands:[...]}`)
+  when `ipcBridge.ts` expects raw arrays. The slash-commands one crashed the whole renderer
+  (`AppErrorBoundary: "(i ?? []) is not iterable"`) the instant a real session existed. Fixed +
+  redeployed (`5d674c7`). Also fixed `resolvePython()` to check the Windows venv layout
+  (`venv/Scripts/python.exe`) so the gateway's own test suite runs on Windows dev boxes, not just
+  Linux prod (recovered 4 previously-"failing" tests that were actually just spawn failures).
+- **Still open, not investigated further:** intermittent `/api/sessions/<id>` 404 right after a
+  message send — likely the Python worker persisting the session lazily (after the first turn
+  completes) rather than immediately, so an eager client poll can race it. Not confirmed with worker
+  logs. Low priority — chat works end-to-end now, this only matters if it's still visibly broken (not
+  just console noise) on a future test.
+
+**Console consolidation — one repo now, `github.com/mutvayzz-sys/gcaplabs-console`:**
+
+- Discovered 4 local clones of the _same_ GitHub repo under different folder names (`gcap-console`,
+  `gcaplabs-console`, `gcaplabs-console2`, a timestamped `gcaplabs-console.partial-from-gcap-console-*`
+  scratch folder) — all confirmed via `git remote -v` to point at the one repo. Deleted the three
+  redundant/stale ones (verified no unique uncommitted work first), renamed `gcaplabs-console2` →
+  `gcaplabs-console`. **This is now the only local console checkout — use it, don't recreate others.**
+- Pushed the console2 redesign work: per-agent workspace routing
+  (`/dashboard/agents/{id}/{chat,files,integrations,settings}`), admin-gated top-level screens
+  (Agents list / Members / Settings redirect non-admins straight to their own agent's chat — gate is
+  `src/lib/auth.ts`'s `isConsoleAdmin`/`requireConsoleAdminOrRedirect`, backed by the existing
+  `memberships` table role, **not** the HermesHQ per-user capability role — those are two different
+  role systems, don't conflate them).
+- **Found and flagged, not fixed:** `.env.example` has real (not placeholder) Supabase keys
+  including `SUPABASE_SERVICE_ROLE_KEY` committed to git history since the July 1 scaffold commit.
+  User said they'll rotate after testing settles — **check this got done**, and that `.env.example`
+  itself got scrubbed to placeholders.
+
+**Composio integration — real API, not the Agent37-Cloud-hosted proxy the old starter-kit used:**
+
+- The demo GIF's "Integrations" tab (`agent37-platform/starter-kit`, `screenshots/demo.gif`) calls
+  Agent37 Cloud's _private_ hosted API (`agent37.connectIntegration()` etc, `/instances/{id}/integrations/*`)
+  — GCAP Labs deliberately moved off Agent37 Cloud (`2470af3`, "The console runs on HermesHQ (/v1) now"),
+  so that code was already correctly deleted before this session started. It is **not open source** —
+  the starter-kit repo is just a thin BFF client for Agent37's closed hosted execution engine, so
+  "replicate everything, it's open source" does NOT get you that engine for free. Confirmed via
+  `git remote add upstream https://github.com/agent37-platform/starter-kit.git && git fetch upstream`
+  (this remote is now on the console repo — use `git log upstream/main -- <path>` /
+  `git show upstream/main:<path>` to check what the original had before assuming something's missing).
+- Built a real Composio integration from scratch calling `https://backend.composio.dev/api/v3`
+  directly (server-only, `COMPOSIO_API_KEY` in `.env.local` + Vercel project env — **not** committed;
+  `.env.example` only has a placeholder). New files: `src/lib/composio.ts`,
+  `src/app/api/chat/integrations/{toolkits,connections,connect}/route.ts`,
+  `src/components/integrations/ComposioApps.tsx`. Browse (search + infinite scroll + sort by
+  usage/alphabetically), connect (OAuth via Composio-managed auth configs, created lazily per
+  toolkit), disconnect — all working and deployed. Deleted the dead `/api/chat/integrations` combined
+  MCP+Google stub route and the "Google (runtime)"/"MCP servers" placeholder sections in
+  `AgentWorkspace.tsx` — they never showed real data. Reference for the exact API contracts used
+  (OpenAPI spec pulled from `https://backend.composio.dev/api/v3/openapi.json`, live-verified against
+  the real key): toolkits (`GET /toolkits?search=&sort_by=usage|alphabetically&cursor=`), connected
+  accounts (`GET /connected_accounts?user_ids=`), auth configs (`GET/POST /auth_configs`), connect
+  (`POST /connected_accounts/link` → `redirect_url`).
+- **Gotcha hit and fixed:** a custom `ComposioError` class didn't extend `ApiError`/`RuntimeError`,
+  so `handleError()` (`src/lib/http.ts`) collapsed every real Composio failure into an opaque
+  "Internal server error" — masked what turned out to be a false alarm (both the old and new
+  Composio keys tested valid directly; likely just trailing whitespace from a dashboard paste).
+  Fixed the class hierarchy + added `.trim()` on the key read (`b7e46e8`, `a6c960c`).
+
+### ⛔ Gap found, NOT yet built: connecting an app doesn't give the agent a tool
+
+Connecting Gmail via Composio only creates a Composio-side OAuth connection — it does **not** wire
+anything into the Hermes agent's actual tool-calling. Confirmed live: asked the connected agent to
+list 3 emails, it had no email tool at all. Two separate things got conflated in the demo GIF because
+Agent37 Cloud's proprietary hosted runtime does this wiring invisibly server-side; self-hosted Hermes
+has no such magic and needs it built explicitly.
+
+**Also confirmed real and buildable (not proprietary) — this is the fix:**
+
+- Composio has its own first-class MCP server product (separate from the toolkit-connection API
+  above): `POST /api/v3/mcp/servers` (create a server bound to one or more `auth_config_ids`, returns
+  a server `id`), `POST /api/v3/mcp/servers/{serverId}/instances` (per-`user_id` instance → a
+  connectable MCP URL, format `https://backend.composio.dev/v3/mcp/{serverId}?user_id={userId}`),
+  `PATCH /api/v3/mcp/{id}` (add more `auth_config_ids`/toolkits to an existing server later).
+- Hermes Agent (the actual open-source runtime GCAP self-hosts,
+  [github.com/NousResearch/hermes-agent](https://github.com/NousResearch/hermes-agent)) has **native
+  MCP support** — confirmed via
+  [MCP docs](https://hermes-agent.nousresearch.com/docs/user-guide/features/mcp),
+  [MCP config reference](https://hermes-agent.nousresearch.com/docs/reference/mcp-config-reference),
+  and the actual source
+  [`hermes_cli/mcp_config.py`](https://github.com/NousResearch/hermes-agent/blob/main/hermes_cli/mcp_config.py).
+  MCP servers live under the `mcp_servers` key in `$HERMES_HOME/config.yaml` (same file
+  `hermes_worker.py:288` already reads for model credentials). HTTP-transport entry shape:
+  `{"url": "...", "headers": {...}, "enabled": true}`. CLI equivalent: `hermes mcp` /
+  `hermes mcp install <name>`.
+- **The bug:** `gcaplabs-hermeshq`'s `/api/mcp/servers` compat route (`server/routes/api.ts`) is a
+  fake stub — it reads/writes a local `api-compat.json` file that **nothing else reads**. Confirmed
+  via `grep -rl "api-compat\|mcpServers" server/workers/ server/adapters/` → zero hits. It was built
+  purely to stop the desktop client's Settings/MCP page from 404ing, not to actually register
+  anything with the running agent.
+
+**Scoped plan for next session (two parts, do #1 first — it's the concrete bug the user hit):**
+
+1. **Gateway** (`gcaplabs-hermeshq/third_party/agent37/gateway/server/routes/api.ts`): rewrite the
+   `/mcp/servers` GET/POST/PUT/DELETE handlers to read/write the real
+   `$HERMES_HOME/config.yaml`'s `mcp_servers` key (via `resolveHermesHome()`, already imported in
+   this file) instead of the fake JSON store. Need a YAML lib (check `package.json` — may already
+   have one via the Hermes CLI dependency chain, or add `yaml`/`js-yaml`). Keep the HTTP response
+   shape unchanged (already fixed to match `ipcBridge.ts`'s `IMcpServer` contract this session) so
+   the desktop client doesn't need any changes. Write carefully — this is a real config file with
+   other keys (model credentials etc.) that must not get clobbered; read-modify-write, don't
+   overwrite the whole file.
+2. **Console** (`gcaplabs-console`): after a Composio connection completes (user lands back on
+   `/dashboard/agents/{id}/integrations` post-OAuth), create/update a shared Composio MCP server
+   scoped to that toolkit's `auth_config_id` (reuse `findOrCreateManagedAuthConfigId` from
+   `src/lib/composio.ts`, extend with an equivalent for the MCP server + a `PATCH` to append new
+   `auth_config_ids` to an existing shared server rather than creating one per toolkit), generate a
+   per-user instance (`user_id` = Supabase user id, same scoping already used for connections), then
+   `POST` the resulting URL to the user's own gateway's (now-real) `/api/mcp/servers`.
+3. Verify end-to-end: connect Gmail → ask the agent to list emails → it actually calls a Gmail MCP
+   tool. Don't consider this done until that specific test passes.
+
+### Also discussed, NOT scoped/started: admin fleet management (create/manage multiple agents)
+
+User asked about replicating the starter-kit's multi-agent admin panel (`AgentsView.tsx` /
+`ActiveAgentSwitcher.tsx`, deleted in `2470af3` because it called Agent37 Cloud's private instance
+API). Unlike the Composio gap, this **is** replicable self-hosted — `gcaplabs-hermeshq`'s own backend
+already has an unused agent CRUD API for exactly this (`backend/hermeshq/routers/agents_crud.py`:
+`GET/POST /agents`, `GET/PUT/DELETE /agents/{agent_id}`). Console currently only supports a single
+managed agent per user (`MANAGED_AGENT_ID` constant in `src/lib/managed-agent.ts`) — turning this
+into real fleet management means: a new admin-only agent-list/create/delete UI in console (parallel to
+the existing single-agent dashboard, not a replacement — regular users still just get their one
+agent), wired to `agents_crud.py` instead of Agent37 Cloud. **Not scoped in detail — do this only
+after the Composio/MCP fix above, and re-scope it properly (read `agents_crud.py` fully, decide how
+it interacts with the existing `MANAGED_AGENT_ID` single-agent assumption baked into
+`managed-agent.ts`/`dashboard-tabs.ts` before writing UI) rather than guessing.**
+
 ## ✅ RESOLVED 2026-07-02: console/desktop identity linking — verified live end-to-end
 
 Console (Supabase-authenticated) and desktop (HermesHQ-native username/password) were found to
