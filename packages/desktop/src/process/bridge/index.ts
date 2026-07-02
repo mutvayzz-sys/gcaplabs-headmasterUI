@@ -16,7 +16,7 @@ import { initHermesBridge } from './hermesBridge';
 import { initBrowserBridge } from './browserBridge';
 import { initAgentBridge } from './agentBridge';
 import { initConnectionBridge } from './connectionBridge';
-import { initHermeshqProvisionBridge } from './hermeshqProvisionBridge';
+import { initAgent37ProvisionBridge } from './agent37ProvisionBridge';
 import { initFileSystemBridge } from './fsBridge';
 import { initRuntimeDetectionBridge } from './runtimeDetectionBridge';
 import { initContainerLifecycleBridge } from './containerLifecycleBridge';
@@ -46,7 +46,7 @@ export function initAllBridges(deps: BridgeDependencies = {}): void {
   initBrowserBridge();
   initAgentBridge();
   initConnectionBridge();
-  initHermeshqProvisionBridge();
+  initAgent37ProvisionBridge();
   initFileSystemBridge();
   initTeamBridge();
   initContainerLifecycleBridge();

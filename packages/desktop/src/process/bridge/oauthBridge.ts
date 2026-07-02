@@ -14,7 +14,10 @@ export function initOAuthBridge(): void {
     'oauth:trigger-login',
     async (event, provider: string): Promise<{ success: boolean; token?: string; error?: string }> => {
       const config = getHermeshqConfig();
-      const baseUrl = (config?.url ?? 'https://hq.gcaplabs.com').replace(/\/$/, '');
+      const baseUrl = (config?.url ?? 'https://console.gcaplabs.com')
+        .replace(/\/$/, '')
+        .replace('://hermeshq.gcaplabs.com', '://console.gcaplabs.com')
+        .replace('://hq.gcaplabs.com', '://console.gcaplabs.com');
       const loginUrl = `${baseUrl}/api/auth/oidc/login?provider=${encodeURIComponent(provider)}&desktop=true`;
 
       return new Promise((resolve) => {

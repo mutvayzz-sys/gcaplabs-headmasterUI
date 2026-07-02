@@ -345,3 +345,26 @@ export function clearHermeshqProvision(): void {
   const config = readConfig();
   writeConfig({ ...config, hermeshq: { ...config.hermeshq, provision: null } });
 }
+
+// ---------------------------------------------------------------------------
+// Agent37 aliases
+//
+// The internal seam is still called `HermeshqConfig` / `HermeshqProvisionSnapshot`
+// for historical reasons (every renderer consumer reads from `window.__hermeshqProvision`
+// and the `hermeshq:provision-updated` event). The agent37 client now drives
+// these values; the alias functions below keep the IPC bridge and downstream
+// service code from needing to know about the rename.
+// ---------------------------------------------------------------------------
+
+export type Agent37Config = HermeshqConfig;
+export type Agent37ProvisionSnapshot = HermeshqProvisionSnapshot;
+export type Agent37ProvisionProvider = HermeshqProvisionProvider;
+export type Agent37ProvisionAppSettings = HermeshqProvisionAppSettings;
+
+export const getAgent37Config = getHermeshqConfig;
+export const setAgent37Url = setHermeshqUrl;
+export const setAgent37Token = setHermeshqToken;
+export const clearAgent37Token = clearHermeshqToken;
+export const getAgent37Provision = getHermeshqProvision;
+export const setAgent37Provision = setHermeshqProvision;
+export const clearAgent37Provision = clearHermeshqProvision;

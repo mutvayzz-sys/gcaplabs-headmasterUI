@@ -99,11 +99,12 @@ const AUTH_USER_ENDPOINT = '/api/auth/user';
 
 const isDesktopRuntime = typeof window !== 'undefined' && Boolean(window.electronAPI);
 
-// Build-time server URL — set VITE_HERMESHQ_URL in .env before building
+// Build-time console URL. HermesHQ is retired; this now points at the
+// Headmaster Console BFF, which provisions Agent37 Cloud runtimes.
 const HERMESHQ_URL = (
   ((import.meta as ImportMeta & { env?: Record<string, string | undefined> }).env?.VITE_HERMESHQ_URL as
     | string
-    | undefined) ?? 'https://hq.gcaplabs.com'
+    | undefined) ?? 'https://console.gcaplabs.com'
 ).replace(/\/$/, '');
 
 async function refreshHermeshqToken(serverUrl: string, token: string): Promise<string | null> {
@@ -175,9 +176,11 @@ async function fetchCurrentUser(signal?: AbortSignal): Promise<AuthUser | null> 
 
 function resolveDesktopServerUrl(configUrl?: string): string {
   const url = (configUrl || HERMESHQ_URL).trim().replace(/\/$/, '');
-  // Migrate the pre-rename control-plane domain so clients with a stale stored
-  // URL still reach it (hermeshq.gcaplabs.com → hq.gcaplabs.com).
-  return url.replace('://hermeshq.gcaplabs.com', '://hq.gcaplabs.com');
+  // Migrate retired control-plane domains so clients with a stale stored URL
+  // land on the Agent37-backed Headmaster Console.
+  return url
+    .replace('://hermeshq.gcaplabs.com', '://console.gcaplabs.com')
+    .replace('://hq.gcaplabs.com', '://console.gcaplabs.com');
 }
 
 async function extractRemoteSessionToken(endpointUrl: string): Promise<string | null> {

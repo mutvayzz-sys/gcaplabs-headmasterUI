@@ -75,7 +75,10 @@ import {
 } from './process/utils/tray';
 import { readCloseToTraySetting } from './process/utils/closeToTraySetting';
 import { getConnectionMode, getRemoteConfig, getHermeshqProvision } from './process/connection/connectionConfig';
-import { validateHermeshqRuntimeAccess, setHermesRuntimeRestarter } from './process/services/hermeshqProvisionService';
+import {
+  validateHermeshqRuntimeAccess,
+  setHermesRuntimeRestarter,
+} from './process/services/agent37ProvisionService';
 // @ts-expect-error - electron-squirrel-startup doesn't have types
 import electronSquirrelStartup from 'electron-squirrel-startup';
 
@@ -216,7 +219,7 @@ setGcapcoreBootstrap(gcapcoreBootstrap);
 initBridges({ hermesBootstrap });
 
 // When provision writes new env vars (e.g. KIMI_API_KEY) to .env, the running
-// Hermes process won't pick them up. Inject a restarter so hermeshqProvisionService
+// Hermes process won't pick them up. Inject a restarter so the Agent37 provision service
 // can restart Hermes after provision completes.
 setHermesRuntimeRestarter(async () => {
   hermesBootstrap.stop();
@@ -718,9 +721,9 @@ const handleAppReady = async (): Promise<void> => {
   // Inject CORS headers so the renderer can reach cross-origin API servers.
   // In dev mode the renderer loads from localhost:5173 (Vite) rather than app://,
   // so Chromium enforces CORS for all requests to the local Hermes API server and
-  // to the remote HermesHQ backend.
+  // to the remote Agent37-backed Headmaster Console.
   const corsUrls = [
-    'https://hq.gcaplabs.com/*',
+    'https://console.gcaplabs.com/*',
     // Dev mode only: cover the local Hermes API server (dynamic port on 127.0.0.1)
     ...(!app.isPackaged ? ['http://127.0.0.1/*'] : []),
   ];
