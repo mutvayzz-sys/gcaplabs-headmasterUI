@@ -1,5 +1,83 @@
 # Master Log
 
+## 2026-07-02
+
+### Verification pass: audit + gap fixes (G1–G3 done, uncommitted) + architecture direction
+
+**Static audit (3 agents) confirmed Phases 0–7 are genuinely done**, with four small residual
+gaps. Findings and the resulting work order are captured in `mastertodo.md` → "⏭️ NEXT SESSION".
+
+- **Desktop Phase 5 is NOT half-done anymore — it's done + hardened.** Correcting the 2026-07-01
+  entry below: in **remote** mode the desktop now speaks `/v1` exclusively. Commits `d3d9566`
+  (probe `/v1/health` for the status indicator), `f1ad6da` (fail-fast on WS in remote mode + verify
+  no WS-RPC in the renderer), and `31074cf` (interactive/approval flows on
+  `POST /v1/responses/{id}/interactive`) landed the full chat path. WS-RPC is hard-disabled remotely
+  (`getWsUrl()` throws, `connectRpcWs` rejects). WS survives ONLY for local-dashboard mode, by design.
+  The `x-headmaster-container-id` "gap" is a non-issue — Traefik injects it per route; the client
+  only sends the bearer.
+
+- **Gap fixes — Hermes executed G1–G3 in the working tree, then crashed BEFORE committing or
+  running the build/test verification. All three sit uncommitted:**
+  - **G1 (hermeshq `containers.py`)** — legacy `NOUS_API_KEY` override deleted from the admin
+    provision endpoint; `_runtime_env` already injects kimi unconditionally (confirmed by prior
+    commit `aee2dc9`). *Uncommitted working-tree change.*
+  - **G2 (gcap-console)** — dead Agent37 cloud residue removed: `AgentsView.tsx`, `AgentNameCell.tsx`,
+    `ActiveAgentSwitcher.tsx`, `AgentWorkspace.tsx` deleted; `config/agents.ts` templates cleaned;
+    `agent37.ts` gutted to a re-export shim; `RuntimeError` is now canonical in `http.ts` with
+    `Agent37Error` as a back-compat alias. One stale *comment* mention of `lib/agent37.ts` remains
+    in `components/files/types.ts` (cosmetic). *Uncommitted.*
+  - **G3 (desktop `AppearanceSettings/presets/default.css`)** — the `[data-theme='dark']` block is
+    fully rebranded to GCAP: `--primary #74a981` (green), green brand vars, `--aou-*` remapped to a
+    parchment-dark slate. Light `:root` was already correct. *Uncommitted.*
+  - **G4** — note only: desktop token is `--primary`/`--color-primary`, not `--theme-primary`;
+    intentional (renaming risks Uno/Arco breakage).
+
+- **Still outstanding after the crash:** commit G1–G3; run build/typecheck/tests
+  (`bunx tsc --noEmit` + `bunx vitest run`; console `npm run typecheck && npm run build`; hermeshq
+  `pytest`); live runtime smoke (blocked on the VPS image rebuild Hermes is driving).
+
+### Architecture direction locked — remote-first thin client + HeadmasterCore
+
+Decision from a design discussion this session (rationale in `mastertodo.md` → "Architecture: client
+model"):
+
+- **Client = thin, `/v1/responses` SSE only.** Local vs remote is just a URL; no bundled Hermes
+  brain long-term. This lets us eventually retire the WS-RPC path, `hermesBootstrap`,
+  `binaryResolver`, and `bundled-hermes/`. Unify on **transport**, not location — if a local runtime
+  is ever wanted, run the gateway locally and still speak `/v1`.
+- **Brain = remote Hermes container** (model, orchestration, sessions, memory, heavy tools) —
+  always-on, centrally upgradeable, isolated.
+- **HeadmasterCore = a local daemon that gives the remote brain hands on the user's machine.** It
+  dials OUT to the VPS (reverse/outbound tunnel — no inbound ports, matches the Cloudflare-tunnel
+  philosophy) and exposes local capabilities (fs, shell/PTY, browser/computer-use, Office) as **MCP
+  servers** that the remote Hermes registers as tools, scoped per-user + gated by the existing
+  forward-auth HMAC. Keep tools coarse-grained to beat round-trip latency. Degrades cleanly to a
+  cloud-sandbox agent when HeadmasterCore isn't connected.
+- **HeadmasterCore is built FROM the AionCore binary.** `_support/upstream/aioncore` already ships
+  the exact crates we need — `aionui-mcp`, `aionui-shell`, `aionui-file`, `aionui-office` (OfficeCLI),
+  `aionui-team` (Council), `aionui-cron`, `aionui-realtime`. So "take it or recreate it" → AionCore
+  *is* HeadmasterCore; expose its surface over the tunnel as MCP. One binary provides Office + Council
+  + local execution.
+
+### AionUI features to bring back — they're already in-tree; the real work is RE-HOMING them
+
+The three features the owner named are **not deleted** — all present and wired in the current app,
+but all assume **local processes/binaries**, which collides with the remote-first pivot:
+- **Preview panel** (`renderer/pages/conversation/Preview/`, `PreviewProvider` in the chain,
+  mounted in `ChatLayout`) — pure renderer UI. **Stays in the thin client**; source file bytes from
+  the remote container via `/v1/files*` (as the console already does). Easy.
+- **OfficeCLI** — used by `OfficeWatchViewer.tsx` which spawns a local `officecli watch` child
+  process. Provided by AionCore (`aionui-office`). **Re-home into the container image and/or
+  HeadmasterCore**, exposed as a Hermes tool/skill (see `package-assistant` skill). Live `watch`
+  preview becomes `/v1/files` polling / file-change events in remote mode.
+- **Councils** — Team feature backed by the local AionCore sidecar (`aioncoreBootstrap`,
+  `useCouncilSidecar`, `CouncilSidecarBanner`; falls back to a native in-process team layer when the
+  binary is missing). Provided by AionCore (`aionui-team`). **Re-home** into the container /
+  HeadmasterCore so Council orchestration runs server-side or via the local MCP daemon.
+
+Net: OfficeCLI + Council + local execution all consolidate into **one AionCore/HeadmasterCore
+binary**, reachable by the remote brain over MCP. The preview panel stays client-side.
+
 ## 2026-07-01
 
 ### "Headmaster: Inactive" → desktop /v1 migration is only half-done

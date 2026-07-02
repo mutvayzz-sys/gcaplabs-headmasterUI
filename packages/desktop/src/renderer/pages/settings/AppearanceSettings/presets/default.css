@@ -88,90 +88,90 @@
   --workspace-btn-bg: #eff0f1;
 }
 
-/* Dark Mode Overrides - 深色模式覆盖 */
+/* Dark Mode Overrides - GCAP Headmaster dark (from gcap-brand-tokens.ts color.dark) */
 [data-theme='dark'] {
-  /* Primary Colors - Dark Mode */
-  --color-primary: #4d9fff;
-  --primary: #4d9fff;
-  --color-primary-light-1: #6aa8ff;
-  --color-primary-light-2: #87b7ff;
-  --color-primary-light-3: #a4c6ff;
-  --color-primary-dark-1: #306acc;
-  --primary-rgb: 77, 159, 255;
+  /* Primary Colors - Dark Mode (green-derived, dark.primary = #74a981) */
+  --color-primary: #74a981;
+  --primary: #74a981;
+  --color-primary-light-1: #8fbc9a;
+  --color-primary-light-2: #aacfb3;
+  --color-primary-light-3: #c5e2cc;
+  --color-primary-dark-1: #5a8a68;
+  --primary-rgb: 116, 169, 129;
 
-  /* Brand Colors - Dark Mode */
-  --brand: #a1aacb;
-  --brand-light: #3d4150;
-  --brand-hover: #6a749b;
-  --color-brand-fill: #a1aacb;
-  --color-brand-bg: #3d4150;
+  /* Brand Colors - Dark Mode (green primary on parchment-dark surfaces) */
+  --brand: #74a981;
+  --brand-light: #211d17;
+  --brand-hover: #5a8a68;
+  --color-brand-fill: #74a981;
+  --color-brand-bg: #211d17;
 
-  /* AOU Brand Colors - Dark Mode */
-  --aou-1: #2a2a2a;
-  --aou-2: #3d4150;
-  --aou-3: #525a77;
-  --aou-4: #6a749b;
-  --aou-5: #838fba;
-  --aou-6: #a1aacb;
-  --aou-7: #b5bcd6;
-  --aou-8: #d1d5e5;
-  --aou-9: #e5e7f0;
-  --aou-10: #eff0f6;
+  /* AOU Brand Colors - remapped to parchment-dark slate palette */
+  --aou-1: #15130f;
+  --aou-2: #211d17;
+  --aou-3: #2a241c;
+  --aou-4: #3d362b;
+  --aou-5: #5e564a;
+  --aou-6: #8a857a;
+  --aou-7: #b5b0a5;
+  --aou-8: #d4cfc4;
+  --aou-9: #e8e4dc;
+  --aou-10: #f5f2ec;
 
-  /* Background Colors - Dark Mode */
-  --color-bg-1: #1a1a1a;
-  --bg-1: #1a1a1a;
-  --color-bg-2: #262626;
-  --bg-2: #262626;
-  --color-bg-3: #333333;
-  --bg-3: #333333;
-  --color-bg-4: #404040;
-  --bg-4: #404040;
-  --bg-base: #0e0e0e;
-  --bg-5: #4d4d4d;
-  --bg-6: #5a5a5a;
-  --bg-8: #737373;
-  --bg-9: #a6a6a6;
-  --bg-10: #d9d9d9;
+  /* Background Colors - Dark Mode (parchment-dark: dark.background = #15130f, dark.surface = #211d17) */
+  --color-bg-1: #211d17;
+  --bg-1: #211d17;
+  --color-bg-2: #2a241c;
+  --bg-2: #2a241c;
+  --color-bg-3: #3d362b;
+  --bg-3: #3d362b;
+  --color-bg-4: #5e564a;
+  --bg-4: #5e564a;
+  --bg-base: #15130f;
+  --bg-5: #8a857a;
+  --bg-6: #b5b0a5;
+  --bg-8: #e8e4dc;
+  --bg-9: #f5f2ec;
+  --bg-10: #faf7f2;
 
   /* Interactive State Colors - Dark Mode */
-  --bg-hover: #1f1f1f;
-  --bg-active: #2d2d2d;
+  --bg-hover: #2a241c;
+  --bg-active: #3d362b;
 
   /* Fill Colors - Dark Mode */
-  --fill: #1a1a1a;
-  --color-fill: #1a1a1a;
-  --fill-0: rgba(255, 255, 255, 0.08);
-  --fill-white-to-black: #000000;
-  --dialog-fill-0: #333333;
-  --inverse: #ffffff;
+  --fill: #211d17;
+  --color-fill: #211d17;
+  --fill-0: rgba(255, 255, 255, 0.06);
+  --fill-white-to-black: #15130f;
+  --dialog-fill-0: #2a241c;
+  --inverse: #f7f1e6;
 
-  /* Text Colors - Dark Mode */
-  --color-text-1: #ffffff;
-  --text-primary: #ffffff;
-  --color-text-2: #a6a6a6;
-  --text-secondary: #ced3da;
-  --color-text-3: #737373;
-  --text-disabled: #737373;
-  --text-0: #ffffff;
+  /* Text Colors - Dark Mode (dark.ink = #f7f1e6, dark.muted = #c7bca9) */
+  --color-text-1: #f7f1e6;
+  --text-primary: #f7f1e6;
+  --color-text-2: #c7bca9;
+  --text-secondary: #c7bca9;
+  --color-text-3: #8a857a;
+  --text-disabled: #5e564a;
+  --text-0: #f7f1e6;
   --text-white: #ffffff;
 
   /* Border Colors - Dark Mode */
-  --color-border: #333333;
-  --color-border-1: #333333;
-  --color-border-2: #262626;
-  --border-base: #333333;
-  --border-light: #262626;
-  --border-special: #60677e;
+  --color-border: #3d362b;
+  --color-border-1: #3d362b;
+  --color-border-2: #2a241c;
+  --border-base: #3d362b;
+  --border-light: #2a241c;
+  --border-special: #5e564a;
 
   /* Semantic Colors - Dark Mode */
-  --success: #23c343;
-  --warning: #ff9a2e;
-  --danger: #f76560;
-  --info: #4d9fff;
+  --success: #74a981;
+  --warning: #d4b77a;
+  --danger: #cf806d;
+  --info: #74a981;
 
   /* Message & UI Component Colors - Dark Mode */
-  --message-user-bg: #1e2a3a;
-  --message-tips-bg: #1a2333;
-  --workspace-btn-bg: #1f1f1f;
+  --message-user-bg: #2a241c;
+  --message-tips-bg: #211d17;
+  --workspace-btn-bg: #2a241c;
 }
