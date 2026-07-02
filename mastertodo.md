@@ -21,40 +21,50 @@ SSE**, WS hard-disabled remotely via `getWsUrl` throw + `connectRpcWs` reject; p
 carries subdomain/forward-auth-token/`/v1` base/model catalog). The `x-headmaster-container-id`
 "gap" is a **non-issue** — Traefik injects it per route; the client only sends the bearer.
 
-### Gaps to fix — G1–G3 DONE in working tree (2026-07-02), ⚠️ UNCOMMITTED + UNVERIFIED
+### Gaps to fix — G1–G3 DONE, COMMITTED, AND VERIFIED (2026-07-02)
 
-> Hermes executed all three fixes, then **crashed before committing or running the build/test
-> verification**. The changes sit in the working tree of each repo. **Next step: commit + verify.**
+> The prior session crashed before committing/verifying, but a re-check this session found all
+> three repos' working trees already clean — the commits had landed. This session ran the actual
+> verification (previously skipped) and it passed clean everywhere.
 
-- [x] **G1 — HermesHQ: drop legacy nous injection.** DONE — the `NOUS_API_KEY` override block is
-  gone from `containers.py`; `env = await _runtime_env(...)` flows straight to provision. Uncommitted
-  (`git status`: `M backend/hermeshq/routers/containers.py`).
-- [x] **G2 — Console: remove dead Agent37 cloud residue.** DONE — `AgentsView.tsx`,
-  `AgentNameCell.tsx`, `ActiveAgentSwitcher.tsx`, `AgentWorkspace.tsx` deleted; `config/agents.ts`
-  cleaned; `agent37.ts` reduced to a re-export shim; `RuntimeError` canonical in `http.ts` with
-  `Agent37Error` alias. Uncommitted. Residual: stale comment mention of `lib/agent37.ts` in
-  `components/files/types.ts` (cosmetic); shim `agent37.ts` can be deleted once import sites move to
-  `RuntimeError`. Decision: keep `agent37_id` column as an opaque runtime id.
-- [x] **G3 — Desktop: finish dark-mode branding.** DONE — `[data-theme='dark']` block fully
-  rebranded (`--primary #74a981`, green brand vars, `--aou-*` → parchment-dark slate). Uncommitted.
+- [x] **G1 — HermesHQ: drop legacy nous injection.** DONE and committed —
+      `d1391a5 fix(containers): drop legacy NOUS_API_KEY injection from admin provision`, now on
+      `gcapslab/main` (fast-forwarded past a version-bump commit from another machine, `593d5b5`).
+- [x] **G2 — Console: remove dead Agent37 cloud residue.** DONE and committed —
+      `2470af3 chore: remove dead Agent37 hosted-cloud residue`, pushed to `origin/main`.
+- [x] **G3 — Desktop: finish dark-mode branding.** DONE and committed —
+      `fe9886c fix(theme): rebrand desktop dark mode to GCAP + tracker updates`, on `origin/main`.
 - [x] **G4 — Note only:** desktop token is `--primary`/`--color-primary`, not `--theme-primary` —
-  intentional; do not rename.
+      intentional; do not rename.
 
-**Remaining for next session:**
-- [ ] Commit G1–G3 in their three repos (hermeshq, gcap-console, headmasterUI).
-- [ ] Run verification (see below) — was NOT run before the crash.
-- [ ] Optional: delete the `agent37.ts` shim + fix the stale comment in `components/files/types.ts`.
+**Cleanup done this session (2026-07-02):**
 
-### Verify (before and after fixes)
-- [ ] Desktop (`gcaplabs-headmasterUI`): `bunx tsc --noEmit` then `bunx vitest run` (per `CI_VERIFY.md`).
-- [ ] Console (`gcap-console`): `npm run typecheck && npm run build`.
-- [ ] HermesHQ (`gcaplabs-hermeshq/backend`): `pytest` excluding the 3 known-bad files (ruff unavailable — don't block on lint).
+- [x] Deleted the dead `gcap-console/src/lib/agent37.ts` shim (zero import sites remained) and
+      fixed the stale `lib/agent37.ts` comment in `src/components/files/types.ts` → now points at
+      `lib/hermeshq.ts`. Commits `ecb5283` + `3219f21`, pushed to `origin/main`.
+      Note: a local formatter hook reformatted that one file to single quotes, inconsistent with the
+      rest of the console repo's double-quote convention — cosmetic only (typecheck/build still pass),
+      worth a follow-up `prettier`/`oxfmt` pass on that file if it bothers anyone.
+
+### Verify — RUN 2026-07-02, all clean
+
+- [x] Desktop (`gcaplabs-headmasterUI`): `bunx tsc --noEmit` clean; `bun run test` → **1332 passed,
+      3 skipped** (175 test files passed, 1 skipped).
+- [x] Console (`gcap-console`): `npm run typecheck` clean; `npm run build` → compiled successfully
+      (Next.js 16.2.9 / Turbopack).
+- [x] HermesHQ (`gcaplabs-hermeshq/backend`): `pytest` (via the repo's own `.venv`, not the global
+      Python — that's what made the first attempt fail with `ModuleNotFoundError: hermeshq`) →
+      **335 passed, 23 skipped**, excluding `tests/test_regressions.py` (the one known-bad file: it
+      imports `fcntl`, a Unix-only stdlib module, so it can never collect on Windows — not a real
+      failure, just a platform gap). Only one bad file surfaced, not three as the tracker guessed;
+      update that number if a future session finds the other two.
 
 ### Live runtime smoke (remote mode against `hm-<id>.gcaplabs.com/v1/*`) — after image rebuild
+
 - [ ] Provision → `GET /v1/health` 200 through Traefik+forward-auth (401 w/o bearer, 200 with token).
 - [ ] `GET /v1/models` returns kimi catalog (`kimi-k2.7-code`).
 - [ ] Desktop remote: create session → prompt → stream kimi turn → cancel → list sessions → browse
-  files; approval/clarify round-trips via `POST /v1/responses/{id}/interactive`; status shows Active.
+      files; approval/clarify round-trips via `POST /v1/responses/{id}/interactive`; status shows Active.
 - [ ] Console: signup → approve → dashboard → chat streams a kimi turn.
 
 **➡️ For Hermes (VPS — he's driving this, going well):** rebuild `headmaster-hermes-runtime:latest`
@@ -65,8 +75,12 @@ cold-VPS rehearsal (`provision-host.sh` + compose up + build image + create inst
 box → external `hm-<id>.gcaplabs.com/v1/health` = 200).
 
 ### Tracker updates
+
 - [x] `mastertodo.md`: Phase 5 desktop flipped off 🔴 (see resolved note below); G1–G3 checked.
 - [x] `masterlog.md`: 2026-07-02 entry appended (audit, gap fixes, architecture direction, AionUI re-homing).
+- [x] `mastertodo.md`: 2026-07-02 follow-up session — reconciled the G1–G3 "uncommitted" framing
+      (all three were already committed), ran the verification that was skipped, pushed
+      hermeshq/console to their remotes, deleted the dead `agent37.ts` shim.
 
 ---
 
@@ -75,7 +89,7 @@ box → external `hm-<id>.gcaplabs.com/v1/health` = 200).
 **Remote-first thin client + HeadmasterCore for local hands.**
 
 - **Client = thin, `/v1/responses` SSE only.** Local vs remote is just a URL. Long-term retire the
-  WS-RPC path + `hermesBootstrap` + `binaryResolver` + `bundled-hermes/`. Unify on *transport*, not
+  WS-RPC path + `hermesBootstrap` + `binaryResolver` + `bundled-hermes/`. Unify on _transport_, not
   location — if a local runtime is ever wanted, run the gateway locally and still speak `/v1`.
 - **Brain = remote Hermes container** — model, orchestration, sessions, memory, heavy tools.
 - **HeadmasterCore = local daemon giving the remote brain hands on the user's machine.** Dials OUT
@@ -85,7 +99,7 @@ box → external `hm-<id>.gcaplabs.com/v1/health` = 200).
   when not connected.
 - **HeadmasterCore is built FROM the AionCore binary** (`_support/upstream/aioncore`): it already
   ships `aionui-mcp`, `aionui-shell`, `aionui-file`, `aionui-office` (OfficeCLI), `aionui-team`
-  (Council), `aionui-cron`, `aionui-realtime`. Take it / re-skin it → AionCore *is* HeadmasterCore.
+  (Council), `aionui-cron`, `aionui-realtime`. Take it / re-skin it → AionCore _is_ HeadmasterCore.
 
 **⚠️ Branding (white-label rule — mandatory):** everything taken from AionCore/AionUI must be
 **renamed to Headmaster branding** — no `AionUI`/`AionCore`/`AOU`/`aionui-*`/`officecli` strings
@@ -94,12 +108,13 @@ Headmaster Office (OfficeCLI), Headmaster Council (Council/team). Rename crates,
 env vars, log tags, and every user-facing string; keep `hermes`/`Nous`/`AionUi` out of the UI.
 
 **Roadmap (post-beta / parallel track):**
+
 - [ ] Collapse desktop client to a single `/v1` transport; delete WS-RPC + local-bundled-Hermes path.
 - [ ] Fork/vendor AionCore → **HeadmasterCore**; rebrand all names (crates, binary, CLI, env, UI
-  strings) to Headmaster before shipping (HeadmasterCore / HeadmasterMCP / Headmaster Office /
-  Headmaster Council).
+      strings) to Headmaster before shipping (HeadmasterCore / HeadmasterMCP / Headmaster Office /
+      Headmaster Council).
 - [ ] Stand up HeadmasterCore: expose `shell`/`file`/`office`/`team` over **HeadmasterMCP**; add the
-  outbound tunnel + forward-auth handshake so a remote container can reach it.
+      outbound tunnel + forward-auth handshake so a remote container can reach it.
 - [ ] Remote Hermes: register HeadmasterMCP tools per session, behind explicit user consent.
 
 ## 🔁 AionUI features to bring back — RE-HOME, don't re-add (they're still in-tree)
@@ -108,14 +123,14 @@ All three are present and wired in the current app but assume **local** processe
 with remote-first. The work is re-homing, not re-adding.
 
 - [ ] **Preview panel** — pure renderer (`renderer/pages/conversation/Preview/`, mounted in
-  `ChatLayout`, `PreviewProvider` in chain). **Stays client-side**; source file bytes from the
-  container via `/v1/files*` (as the console already does). Easiest — mostly already works.
+      `ChatLayout`, `PreviewProvider` in chain). **Stays client-side**; source file bytes from the
+      container via `/v1/files*` (as the console already does). Easiest — mostly already works.
 - [ ] **OfficeCLI** — `OfficeWatchViewer.tsx` spawns a local `officecli watch`. Provided by AionCore
-  (`aionui-office`). **Re-home into the container image / HeadmasterCore**, expose as a Hermes
-  tool/skill (`package-assistant`). Live `watch` → `/v1/files` polling / change events in remote mode.
+      (`aionui-office`). **Re-home into the container image / HeadmasterCore**, expose as a Hermes
+      tool/skill (`package-assistant`). Live `watch` → `/v1/files` polling / change events in remote mode.
 - [ ] **Councils** — Team feature via the local AionCore sidecar (`aioncoreBootstrap`,
-  `useCouncilSidecar`, `CouncilSidecarBanner`; native in-process fallback exists). Provided by
-  AionCore (`aionui-team`). **Re-home** so orchestration runs server-side or via HeadmasterCore MCP.
+      `useCouncilSidecar`, `CouncilSidecarBanner`; native in-process fallback exists). Provided by
+      AionCore (`aionui-team`). **Re-home** so orchestration runs server-side or via HeadmasterCore MCP.
 
 Consolidation: OfficeCLI + Council + local execution all come from **one AionCore/HeadmasterCore
 binary**; the preview panel stays in the thin client. **All three must be rebranded** on the way in
@@ -149,11 +164,11 @@ surfaced string, including the existing `officecliNotFound` i18n keys and `--aou
 - [x] Phase 3: full approve→provision→runtime smoke — VPS smoke test passed: container started with kimi-code env vars, `/v1/health` returns 200 via direct Docker network
 - [x] Phase 4: **NEW console built fresh from starter-kit** — `gcap-console/` at workspace root is a Next.js 16 + Supabase + Tailwind v4 app with GCAP brand tokens (parchment + green + gold), Headmaster branding, HermesHQ provision API client (`src/lib/hermeshq.ts`), `/v1/responses` SSE chat routes, simplified one-page dashboard, Supabase profiles migration (fleet tables commented out for future use). Typecheck + build both PASS. Pushed to `main-nextjs` branch on `mutvayzz-sys/gcaplabs-console` — needs force-push or branch merge to replace old Wasp code on `main`. Deploy to Vercel pending DNS (`console.gcaplabs.com`).
 - [x] Phase 5: desktop remote runtime — **DONE (audit 2026-07-02)**. In remote mode the full chat
-  path is on `/v1`: streaming (`/v1/responses` SSE + cancel/reconnect), prompt submit, sessions, and
-  interactive/approval flows (`POST /v1/responses/{id}/interactive`, commit `31074cf`). WS-RPC is
-  hard-disabled remotely (`getWsUrl` throws / `connectRpcWs` rejects, `f1ad6da`); status probe uses
-  `/v1/health` (`d3d9566`). Legacy WS survives ONLY for local-dashboard mode, **by design** — not a
-  bug. See the resolved note below.
+      path is on `/v1`: streaming (`/v1/responses` SSE + cancel/reconnect), prompt submit, sessions, and
+      interactive/approval flows (`POST /v1/responses/{id}/interactive`, commit `31074cf`). WS-RPC is
+      hard-disabled remotely (`getWsUrl` throws / `connectRpcWs` rejects, `f1ad6da`); status probe uses
+      `/v1/health` (`d3d9566`). Legacy WS survives ONLY for local-dashboard mode, **by design** — not a
+      bug. See the resolved note below.
 - [x] Phase 5: iOS → `/v1/responses` SSE — `RunsAPIClient.swift`, `CloudContainerConfig`/`CloudContainerTransport.swift` updated; build verification requires Mac. Commit `0105789` pushed to `origin/main` 2026-07-01.
 - [x] Phase 6: beta hardening
   - [x] billing/limits: **beta is free — no Stripe/payment gate during beta**; access gated by approval + resource caps; per-org Nous spend visibility only. Stripe deferred to GA (post-beta).
@@ -182,7 +197,7 @@ Architecture decision above — long-term the client collapses to a single `/v1`
 The original problem write-up is retained below for history.
 
 **[HISTORICAL — now fixed] Problem (2026-07-01):** Phase 5's `/v1` migration was only PARTIAL.
-Response *streaming* moved to `/v1/responses` SSE, but the desktop still drove sessions + prompt
+Response _streaming_ moved to `/v1/responses` SSE, but the desktop still drove sessions + prompt
 submission over the **legacy Hermes WebSocket JSON-RPC** (`gatewayRpcRequest` → `wss://<runtime>/api/ws`,
 built by `getWsUrl()`/`connectRpcWs()` in `common/adapter/httpBridge.ts`). The Agent37 runtime is
 **REST-only** (`/v1/*`) and has no `/api/ws`, so in remote mode the WS never connected →
@@ -190,6 +205,7 @@ built by `getWsUrl()`/`connectRpcWs()` in `common/adapter/httpBridge.ts`). The A
 
 **Legacy WS-RPC call sites to migrate → Agent37 `/v1` surface** (surface per gateway `AGENTS.md`:
 responses, sessions, models, files):
+
 - `common/adapter/hermesChatAdapter.ts`:
   - `session.create` → `POST /v1/responses` (start a response/session)
   - `session.resume` → `GET /v1/sessions/{id}` (transcript) + `GET /v1/responses/{id}/stream` (reattach)
@@ -204,6 +220,7 @@ responses, sessions, models, files):
   not WS RPC.
 
 **Supporting cleanup:**
+
 - `common/adapter/httpBridge.ts`: retire `connectRpcWs`/`gatewayRpcRequest`/`/api/ws` for remote
   mode (keep only if local-dashboard mode still needs WS); remove the `9119`/`9120`/`8080` port
   fallbacks (veeplan Phase 5 "remove brittle port logic").
@@ -219,11 +236,12 @@ stream a kimi turn → cancel → list sessions → browse files; approval/clari
 status indicator shows **Active**.
 
 ### Runtime image rebuild (pending — infra)
+
 - [ ] Rebuild `headmaster-hermes-runtime:latest` on the VPS with the entrypoint + Dockerfile perf
-  fix (`c258d59`) and recreate provisioned containers. **Blocked 2026-07-02 by flaky SSH-over-tunnel**
-  under build load (repeated `websocket: bad handshake`). The live container already works via a
-  manual kimi `config.yaml`; the rebuild makes it automatic. Retry when the tunnel is stable, or
-  build via Portainer/Cockpit on the box.
+      fix (`c258d59`) and recreate provisioned containers. **Blocked 2026-07-02 by flaky SSH-over-tunnel**
+      under build load (repeated `websocket: bad handshake`). The live container already works via a
+      manual kimi `config.yaml`; the rebuild makes it automatic. Retry when the tunnel is stable, or
+      build via Portainer/Cockpit on the box.
 
 ## Done
 
