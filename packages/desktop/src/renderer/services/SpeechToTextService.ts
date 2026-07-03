@@ -4,11 +4,31 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { isRemoteContainerMode } from '@/common/adapter/backendUrl';
 import { getBaseUrl } from '@/common/adapter/httpBridge';
 import type { SpeechToTextResult } from '@/common/types/provider/speech';
 
 /** Dispatched on window whenever the speech-to-text config is saved. */
 export const SPEECH_TO_TEXT_CONFIG_CHANGED_EVENT = 'headmaster:speech-to-text-config-changed';
+
+/**
+ * Surfaced when the desktop tries to call a local-Hermes STT endpoint but is
+ * running in Agent37 cloud container mode (where no STT endpoint exists).
+ * `useSpeechInput` maps this to a localized "not available" message.
+ */
+export const STT_UNAVAILABLE_ERROR = 'STT_UNAVAILABLE';
+
+/**
+ * Cloud container mode has no `/api/stt` (or any STT endpoint). Fail fast with
+ * a clear code so the UI can show a meaningful "not available" message
+ * instead of a generic network error. See `SpeechStreamClient.isCloudMode`
+ * for the same guard on the streaming path.
+ */
+const ensureLocalModeForStt = (): void => {
+  if (isRemoteContainerMode()) {
+    throw new Error(STT_UNAVAILABLE_ERROR);
+  }
+};
 
 const MAX_AUDIO_FILE_SIZE_MB = 30;
 const MAX_AUDIO_FILE_SIZE_BYTES = MAX_AUDIO_FILE_SIZE_MB * 1024 * 1024;
@@ -77,6 +97,10 @@ const parseErrorResponse = (response: XMLHttpRequest): Error => {
 };
 
 export async function transcribeAudioBlob(blob: Blob, languageHint?: string): Promise<SpeechToTextResult> {
+  // Refuse before doing any work: Agent37 cloud container has no STT endpoint.
+  // Without this guard, we'd issue a request to a 404 and surface a generic
+  // network error to the user instead of a clear "not available" message.
+  ensureLocalModeForStt();
   ensureAudioSize(blob);
 
   const mimeType = blob.type || 'audio/webm';

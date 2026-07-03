@@ -82,9 +82,9 @@ class MockWebSocket implements WebSocketLike {
   }
 }
 
-// ---------------------------------------------------------------------------
+// -----------------------------------------------------------------------
 // Helpers
-// ---------------------------------------------------------------------------
+// -----------------------------------------------------------------------
 
 type MockCallbacks = { [K in keyof SpeechStreamCallbacks]: ReturnType<typeof vi.fn> };
 
@@ -111,15 +111,35 @@ const setBackendPort = (port: number | undefined): void => {
   }
 };
 
+/**
+ * The test environment has `window.electronAPI` mocked (see tests/vitest.dom.setup.ts),
+ * which makes the consolidated `isWebUiBrowserMode()` helper return false — the
+ * renderer is treated as Electron. The WebUI test below removes electronAPI to
+ * exercise the same-origin branch.
+ */
+const setWebUiMode = (enabled: boolean): void => {
+  const w = window as Window & { electronAPI?: unknown };
+  if (enabled) {
+    delete w.electronAPI;
+  } else if (!w.electronAPI) {
+    w.electronAPI = { emit: () => Promise.resolve(), on: () => {} };
+  }
+};
+
 beforeEach(() => {
   vi.useFakeTimers();
   MockWebSocket.instances = [];
-  setBackendPort(undefined);
+  // Default backend port for tests that don't care about URL resolution. The
+  // "Electron mode without a published port" test below resets this to
+  // undefined to exercise the no-port-published error path.
+  setBackendPort(14512);
+  setWebUiMode(false);
 });
 
 afterEach(() => {
   vi.useRealTimers();
   setBackendPort(undefined);
+  setWebUiMode(false);
   vi.restoreAllMocks();
 });
 
@@ -440,7 +460,8 @@ describe('abort', () => {
 // ---------------------------------------------------------------------------
 
 describe('URL derivation', () => {
-  it('WebUI browser mode (no __backendPort): same-origin /api/stt/stream', () => {
+  it('WebUI browser mode (no electronAPI, no __backendPort): same-origin /api/stt/stream', () => {
+    setWebUiMode(true);
     const callbacks = makeCallbacks();
     startSpeechStream({ callbacks, createSocket });
     const sock = lastSocket();
@@ -448,10 +469,36 @@ describe('URL derivation', () => {
     expect(sock.url).toBe(`ws://${window.location.host}/api/stt/stream`);
   });
 
-  it('Electron mode (__backendPort injected): ws://127.0.0.1:<port>/api/stt/stream', () => {
+  it('Electron mode (__backendPort injected): ws://<host>:<port>/api/stt/stream', () => {
     setBackendPort(14512);
     const callbacks = makeCallbacks();
     startSpeechStream({ callbacks, createSocket });
     expect(lastSocket().url).toBe('ws://127.0.0.1:14512/api/stt/stream');
+  });
+
+  it('Electron mode with remote host configured: uses that host in the WS URL', () => {
+    setBackendPort(14512);
+    (window as Window & { __backendHost?: string }).__backendHost = '10.0.0.5';
+    const callbacks = makeCallbacks();
+    startSpeechStream({ callbacks, createSocket });
+    expect(lastSocket().url).toBe('ws://10.0.0.5:14512/api/stt/stream');
+    delete (window as Window & { __backendHost?: string }).__backendHost;
+  });
+
+  it('Electron mode without a published port: surfaces a clean error instead of connecting to a dead port', () => {
+    setBackendPort(undefined);
+    const onError = vi.fn();
+    startSpeechStream({ callbacks: { ...makeCallbacks(), onError }, createSocket });
+    // The error fires asynchronously to keep the handle contract.
+    expect(onError).toHaveBeenCalledTimes(0);
+    return new Promise<void>((resolve) => {
+      queueMicrotask(() => {
+        expect(onError).toHaveBeenCalledTimes(1);
+        expect(onError.mock.calls[0]?.[0]).toBe(STT_STREAM_CONNECT_FAILED);
+        expect(String(onError.mock.calls[0]?.[1])).toMatch(/backend port not published/i);
+        expect(MockWebSocket.instances).toHaveLength(0);
+        resolve();
+      });
+    });
   });
 });

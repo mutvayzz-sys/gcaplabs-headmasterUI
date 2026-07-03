@@ -39,9 +39,13 @@ vi.mock('@/common/config/configService', () => ({
   configService: { get: mocks.configGet, set: vi.fn(() => Promise.resolve()) },
 }));
 
-vi.mock('@/renderer/services/SpeechToTextService', () => ({
-  transcribeAudioBlob: mocks.transcribeAudioBlob,
-}));
+vi.mock('@/renderer/services/SpeechToTextService', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/renderer/services/SpeechToTextService')>();
+  return {
+    ...actual,
+    transcribeAudioBlob: mocks.transcribeAudioBlob,
+  };
+});
 
 vi.mock('@/renderer/services/speech/pcmRecorder', () => ({
   AudioWorkletUnavailableError: mocks.AudioWorkletUnavailableError,
@@ -50,9 +54,13 @@ vi.mock('@/renderer/services/speech/pcmRecorder', () => ({
   STREAM_SAMPLE_RATE: 24000,
 }));
 
-vi.mock('@/renderer/services/speech/SpeechStreamClient', () => ({
-  startSpeechStream: mocks.startSpeechStream,
-}));
+vi.mock('@/renderer/services/speech/SpeechStreamClient', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/renderer/services/speech/SpeechStreamClient')>();
+  return {
+    ...actual,
+    startSpeechStream: mocks.startSpeechStream,
+  };
+});
 
 vi.mock('@/renderer/services/speech/speechStreamPolicy', () => ({
   rememberStreamUnsupported: mocks.rememberStreamUnsupported,

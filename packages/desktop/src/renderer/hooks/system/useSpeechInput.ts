@@ -8,7 +8,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { configService } from '@/common/config/configService';
 import type { SpeechToTextConfig } from '@/common/types/provider/speech';
 import { useLatestRef } from '@/renderer/hooks/ui/useLatestRef';
-import { transcribeAudioBlob } from '@/renderer/services/SpeechToTextService';
+import { STT_UNAVAILABLE_ERROR, transcribeAudioBlob } from '@/renderer/services/SpeechToTextService';
 import {
   AudioWorkletUnavailableError,
   createPcmRecorder,
@@ -16,7 +16,7 @@ import {
   STREAM_SAMPLE_RATE,
   type PcmRecorderHandle,
 } from '@/renderer/services/speech/pcmRecorder';
-import { startSpeechStream, type SpeechStreamHandle } from '@/renderer/services/speech/SpeechStreamClient';
+import { STT_STREAM_UNAVAILABLE, startSpeechStream, type SpeechStreamHandle } from '@/renderer/services/speech/SpeechStreamClient';
 import { rememberStreamUnsupported, shouldTryStreaming } from '@/renderer/services/speech/speechStreamPolicy';
 import { isElectronDesktop } from '@/renderer/utils/platform';
 
@@ -28,6 +28,7 @@ export type SpeechInputErrorCode =
   | 'empty-transcript'
   | 'file-too-large'
   | 'network'
+  | 'not-available'
   | 'not-configured'
   | 'permission-denied'
   | 'recording-unsupported'
@@ -132,6 +133,8 @@ export const getSpeechInputErrorMessageKey = (errorCode: SpeechInputErrorCode): 
       return 'conversation.chat.speech.fileTooLarge';
     case 'network':
       return 'conversation.chat.speech.networkError';
+    case 'not-available':
+      return 'conversation.chat.speech.notAvailable';
     case 'not-configured':
       return 'conversation.chat.speech.notConfigured';
     case 'permission-denied':
@@ -217,6 +220,13 @@ const mapSpeechInputError = (error: unknown): SpeechInputErrorCode => {
   }
 
   const message = error instanceof Error ? error.message : String(error);
+
+  // Runtime-availability refusals (Agent37 cloud container has no STT).
+  // These are thrown by the service layer before any HTTP/WS work; show a
+  // clear "not available" message instead of a generic transcription-failed.
+  if (message === STT_UNAVAILABLE_ERROR || message.includes(STT_UNAVAILABLE_ERROR)) {
+    return 'not-available';
+  }
 
   if (
     message.includes('STT_OPENAI_NOT_CONFIGURED') ||
@@ -476,8 +486,24 @@ export const useSpeechInput = ({ onLiveTranscript, onTranscript }: UseSpeechInpu
   const fallbackStreamingSession = useCallback(
     async (session: StreamingSession, code: string) => {
       teardownStreamingSession(session);
-      if (code === 'STT_STREAM_UNSUPPORTED') {
+      if (code === 'STT_STREAM_UNSUPPORTED' || code === STT_STREAM_UNAVAILABLE) {
+        // The streaming endpoint cannot exist in this runtime (model is
+        // file-only, or we're in Agent37 cloud container mode with no STT
+        // at all). Remember it so `shouldTryStreaming` returns false for
+        // the rest of the session — no point retrying the same dead path.
         rememberStreamUnsupported(session.config);
+      }
+      // STT_STREAM_UNAVAILABLE is a hard "no STT in this runtime" — there is
+      // no whole-blob fallback to try either. Surface the unavailable state
+      // directly instead of wasting time re-encoding the PCM.
+      if (code === STT_STREAM_UNAVAILABLE) {
+        session.handle?.abort();
+        clearLiveTranscript(session);
+        setErrorCode('not-available');
+        setErrorMessage(null);
+        setStatus('error');
+        resetSpeechVisualizer();
+        return;
       }
       session.handle?.abort();
       clearLiveTranscript(session);

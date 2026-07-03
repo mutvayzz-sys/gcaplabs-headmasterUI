@@ -550,6 +550,7 @@
   "imageGenerationDescription": "Choose which configured image-capable model the tool should use by default.",
   "speechToText": "Speech to Text",
   "speechToTextDescription": "Configure the voice input provider used by the chat box on desktop and WebUI.",
+  "speechToTextUnavailableAlert": "Speech input is not currently available. Headmaster has no STT runtime — Agent37 cloud has no STT endpoint, and the local Hermes runtime does not expose the multipart /api/stt or WebSocket /api/stt/stream contracts this app expects. Config is preserved in case a future runtime re-introduces a compatible STT endpoint.",
   "speechToTextApiKey": "API Key",
   "speechToTextBaseUrl": "Base URL",
   "speechToTextModel": "Model",

@@ -19,6 +19,14 @@ import {
   isAioncoreWsEvent,
   resetAioncoreWsConnection,
 } from './aioncoreBridge';
+import {
+  DEFAULT_LOCAL_DASHBOARD_PORT,
+  isRemoteContainerMode,
+  isWebUiBrowserMode,
+  resolveBackendHost,
+  resolveBackendPort,
+  resolveCloudContainerEndpoint,
+} from './backendUrl';
 
 // ---------------------------------------------------------------------------
 // Base URL
@@ -46,36 +54,23 @@ declare global {
 }
 
 /**
- * Resolve the backend port, honoring both renderer and main-process contexts.
+ * Resolve the backend port for local-Hermes / legacy-manual-remote mode.
  *
  * The renderer hook `useDashboardStatus` (renderer/hooks/system/useDashboardStatus.ts)
  * populates `window.__backendPort` from the Hermes dashboard status once
- * the dashboard is `ready`. Before that, the fallback applies.
+ * the dashboard is `ready`. The main process mirrors the same value onto
+ * `globalThis.__backendPort` immediately after `hermesBootstrap.start()`
+ * resolves, so any main-process caller (e.g. the one-shot assistant
+ * migration hook) hits the correct port.
  *
- * - Renderer (Electron): the hook writes `window.__backendPort` before the
- *   first HTTP call, so reading from window is authoritative.
- * - Renderer (WebUI browser): no preload, so `window.__backendPort` is missing.
- *   Requests must go to the same origin that served the page; web-host's
- *   static-server reverse-proxies `/api/*` and upgrades `/ws` to the backend
- *   port. See getBaseUrl / getWsUrl below for the WebUI branch.
- * - Main process: `window` is undefined. `src/index.ts` writes the port to
- *   `globalThis.__backendPort` immediately after `hermesBootstrap.start()`
- *   resolves, so any main-process ipcBridge caller (e.g. the one-shot
- *   assistant migration hook) hits the correct port.
- * - Fallback `9119` (Hermes dashboard default) when neither is initialized —
- *   matches the `--port` default at `hermes_cli/subcommands/dashboard.py:26`.
- *   The request will still fail cleanly with ECONNREFUSED rather than masking
- *   the bug.
+ * The fallback (`DEFAULT_LOCAL_DASHBOARD_PORT`, 9119 — see
+ * `hermes_cli/subcommands/dashboard.py:26`) is only honored when no port
+ * has been published. In production Electron paths the port is always
+ * published before the first HTTP call goes out, so the fallback only
+ * fires in the vitest node environment or before the dashboard is up.
  */
 function getBackendPort(): number {
-  if (typeof window !== 'undefined') {
-    const w = (window as Window).__backendPort;
-    // 0 means "backend not ready"; never use it as a real port.
-    if (typeof w === 'number' && w > 0) return w;
-  }
-  const g = globalThis as typeof globalThis & { __backendPort?: number };
-  const p = g.__backendPort;
-  return typeof p === 'number' && p > 0 ? p : 9119;
+  return resolveBackendPort(DEFAULT_LOCAL_DASHBOARD_PORT);
 }
 
 function getApiServerKey(): string | null {
@@ -157,36 +152,10 @@ function getSessionKey(): string {
  * injected. Use same-origin URLs; web-host's static-server handles the reverse
  * proxy / WS upgrade to the backend.
  */
-function isWebUiBrowserMode(): boolean {
-  return typeof window !== 'undefined' && typeof document !== 'undefined' && !window.electronAPI;
-}
+// isWebUiBrowserMode is re-exported from backendUrl for callers that need it.
 
 function getBackendHost(): string {
-  if (typeof window !== 'undefined' && (window as Window).__backendHost) {
-    return (window as Window).__backendHost as string;
-  }
-  const g = globalThis as typeof globalThis & { __backendHost?: string };
-  return g.__backendHost ?? '127.0.0.1';
-}
-
-/**
- * Check if the app is running in remote container mode.
- * When the provision response includes cloud_container_config, the renderer
- * should route all HTTP/WS traffic to the cloud container endpoint.
- */
-function isRemoteContainerMode(): boolean {
-  if (typeof window !== 'undefined' && window.__cloudContainerEndpoint) {
-    return true;
-  }
-  return false;
-}
-
-function getCloudContainerEndpoint(): string {
-  if (typeof window !== 'undefined' && window.__cloudContainerEndpoint) {
-    return window.__cloudContainerEndpoint;
-  }
-  const g = globalThis as typeof globalThis & { __cloudContainerEndpoint?: string };
-  return g.__cloudContainerEndpoint ?? '';
+  return resolveBackendHost();
 }
 
 function getRuntimeApiBasePath(): string {
@@ -227,7 +196,7 @@ export async function probeRemoteHealth(): Promise<boolean> {
 
 export function getBaseUrl(): string {
   if (isRemoteContainerMode()) {
-    return getCloudContainerEndpoint();
+    return resolveCloudContainerEndpoint();
   }
   if (isWebUiBrowserMode()) {
     // Same-origin: calls like fetch(`${baseUrl}/api/foo`) resolve to `/api/foo`

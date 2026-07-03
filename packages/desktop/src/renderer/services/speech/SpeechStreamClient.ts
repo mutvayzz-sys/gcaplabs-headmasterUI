@@ -16,6 +16,7 @@
  */
 
 import { STREAM_SAMPLE_RATE } from './pcmRecorder';
+import { isRemoteContainerMode, isWebUiBrowserMode, resolveBackendHost, resolveBackendPort } from '@/common/adapter/backendUrl';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -30,6 +31,16 @@ export const DONE_TIMEOUT_MS = 30000;
 export const STT_STREAM_CONNECT_FAILED = 'STT_STREAM_CONNECT_FAILED';
 export const STT_STREAM_TIMEOUT = 'STT_STREAM_TIMEOUT';
 export const STT_STREAM_INTERRUPTED = 'STT_STREAM_INTERRUPTED';
+/**
+ * Surfaced when the streaming endpoint cannot exist in the current runtime
+ * mode — e.g. Agent37 cloud container has no `/api/stt/stream`. Without this
+ * code, the WebSocket would either connect-then-fail (network error) or
+ * never open (timeout); both produce a confusing "Connection closed" message.
+ * The hook maps this to a localized "not available" string and the
+ * failure-memory policy disables the streaming path for the rest of the
+ * session.
+ */
+export const STT_STREAM_UNAVAILABLE = 'STT_STREAM_UNAVAILABLE';
 
 // WebSocket readyState values (mirrors WebSocket.CONNECTING/OPEN without
 // depending on the global constructor, so injected mocks work in tests).
@@ -82,35 +93,28 @@ type ServerFrame = {
 // ---------------------------------------------------------------------------
 
 /**
- * Mirror of httpBridge's (non-exported) getBackendPort / isWebUiBrowserMode /
- * getWsUrl — see packages/desktop/src/common/adapter/httpBridge.ts:
- * - Electron renderer: the preload bridge injects `window.__backendPort`,
- *   and the backend listens on loopback.
+ * Resolve the streaming endpoint URL for the current runtime mode.
+ *
+ * Mirrors the routing logic in `getBackendBase()` (see
+ * `packages/desktop/src/common/adapter/backendUrl.ts`):
  * - WebUI browser: no preload, so no `__backendPort`; use same-origin URLs —
  *   web-host's static-server proxies/upgrades to the backend and session
  *   cookies ride along automatically.
+ * - Electron renderer: the preload bridge injects `window.__backendPort`,
+ *   and the backend listens on loopback. `resolveBackendPort` returns 0
+ *   when the dashboard is not yet up — the WebSocket constructor will throw
+ *   a clear error rather than silently connect to a dead AionUi-era port.
  */
-const getBackendPort = (): number => {
-  if (typeof window !== 'undefined') {
-    const w = window as Window & { __backendPort?: number };
-    if (w.__backendPort) return w.__backendPort;
-  }
-  const g = globalThis as typeof globalThis & { __backendPort?: number };
-  return g.__backendPort ?? 13400;
-};
-
-const isWebUiBrowserMode = (): boolean =>
-  typeof window !== 'undefined' &&
-  typeof document !== 'undefined' &&
-  !(window as Window & { __backendPort?: number }).__backendPort;
-
-/** Resolve the streaming endpoint URL for the current runtime mode. */
 export const getSpeechStreamUrl = (): string => {
   if (isWebUiBrowserMode()) {
     const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     return `${proto}//${window.location.host}/api/stt/stream`;
   }
-  return `ws://127.0.0.1:${getBackendPort()}/api/stt/stream`;
+  const port = resolveBackendPort();
+  if (port <= 0) {
+    throw new Error('Speech stream unavailable: backend port not published');
+  }
+  return `ws://${resolveBackendHost()}:${port}/api/stt/stream`;
 };
 
 // ---------------------------------------------------------------------------
@@ -136,7 +140,29 @@ export const startSpeechStream = (options: {
   createSocket?: (url: string) => WebSocketLike;
 }): SpeechStreamHandle => {
   const { callbacks } = options;
-  const url = getSpeechStreamUrl();
+
+  // Agent37 cloud container has no STT endpoints. Fail fast with a clear code
+  // so the hook can both surface "not available" and disable streaming for
+  // the rest of the session via `rememberStreamUnsupported`.
+  if (isRemoteContainerMode()) {
+    queueMicrotask(() =>
+      callbacks.onError(STT_STREAM_UNAVAILABLE, 'Speech streaming is not available in cloud container mode')
+    );
+    return { sendChunk: () => {}, stop: () => {}, abort: () => {} };
+  }
+
+  let url: string;
+  try {
+    url = getSpeechStreamUrl();
+  } catch (error) {
+    // URL derivation failed (e.g. backend port not yet published) — report
+    // asynchronously so the caller has its handle before the error callback
+    // fires.
+    queueMicrotask(() =>
+      callbacks.onError(STT_STREAM_CONNECT_FAILED, `Speech stream unavailable: ${(error as Error)?.message ?? String(error)}`)
+    );
+    return { sendChunk: () => {}, stop: () => {}, abort: () => {} };
+  }
 
   let socket: WebSocketLike;
   try {

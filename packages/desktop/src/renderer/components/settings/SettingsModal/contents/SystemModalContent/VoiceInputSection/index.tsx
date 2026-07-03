@@ -9,7 +9,7 @@ import type { SpeechToTextConfig } from '@/common/types/provider/speech';
 import AionSelect from '@/renderer/components/base/AionSelect';
 import { SPEECH_TO_TEXT_CONFIG_CHANGED_EVENT } from '@/renderer/services/SpeechToTextService';
 import { getModelStreamCapability } from '@/renderer/services/speech/speechStreamPolicy';
-import { Divider, Form, Input, Switch } from '@arco-design/web-react';
+import { Alert, Divider, Form, Input, Switch } from '@arco-design/web-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import SpeechTestPanel from './SpeechTestPanel';
@@ -188,6 +188,22 @@ const VoiceInputSection: React.FC = () => {
           onChange={(checked) => updateConfig((current) => ({ ...current, enabled: checked }))}
         />
       </div>
+
+      {/*
+        Headmaster has no STT runtime: Agent37 cloud container has no
+        /api/stt or /api/stt/stream endpoints, and the local Hermes Python
+        runtime only exposes /api/audio/transcribe (different contract) plus
+        its own internal CLI voice tools. The renderer never silently calls
+        a dead endpoint (the service/stream layer throws STT_UNAVAILABLE
+        before any HTTP/WS work) — this alert is the user-visible notice.
+        Keep the form editable so config is preserved if a future runtime
+        re-introduces a compatible STT endpoint.
+      */}
+      <Alert
+        className='mt-12px'
+        type='warning'
+        content={t('settings.speechToTextUnavailableAlert')}
+      />
 
       {config.enabled && (
         <>
