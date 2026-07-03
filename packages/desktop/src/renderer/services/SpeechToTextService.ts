@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { isRemoteContainerMode } from '@/common/adapter/backendUrl';
+import { isSttAvailable } from '@/common/adapter/backendUrl';
 import { getBaseUrl } from '@/common/adapter/httpBridge';
 import type { SpeechToTextResult } from '@/common/types/provider/speech';
 
@@ -19,13 +19,17 @@ export const SPEECH_TO_TEXT_CONFIG_CHANGED_EVENT = 'headmaster:speech-to-text-co
 export const STT_UNAVAILABLE_ERROR = 'STT_UNAVAILABLE';
 
 /**
- * Cloud container mode has no `/api/stt` (or any STT endpoint). Fail fast with
- * a clear code so the UI can show a meaningful "not available" message
- * instead of a generic network error. See `SpeechStreamClient.isCloudMode`
- * for the same guard on the streaming path.
+ * Neither shipped runtime exposes the desktop's expected STT contract
+ * (`/api/stt` multipart on Hermes, no STT at all on Agent37 cloud). The
+ * single source of truth is `isSttAvailable()` in
+ * `packages/desktop/src/common/adapter/backendUrl.ts` — flip that predicate
+ * when a runtime that DOES expose the contract ships. Fail fast with a clear
+ * code so the UI can show a meaningful "not available" message instead of
+ * a generic network error or confusing 404. See `SpeechStreamClient`'s
+ * matching guard for the streaming path.
  */
-const ensureLocalModeForStt = (): void => {
-  if (isRemoteContainerMode()) {
+const ensureSttAvailable = (): void => {
+  if (!isSttAvailable()) {
     throw new Error(STT_UNAVAILABLE_ERROR);
   }
 };
@@ -97,10 +101,12 @@ const parseErrorResponse = (response: XMLHttpRequest): Error => {
 };
 
 export async function transcribeAudioBlob(blob: Blob, languageHint?: string): Promise<SpeechToTextResult> {
-  // Refuse before doing any work: Agent37 cloud container has no STT endpoint.
-  // Without this guard, we'd issue a request to a 404 and surface a generic
-  // network error to the user instead of a clear "not available" message.
-  ensureLocalModeForStt();
+  // Refuse before doing any work: no shipped runtime exposes the
+  // multipart /api/stt contract this app expects. Without this guard the
+  // XHR would 404 against local Hermes or 404 against cloud and surface a
+  // generic network error to the user instead of a clear "not available"
+  // message.
+  ensureSttAvailable();
   ensureAudioSize(blob);
 
   const mimeType = blob.type || 'audio/webm';

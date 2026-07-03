@@ -9,10 +9,25 @@
  * `languageHint` — the previous code sent JSON (Electron) or a wrong
  * `audio` multipart field (WebUI).
  *
+ * As of the Agent37 consolidation no shipped runtime exposes /api/stt; the
+ * service throws STT_UNAVAILABLE before any HTTP work via the shared
+ * `isSttAvailable()` predicate. The XHR-shape tests below opt back in by
+ * stubbing the predicate to true so the contract fields stay covered.
+ *
  * @vitest-environment node
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+
+// Single-source-of-truth for the runtime-availability guard. The default is
+// false (matches production: no runtime exposes /api/stt) and the XHR-shape
+// tests below flip it to true to exercise the multipart-field contract.
+const isSttAvailableMock = vi.hoisted(() => vi.fn(() => false));
+vi.mock('@/common/adapter/backendUrl', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/common/adapter/backendUrl')>();
+  return { ...actual, isSttAvailable: isSttAvailableMock };
+});
+
 import { transcribeAudioBlob } from '@/renderer/services/SpeechToTextService';
 
 type XhrListener = () => void;
@@ -65,10 +80,23 @@ describe('SpeechToTextService.transcribeAudioBlob', () => {
   beforeEach(() => {
     FakeXMLHttpRequest.instances = [];
     vi.stubGlobal('XMLHttpRequest', FakeXMLHttpRequest);
+    // Default: XHR-shape tests opt the guard back in.
+    isSttAvailableMock.mockReturnValue(true);
   });
 
   afterEach(() => {
     vi.unstubAllGlobals();
+    isSttAvailableMock.mockReset();
+  });
+
+  it('refuses with STT_UNAVAILABLE before any XHR when isSttAvailable is false (current shipped runtimes)', async () => {
+    isSttAvailableMock.mockReturnValue(false);
+    const blob = new Blob(['fake-audio'], { type: 'audio/webm' });
+    await expect(transcribeAudioBlob(blob, 'zh-CN')).rejects.toThrow('STT_UNAVAILABLE');
+    // The guard fires before any HTTP work — no XHR should be constructed or
+    // .open()-ed (the FakeXMLHttpRequest constructor does not throw, but the
+    // send() path is never reached).
+    expect(FakeXMLHttpRequest.instances).toHaveLength(0);
   });
 
   it('sends multipart fields matching the backend contract (file/fileName/mimeType/languageHint)', async () => {

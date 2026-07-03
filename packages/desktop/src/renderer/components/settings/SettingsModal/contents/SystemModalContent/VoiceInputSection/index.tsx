@@ -190,14 +190,16 @@ const VoiceInputSection: React.FC = () => {
       </div>
 
       {/*
-        Headmaster has no STT runtime: Agent37 cloud container has no
-        /api/stt or /api/stt/stream endpoints, and the local Hermes Python
-        runtime only exposes /api/audio/transcribe (different contract) plus
-        its own internal CLI voice tools. The renderer never silently calls
-        a dead endpoint (the service/stream layer throws STT_UNAVAILABLE
-        before any HTTP/WS work) — this alert is the user-visible notice.
-        Keep the form editable so config is preserved if a future runtime
-        re-introduces a compatible STT endpoint.
+        Headmaster has no STT runtime: no shipped runtime exposes the
+        desktop's expected STT contracts. Agent37 cloud container has no STT
+        at all, and the local Hermes dashboard only exposes
+        /api/audio/transcribe (a different contract — no multipart, no
+        streaming WS). The renderer never silently calls a dead endpoint:
+        the service/stream layer throws STT_UNAVAILABLE / STT_STREAM_UNAVAILABLE
+        before any HTTP/WS work, and the single source of truth for the guard
+        is `isSttAvailable()` in backendUrl.ts. The form is kept editable so
+        config is preserved if a future runtime re-introduces a compatible
+        STT contract.
       */}
       <Alert
         className='mt-12px'

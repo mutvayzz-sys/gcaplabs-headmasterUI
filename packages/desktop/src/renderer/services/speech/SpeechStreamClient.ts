@@ -16,7 +16,7 @@
  */
 
 import { STREAM_SAMPLE_RATE } from './pcmRecorder';
-import { isRemoteContainerMode, isWebUiBrowserMode, resolveBackendHost, resolveBackendPort } from '@/common/adapter/backendUrl';
+import { isSttAvailable, isWebUiBrowserMode, resolveBackendHost, resolveBackendPort } from '@/common/adapter/backendUrl';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -33,12 +33,13 @@ export const STT_STREAM_TIMEOUT = 'STT_STREAM_TIMEOUT';
 export const STT_STREAM_INTERRUPTED = 'STT_STREAM_INTERRUPTED';
 /**
  * Surfaced when the streaming endpoint cannot exist in the current runtime
- * mode — e.g. Agent37 cloud container has no `/api/stt/stream`. Without this
- * code, the WebSocket would either connect-then-fail (network error) or
- * never open (timeout); both produce a confusing "Connection closed" message.
- * The hook maps this to a localized "not available" string and the
- * failure-memory policy disables the streaming path for the rest of the
- * session.
+ * — no shipped runtime exposes the `/api/stt/stream` WebSocket contract (no
+ * STT at all on Agent37 cloud, and local Hermes only exposes
+ * `/api/audio/transcribe`). Without this code, the WebSocket would either
+ * connect-then-fail (network error) or never open (timeout); both produce a
+ * confusing "Connection closed" message. The hook maps this to a localized
+ * "not available" string and the failure-memory policy disables the
+ * streaming path for the rest of the session.
  */
 export const STT_STREAM_UNAVAILABLE = 'STT_STREAM_UNAVAILABLE';
 
@@ -141,12 +142,15 @@ export const startSpeechStream = (options: {
 }): SpeechStreamHandle => {
   const { callbacks } = options;
 
-  // Agent37 cloud container has no STT endpoints. Fail fast with a clear code
-  // so the hook can both surface "not available" and disable streaming for
-  // the rest of the session via `rememberStreamUnsupported`.
-  if (isRemoteContainerMode()) {
+  // No shipped runtime exposes the streaming STT contract — refuse before any
+  // WS work. Single source of truth is `isSttAvailable()` in
+  // `packages/desktop/src/common/adapter/backendUrl.ts`. The hook maps this
+  // code to a localized "not available" message and the failure-memory policy
+  // disables the streaming path for the rest of the session via
+  // `rememberStreamUnsupported`.
+  if (!isSttAvailable()) {
     queueMicrotask(() =>
-      callbacks.onError(STT_STREAM_UNAVAILABLE, 'Speech streaming is not available in cloud container mode')
+      callbacks.onError(STT_STREAM_UNAVAILABLE, 'Speech streaming is not available in the current runtime')
     );
     return { sendChunk: () => {}, stop: () => {}, abort: () => {} };
   }

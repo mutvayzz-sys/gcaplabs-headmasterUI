@@ -5,6 +5,18 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+// Runtime-availability guard is the single source of truth in backendUrl.ts.
+// Default false matches production (no shipped runtime exposes
+// /api/stt/stream); the happy-path tests below flip it to true to keep the
+// existing wire-protocol coverage. A dedicated test exercises the false
+// branch — this is the gap that allowed the dead-endpoint call through.
+const isSttAvailableMock = vi.hoisted(() => vi.fn(() => false));
+vi.mock('@/common/adapter/backendUrl', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/common/adapter/backendUrl')>();
+  return { ...actual, isSttAvailable: isSttAvailableMock };
+});
+
 import type { SpeechStreamCallbacks, WebSocketLike } from '@renderer/services/speech/SpeechStreamClient';
 import {
   CONNECT_TIMEOUT_MS,
@@ -12,6 +24,7 @@ import {
   STT_STREAM_CONNECT_FAILED,
   STT_STREAM_INTERRUPTED,
   STT_STREAM_TIMEOUT,
+  STT_STREAM_UNAVAILABLE,
   startSpeechStream,
 } from '@renderer/services/speech/SpeechStreamClient';
 
@@ -129,6 +142,9 @@ const setWebUiMode = (enabled: boolean): void => {
 beforeEach(() => {
   vi.useFakeTimers();
   MockWebSocket.instances = [];
+  // Default: most tests opt the guard back in (mock to true) so the
+  // wire-protocol / frame-dispatch / time-interrupt branches stay covered.
+  isSttAvailableMock.mockReturnValue(true);
   // Default backend port for tests that don't care about URL resolution. The
   // "Electron mode without a published port" test below resets this to
   // undefined to exercise the no-port-published error path.
@@ -496,6 +512,24 @@ describe('URL derivation', () => {
         expect(onError).toHaveBeenCalledTimes(1);
         expect(onError.mock.calls[0]?.[0]).toBe(STT_STREAM_CONNECT_FAILED);
         expect(String(onError.mock.calls[0]?.[1])).toMatch(/backend port not published/i);
+        expect(MockWebSocket.instances).toHaveLength(0);
+        resolve();
+      });
+    });
+  });
+
+  it('no STT in the current runtime: fires STT_STREAM_UNAVAILABLE instead of opening any socket', () => {
+    // Mirror the production default — no shipped runtime exposes
+    // /api/stt/stream. The guard must short-circuit before any URL
+    // resolution or WebSocket construction.
+    isSttAvailableMock.mockReturnValue(false);
+    const onError = vi.fn();
+    startSpeechStream({ callbacks: { ...makeCallbacks(), onError }, createSocket });
+    return new Promise<void>((resolve) => {
+      queueMicrotask(() => {
+        expect(onError).toHaveBeenCalledTimes(1);
+        expect(onError.mock.calls[0]?.[0]).toBe(STT_STREAM_UNAVAILABLE);
+        // No WS ever constructed — closes the loop on "no dead-endpoint calls".
         expect(MockWebSocket.instances).toHaveLength(0);
         resolve();
       });

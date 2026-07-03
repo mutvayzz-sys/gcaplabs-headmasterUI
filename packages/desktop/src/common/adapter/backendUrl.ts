@@ -160,3 +160,29 @@ export function getBackendAuthHeaders(): Record<string, string> {
   const token = window.__hermesSessionToken;
   return token ? { 'X-Hermes-Session-Token': token } : {};
 }
+
+/**
+ * Speech-to-text endpoint availability for the current runtime.
+ *
+ * The desktop's expected STT contract is two endpoints:
+ *   - `POST /api/stt` (multipart, fields: file / fileName / mimeType / languageHint)
+ *   - `WS  /api/stt/stream` (binary PCM16 frames + JSON control frames)
+ *
+ * Neither of these exists on either shipped runtime as of the Agent37
+ * consolidation:
+ *   - **Agent37 cloud container** has no STT endpoint at all.
+ *   - **Local Hermes dashboard** exposes only `/api/audio/transcribe`, which
+ *     is a different contract (no multipart, no streaming WS).
+ *
+ * Returning `false` causes the service/stream layer to throw
+ * `STT_UNAVAILABLE` / `STT_STREAM_UNAVAILABLE` *before* any HTTP/WS work so
+ * the user sees a clear "not available" message instead of a confusing
+ * "Connection closed" or generic 404. The hook's failure-memory policy
+ * also short-circuits the streaming path for the rest of the session.
+ *
+ * A future runtime that DOES expose one or both of these endpoints should
+ * flip this single predicate; the rest of the call sites react automatically.
+ */
+export function isSttAvailable(): boolean {
+  return false;
+}
