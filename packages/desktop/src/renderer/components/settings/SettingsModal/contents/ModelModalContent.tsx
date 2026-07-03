@@ -117,25 +117,18 @@ const ModelModalContent: React.FC = () => {
   const [agent37Providers, setAgent37Providers] = useState(() => readProvisionedProviders());
   useEffect(() => {
     const handler = () => setAgent37Providers(readProvisionedProviders());
-    // Listen on both the canonical `agent37:provision-updated` and the
-    // legacy `hermeshq:provision-updated` (transition shim).
     window.addEventListener('agent37:provision-updated', handler);
-    window.addEventListener('hermeshq:provision-updated', handler);
     return () => {
       window.removeEventListener('agent37:provision-updated', handler);
-      window.removeEventListener('hermeshq:provision-updated', handler);
     };
   }, []);
 
-  // Default model info from the Agent37 Console2 BFF provision snapshot.
-  // Reads from the canonical `__agent37Provision` global, falling back to
-  // the legacy `__hermeshqProvision` for one release.
+  // Default model info from the Agent37 Console BFF provision snapshot.
   const agent37Default = useMemo(() => {
     const w = window as unknown as {
       __agent37Provision?: { default_model?: string; default_provider?: string };
-      __hermeshqProvision?: { default_model?: string; default_provider?: string };
     };
-    const p = w.__agent37Provision ?? w.__hermeshqProvision;
+    const p = w.__agent37Provision;
     if (!p?.default_model) return null;
     return { model: p.default_model, provider: p.default_provider ?? '' };
   }, [agent37Providers]);

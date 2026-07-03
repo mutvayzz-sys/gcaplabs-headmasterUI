@@ -8,20 +8,18 @@ import { useMemo } from 'react';
 import type { Agent37ProvisionAppSettings } from '@/process/connection/connectionConfig';
 
 /**
-End Patch
- * Agent37 Console2 BFF provision response. Returns null when unauthenticated
+ * Agent37 Console BFF provision response. Returns null when unauthenticated
  * or when the provision has not yet been received.
- *
+
  * This is the unified settings source — the desktop should read branding/theme
  * from here instead of local config or separate API calls.
  */
 export function useProvisionedAppSettings(): Agent37ProvisionAppSettings | null {
   return useMemo(() => {
     if (typeof window === 'undefined') return null;
-    // Canonical Agent37 global, with the legacy `__hermeshqProvision` kept
-    // as a one-release read alias.
-    const provision = (window as any).__agent37Provision ?? (window as any).__hermeshqProvision;
-    if (!provision?.app_settings) return null;
+    const provision = (window as Window & { __agent37Provision?: { app_settings?: Agent37ProvisionAppSettings } })
+      .__agent37Provision;
+
     return provision.app_settings as Agent37ProvisionAppSettings;
   }, []);
 }

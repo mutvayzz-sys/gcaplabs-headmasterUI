@@ -54,33 +54,18 @@ contextBridge.exposeInMainWorld('electronAPI', {
   restartRuntime: () => ipcRenderer.invoke('runtime:restart'),
   // Runtime detection for startup
   checkHermesRuntime: () => ipcRenderer.invoke('runtime:check-and-prompt'),
-  // Agent37 Console2 BFF config — stored URL + token for multi-user auth.
-  // Canonical names are `agent37:*`; the `hermeshq:*` aliases are kept for
-  // one release as a transition shim. The IPC channels are stable and
-  // served by `agent37ProvisionBridge.ts` (registered as the
-  // `hermeshq:*` channel family).
-  getAgent37Config: () => ipcRenderer.invoke('hermeshq:get-config'),
-  getAgent37Provision: () => ipcRenderer.invoke('hermeshq:get-provision'),
-  setAgent37Url: (url: string) => ipcRenderer.invoke('hermeshq:set-url', url),
-  setAgent37Token: (token: string) => ipcRenderer.invoke('hermeshq:set-token', token),
-  clearAgent37Token: () => ipcRenderer.invoke('hermeshq:clear-token'),
-  clearAgent37Provision: () => ipcRenderer.invoke('hermeshq:clear-provision'),
+  // Agent37 Console BFF config — stored URL + token for multi-user auth.
+  getAgent37Config: () => ipcRenderer.invoke('agent37:get-config'),
+  getAgent37Provision: () => ipcRenderer.invoke('agent37:get-provision'),
+  setAgent37Url: (url: string) => ipcRenderer.invoke('agent37:set-url', url),
+  setAgent37Token: (token: string) => ipcRenderer.invoke('agent37:set-token', token),
+  clearAgent37Token: () => ipcRenderer.invoke('agent37:clear-token'),
+  clearAgent37Provision: () => ipcRenderer.invoke('agent37:clear-provision'),
   provisionAgent37: (request: { client: 'headmaster_desktop'; version: string; platform: NodeJS.Platform }) =>
-    ipcRenderer.invoke('hermeshq:provision', request),
+    ipcRenderer.invoke('agent37:provision', request),
   validateAgent37Runtime: (request: { runtime_id: string; requested_capability: string }) =>
-    ipcRenderer.invoke('hermeshq:validate-runtime', request),
-  // Legacy `hermeshq:*` aliases — kept for one release.
-  getHermeshqConfig: () => ipcRenderer.invoke('hermeshq:get-config'),
-  getHermeshqProvision: () => ipcRenderer.invoke('hermeshq:get-provision'),
-  setHermeshqUrl: (url: string) => ipcRenderer.invoke('hermeshq:set-url', url),
-  setHermeshqToken: (token: string) => ipcRenderer.invoke('hermeshq:set-token', token),
-  clearHermeshqToken: () => ipcRenderer.invoke('hermeshq:clear-token'),
-  clearHermeshqProvision: () => ipcRenderer.invoke('hermeshq:clear-provision'),
-  provisionHermeshq: (request: { client: 'headmaster_desktop'; version: string; platform: NodeJS.Platform }) =>
-    ipcRenderer.invoke('hermeshq:provision', request),
-  validateHermeshqRuntime: (request: { runtime_id: string; requested_capability: string }) =>
-    ipcRenderer.invoke('hermeshq:validate-runtime', request),
-  // Remembered credentials — stored encrypted via OS safeStorage, never in localStorage
+    ipcRenderer.invoke('agent37:validate-runtime', request),
+
   saveCredentials: (creds: { username: string; password: string }) => ipcRenderer.invoke('credentials:save', creds),
   loadCredentials: () => ipcRenderer.invoke('credentials:load'),
   clearCredentials: () => ipcRenderer.invoke('credentials:clear'),

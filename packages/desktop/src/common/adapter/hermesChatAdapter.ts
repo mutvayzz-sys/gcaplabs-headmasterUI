@@ -572,7 +572,7 @@ const abortTurn = (turn: ActiveTurn): void => {
 };
 
 const finalizeGatewayDisconnect = (): void => {
-  for (const liveSessionId of [...turnsByLive.keys()]) {
+  for (const liveSessionId of turnsByLive.keys()) {
     finishTurn(
       liveSessionId,
       'The runtime connection was interrupted.',
@@ -748,7 +748,6 @@ async function ensureLiveSession(storedId: string): Promise<string> {
 export async function createHermesChatConversation(params: ICreateConversationParams): Promise<TChatConversation> {
   const workspace = params.extra.workspace?.trim();
   const profile = params.assistant?.id?.trim();
-  const sessionMode = params.extra?.session_mode;
   if (supportsResponsesApi()) {
     const storedId = uuid();
     if (profile) {
@@ -844,7 +843,10 @@ export async function sendHermesMessage(params: {
   };
   scheduleTurnTimeout(turn);
   turnsByLive.set(liveSessionId, turn);
-  const text = [params.input, ...(params.files ?? []).map((file) => `@file:${file}`)].filter(Boolean).join('\n');
+  const responseFiles = (params.files ?? []).filter(Boolean);
+  const text = useResponsesApi
+    ? params.input
+    : [params.input, ...responseFiles.map((file) => `@file:${file}`)].filter(Boolean).join('\n');
 
   const emitUserCreated = (): void => {
     broadcastWsEvent('message.userCreated', {
@@ -885,8 +887,8 @@ export async function sendHermesMessage(params: {
           },
         ]);
       },
-      onReasoning(text: string) {
-        if (text) emitResponse(turn, 'thought', { subject: 'reasoning', description: text });
+      onReasoning(reasoningText: string) {
+        if (reasoningText) emitResponse(turn, 'thought', { subject: 'reasoning', description: reasoningText });
       },
       onInteractiveRequest(data) {
         // Surface the interactive prompt to the existing confirmation UI.
@@ -926,7 +928,7 @@ export async function sendHermesMessage(params: {
       onError(message) {
         finishTurn(liveSessionId, message, message);
       },
-    }).then((responseResult) => {
+    }, undefined, responseFiles).then((responseResult) => {
       if (responseResult) {
         turn.responseId = responseResult.responseId;
         return;

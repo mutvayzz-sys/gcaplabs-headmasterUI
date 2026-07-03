@@ -329,7 +329,7 @@ async function consumeResponseStream(
       case 'response.tool_call.failed':
         callbacks.onToolEvent(String(data.tool ?? 'tool'), 'failed', String(data.error ?? ''));
         break;
-      // Note: `response.interactive.requested` was a HermesHQ/Hermes-dialect
+      // Note: `response.interactive.requested` was a Agent37/Hermes-dialect
       // event. Agent37's gateway has no such event in its eight-event stream
       // contract (response.created / reasoning.delta / tool_call.{started,
       // completed, failed} / output_text.delta / response.completed /
@@ -361,7 +361,8 @@ export async function submitResponseAndStream(
   input: string,
   sessionId: string,
   callbacks: ResponseStreamCallbacks,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  files: string[] = []
 ): Promise<{ responseId: string; sessionId: string } | null> {
   const baseUrl = getRuntimeV1BaseUrl();
   let response: Response;
@@ -369,7 +370,12 @@ export async function submitResponseAndStream(
     response = await fetch(`${baseUrl}/responses`, {
       method: 'POST',
       headers: runtimeHeaders(true),
-      body: JSON.stringify({ input, session_id: sessionId, stream: true }),
+      body: JSON.stringify({
+        input,
+        session_id: sessionId,
+        stream: true,
+        ...(files.length ? { files } : {}),
+      }),
       signal,
     });
   } catch {
@@ -419,7 +425,7 @@ export async function cancelResponse(responseId: string): Promise<void> {
  * @deprecated Agent37 Cloud has no mid-turn `/v1/responses/{id}/interactive`
  * endpoint. The gateway's stream contract is purely response-style; human
  * input resumes the session by sending a new `POST /v1/responses` turn on
- * the same `session_id`. The HermesHQ dialect's approval/clarify/sudo/secret
+ * the same `session_id`. The Agent37 dialect's approval/clarify/sudo/secret
  * was a local-dashboard WS-RPC concern that does not map onto Agent37. See
  * `respondToPendingRequest` in `hermesChatAdapter.ts` for the Agent37-native
  * resume path: cancel the in-flight turn, then post a fresh `input` on the

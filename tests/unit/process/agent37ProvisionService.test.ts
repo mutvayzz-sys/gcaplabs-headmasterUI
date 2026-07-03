@@ -2,7 +2,7 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mkdirSync } from 'node:fs';
 
 const mocks = vi.hoisted(() => {
-  const userDataPath = `${process.env.TEMP || process.env.TMP || 'C:\\\\Temp'}\\headmaster-hermeshq-service-${Date.now()}`;
+  const userDataPath = `${process.env.TEMP || process.env.TMP || 'C:\\\\Temp'}\\headmaster-agent37-service-${Date.now()}`;
   return {
     userDataPath,
     getPath: vi.fn(() => userDataPath),
@@ -24,31 +24,31 @@ vi.mock('electron', () => ({
 }));
 
 import {
-  clearHermeshqProvision,
-  clearHermeshqToken,
-  getHermeshqProvision,
-  setHermeshqToken,
-  setHermeshqUrl,
+  clearAgent37Provision,
+  clearAgent37Token,
+  getAgent37Provision,
+  setAgent37Token,
+  setAgent37Url,
 } from '@/process/connection/connectionConfig';
 import {
-  provisionHermeshqDesktop,
-  validateHermeshqRuntimeAccess,
-} from '@/process/services/hermeshqProvisionService';
+  provisionAgent37Desktop,
+  validateAgent37RuntimeAccess,
+} from '@/process/services/agent37ProvisionService';
 
 beforeAll(() => {
   mkdirSync(mocks.userDataPath, { recursive: true });
 });
 
 beforeEach(() => {
-  clearHermeshqToken();
-  clearHermeshqProvision();
+  clearAgent37Token();
+  clearAgent37Provision();
   vi.unstubAllGlobals();
 });
 
-describe('hermeshqProvisionService', () => {
-  it('stores provision metadata returned by HermesHQ', async () => {
-    setHermeshqUrl('http://192.168.0.102:3421');
-    setHermeshqToken('session-token');
+describe('agent37ProvisionService', () => {
+  it('stores provision metadata returned by Agent37', async () => {
+    setAgent37Url('http://192.168.0.102:3421');
+    setAgent37Token('session-token');
     vi.stubGlobal(
       'fetch',
       vi.fn(async () =>
@@ -71,7 +71,7 @@ describe('hermeshqProvisionService', () => {
       )
     );
 
-    const result = await provisionHermeshqDesktop({
+    const result = await provisionAgent37Desktop({
       client: 'headmaster_desktop',
       version: '0.2.1',
       platform: 'win32',
@@ -83,14 +83,14 @@ describe('hermeshqProvisionService', () => {
       user: { username: 'demo1' },
       capabilities: ['chat', 'terminal'],
     });
-    expect(getHermeshqProvision()).toMatchObject({
+    expect(getAgent37Provision()).toMatchObject({
       user: { username: 'demo1' },
     });
   });
 
   it('fails closed when runtime validation is denied', async () => {
-    setHermeshqUrl('http://192.168.0.102:3421');
-    setHermeshqToken('session-token');
+    setAgent37Url('http://192.168.0.102:3421');
+    setAgent37Token('session-token');
     vi.stubGlobal(
       'fetch',
       vi.fn(async () =>
@@ -101,13 +101,13 @@ describe('hermeshqProvisionService', () => {
       )
     );
 
-    const result = await validateHermeshqRuntimeAccess({
+    const result = await validateAgent37RuntimeAccess({
       runtime_id: 'local-hermes',
       requested_capability: 'terminal',
     });
 
     expect(result.success).toBe(false);
     expect(result.status).toBe(403);
-    expect(getHermeshqProvision()).toBeNull();
+    expect(getAgent37Provision()).toBeNull();
   });
 });

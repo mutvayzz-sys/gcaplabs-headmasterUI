@@ -18,15 +18,15 @@ export interface RemoteConnectionConfig {
   token: string;
 }
 
-export interface HermeshqConfig {
-  /** Base URL of the HermesHQ server, e.g. "https://yourserver.com" or "http://192.168.1.x:3420" */
+export interface Agent37Config {
+  /** Base URL of the Agent37 server, e.g. "https://yourserver.com" or "http://192.168.1.x:3420" */
   url: string;
   /** Stored JWT from the last successful login — used for auto-login on next launch */
   token: string;
-  provision?: HermeshqProvisionSnapshot | null;
+  provision?: Agent37ProvisionSnapshot | null;
 }
 
-export interface HermeshqProvisionProvider {
+export interface Agent37ProvisionProvider {
   slug: string;
   name: string;
   runtime_provider: string;
@@ -37,7 +37,7 @@ export interface HermeshqProvisionProvider {
   enabled: boolean;
 }
 
-export interface HermeshqProvisionAppSettings {
+export interface Agent37ProvisionAppSettings {
   app_name: string;
   app_short_name: string;
   theme_mode: string;
@@ -48,7 +48,7 @@ export interface HermeshqProvisionAppSettings {
   has_favicon?: boolean;
 }
 
-export interface HermeshqProvisionSnapshot {
+export interface Agent37ProvisionSnapshot {
   mode: string;
   user: {
     id: string;
@@ -81,11 +81,11 @@ export interface HermeshqProvisionSnapshot {
   honcho_api_key?: string | null;
   nous_api_key?: string | null;
   runtime_env?: Record<string, string> | null;
-  providers?: HermeshqProvisionProvider[];
+  providers?: Agent37ProvisionProvider[];
   default_model?: string | null;
   default_provider?: string | null;
   default_base_url?: string | null;
-  app_settings?: HermeshqProvisionAppSettings | null;
+  app_settings?: Agent37ProvisionAppSettings | null;
   client?: string;
   version?: string;
   platform?: string;
@@ -95,15 +95,15 @@ export interface HermeshqProvisionSnapshot {
 interface ConnectionConfigFile {
   mode: ConnectionMode;
   remote: RemoteConnectionConfig;
-  hermeshq: HermeshqConfig;
+  agent37: Agent37Config;
 }
 
 const DEFAULT_REMOTE_CONFIG: RemoteConnectionConfig = { host: '', port: 9119, token: '' };
-const DEFAULT_HERMESHQ_CONFIG: HermeshqConfig = { url: '', token: '' };
+const DEFAULT_AGENT37_CONFIG: Agent37Config = { url: '', token: '' };
 const DEFAULT_CONFIG: ConnectionConfigFile = {
   mode: 'local',
   remote: DEFAULT_REMOTE_CONFIG,
-  hermeshq: DEFAULT_HERMESHQ_CONFIG,
+  agent37: DEFAULT_AGENT37_CONFIG,
 };
 
 function getConfigPath(): string {
@@ -151,7 +151,7 @@ function decryptToken(stored: string): string {
   return stored;
 }
 
-function normalizeHermeshqConfig(config: Partial<HermeshqConfig> | undefined): HermeshqConfig {
+function normalizeAgent37Config(config: Partial<Agent37Config> | undefined): Agent37Config {
   const rawToken = typeof config?.token === 'string' ? config.token : '';
   return {
     url: typeof config?.url === 'string' ? config.url.trim().replace(/\/$/, '') : '',
@@ -161,8 +161,8 @@ function normalizeHermeshqConfig(config: Partial<HermeshqConfig> | undefined): H
 }
 
 function normalizeProvisionSnapshot(
-  snapshot: Partial<HermeshqProvisionSnapshot> | null | undefined
-): HermeshqProvisionSnapshot | null {
+  snapshot: Partial<Agent37ProvisionSnapshot> | null | undefined
+): Agent37ProvisionSnapshot | null {
   if (!snapshot || typeof snapshot !== 'object') return null;
   const user = snapshot.user;
   const runtime = snapshot.runtime;
@@ -177,7 +177,7 @@ function normalizeProvisionSnapshot(
   if (!runtime || typeof runtime.validate_url !== 'string') {
     return null;
   }
-  const normalized: HermeshqProvisionSnapshot = {
+  const normalized: Agent37ProvisionSnapshot = {
     mode: typeof snapshot.mode === 'string' ? snapshot.mode : 'headmaster_local',
     user: {
       id: user.id,
@@ -243,7 +243,7 @@ function normalizeProvisionSnapshot(
   if (Array.isArray(snapshot.providers)) {
     normalized.providers = snapshot.providers
       .filter(
-        (p): p is HermeshqProvisionProvider =>
+        (p): p is Agent37ProvisionProvider =>
           p !== null && typeof p === 'object' && typeof p.slug === 'string' && typeof p.name === 'string'
       )
       .map((p) => ({
@@ -275,16 +275,16 @@ function readConfig(): ConnectionConfigFile {
   try {
     const path = getConfigPath();
     if (!existsSync(path))
-      return { ...DEFAULT_CONFIG, remote: { ...DEFAULT_REMOTE_CONFIG }, hermeshq: { ...DEFAULT_HERMESHQ_CONFIG } };
+      return { ...DEFAULT_CONFIG, remote: { ...DEFAULT_REMOTE_CONFIG }, agent37: { ...DEFAULT_AGENT37_CONFIG } };
     const parsed = JSON.parse(readFileSync(path, 'utf-8')) as Partial<ConnectionConfigFile>;
     return {
       mode: parsed.mode === 'remote' ? 'remote' : 'local',
       remote: normalizeRemoteConfig(parsed.remote),
-      hermeshq: normalizeHermeshqConfig(parsed.hermeshq),
+      agent37: normalizeAgent37Config(parsed.agent37),
     };
   } catch (err) {
     console.warn('[connection-config] failed to read config, using defaults', err);
-    return { ...DEFAULT_CONFIG, remote: { ...DEFAULT_REMOTE_CONFIG }, hermeshq: { ...DEFAULT_HERMESHQ_CONFIG } };
+    return { ...DEFAULT_CONFIG, remote: { ...DEFAULT_REMOTE_CONFIG }, agent37: { ...DEFAULT_AGENT37_CONFIG } };
   }
 }
 
@@ -313,58 +313,36 @@ export function setRemoteConfig(remote: RemoteConnectionConfig): void {
   writeConfig({ ...config, remote: normalizeRemoteConfig(remote) });
 }
 
-export function getHermeshqConfig(): HermeshqConfig {
-  return readConfig().hermeshq;
+export function getAgent37Config(): Agent37Config {
+  return readConfig().agent37;
 }
 
-export function setHermeshqUrl(url: string): void {
+export function setAgent37Url(url: string): void {
   const config = readConfig();
-  writeConfig({ ...config, hermeshq: { ...config.hermeshq, url: url.trim().replace(/\/$/, '') } });
+  writeConfig({ ...config, agent37: { ...config.agent37, url: url.trim().replace(/\/$/, '') } });
 }
 
-export function setHermeshqToken(token: string): void {
+export function setAgent37Token(token: string): void {
   const config = readConfig();
-  writeConfig({ ...config, hermeshq: { ...config.hermeshq, token: encryptToken(token) } });
+  writeConfig({ ...config, agent37: { ...config.agent37, token: encryptToken(token) } });
 }
 
-export function clearHermeshqToken(): void {
+export function clearAgent37Token(): void {
   const config = readConfig();
-  writeConfig({ ...config, hermeshq: { ...config.hermeshq, token: '' } });
+  writeConfig({ ...config, agent37: { ...config.agent37, token: '' } });
 }
 
-export function getHermeshqProvision(): HermeshqProvisionSnapshot | null {
-  return readConfig().hermeshq.provision ?? null;
+export function getAgent37Provision(): Agent37ProvisionSnapshot | null {
+  return readConfig().agent37.provision ?? null;
 }
 
-export function setHermeshqProvision(provision: HermeshqProvisionSnapshot): void {
+export function setAgent37Provision(provision: Agent37ProvisionSnapshot): void {
   const config = readConfig();
-  writeConfig({ ...config, hermeshq: { ...config.hermeshq, provision: normalizeProvisionSnapshot(provision) } });
+  writeConfig({ ...config, agent37: { ...config.agent37, provision: normalizeProvisionSnapshot(provision) } });
 }
 
-export function clearHermeshqProvision(): void {
+export function clearAgent37Provision(): void {
   const config = readConfig();
-  writeConfig({ ...config, hermeshq: { ...config.hermeshq, provision: null } });
+  writeConfig({ ...config, agent37: { ...config.agent37, provision: null } });
 }
 
-// ---------------------------------------------------------------------------
-// Agent37 aliases
-//
-// The internal seam is still called `HermeshqConfig` / `HermeshqProvisionSnapshot`
-// for historical reasons (every renderer consumer reads from `window.__hermeshqProvision`
-// and the `hermeshq:provision-updated` event). The agent37 client now drives
-// these values; the alias functions below keep the IPC bridge and downstream
-// service code from needing to know about the rename.
-// ---------------------------------------------------------------------------
-
-export type Agent37Config = HermeshqConfig;
-export type Agent37ProvisionSnapshot = HermeshqProvisionSnapshot;
-export type Agent37ProvisionProvider = HermeshqProvisionProvider;
-export type Agent37ProvisionAppSettings = HermeshqProvisionAppSettings;
-
-export const getAgent37Config = getHermeshqConfig;
-export const setAgent37Url = setHermeshqUrl;
-export const setAgent37Token = setHermeshqToken;
-export const clearAgent37Token = clearHermeshqToken;
-export const getAgent37Provision = getHermeshqProvision;
-export const setAgent37Provision = setHermeshqProvision;
-export const clearAgent37Provision = clearHermeshqProvision;

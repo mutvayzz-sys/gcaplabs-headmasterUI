@@ -5,8 +5,8 @@
  *
  * Agent37-backed desktop provision service.
  *
- * Replaces the legacy HermesHQ provision client. The desktop still speaks the
- * same `HermeshqProvisionSnapshot` shape (it is the internal seam between the
+ * Replaces the legacy Agent37 provision client. The desktop still speaks the
+ * same `Agent37ProvisionSnapshot` shape (it is the internal seam between the
  * provision service and every consumer in the renderer), but the HTTP target
  * is now the Headmaster Console BFF, which proxies provisioning to the user's
  * managed Agent37 Cloud runtime.
@@ -16,7 +16,7 @@
  *   GET  /api/desktop/provision/current   — return the synthesized provision snapshot
  *   POST /api/desktop/runtime/validate    — re-check the Agent37 runtime is healthy
  *
- * The legacy `Hermeshq*` symbols are kept for compatibility with downstream
+ * The legacy `Agent37*` symbols are kept for compatibility with downstream
  * consumers (`Agent37ProvisionService` would be the long-term rename target —
  * see TODO in the seam comment above `setHermesRuntimeRestarter`).
  */
@@ -60,8 +60,7 @@ function normalizeBaseUrl(url: string): string {
   return url
     .trim()
     .replace(/\/$/, '')
-    .replace('://hermeshq.gcaplabs.com', '://console.gcaplabs.com')
-    .replace('://hq.gcaplabs.com', '://console.gcaplabs.com');
+    .replace('://agent37.gcaplabs.com', '://console.gcaplabs.com');
 }
 
 function resolveBaseUrl(): string {
@@ -230,7 +229,7 @@ export async function provisionViaAuthMe(
 
 export async function validateAgent37RuntimeAccess(
   request: Agent37RuntimeValidationRequest
-): Promise<{ success: boolean; validation?: Agent37RuntimeValidationResponse; error?: string }> {
+): Promise<{ success: boolean; validation?: Agent37RuntimeValidationResponse; error?: string; status?: number }> {
   const config = getAgent37Config();
   if (!config.token) {
     return { success: false, error: 'Agent37 session is not configured.' };
@@ -248,10 +247,11 @@ export async function validateAgent37RuntimeAccess(
     if (!response.ok) {
       if (response.status === 401 || response.status === 403) {
         clearAgent37Provision();
-        return { success: false, error: 'Agent37 session expired' };
+        return { success: false, status: response.status, error: 'Agent37 session expired' };
       }
-      return { success: false, error: `Runtime validation failed (HTTP ${response.status})` };
+      return { success: false, status: response.status, error: `Runtime validation failed (HTTP ${response.status})` };
     }
+
     const data = (await readJson<Agent37RuntimeValidationResponse>(response)) ?? null;
     if (!data) return { success: false, error: 'Empty validation response' };
     return { success: true, validation: data };
@@ -264,12 +264,9 @@ export async function validateAgent37RuntimeAccess(
 type Restarter = () => Promise<{ success: boolean; error?: string } | void>;
 let runtimeRestarter: Restarter | null = null;
 
-export function setHermesRuntimeRestarter(restarter: Restarter): void {
+export function setAgent37RuntimeRestarter(restarter: Restarter): void {
   runtimeRestarter = restarter;
 }
-
-// Canonical name — new main-process code should use this.
-export const setAgent37RuntimeRestarter = setHermesRuntimeRestarter;
 
 export function broadcastApiServerKey(_key: string | null): void {
   // No-op: Agent37 bearer tokens live in IPC, not the renderer window. The
@@ -283,15 +280,3 @@ export function broadcastApiServerKey(_key: string | null): void {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Legacy-symbol compatibility aliases
-//
-// The IPC channel names still carry the `hermeshq:*` prefix (kept stable to
-// avoid a renderer-side bridge churn) and the main process imports these
-// symbols under their historical names. Re-export under the old names so the
-// Agent37-backed implementation can drop in without rippling through every
-// main-process caller.
-// ---------------------------------------------------------------------------
-
-export const validateHermeshqRuntimeAccess = validateAgent37RuntimeAccess;
-export const provisionHermeshqDesktop = provisionAgent37Desktop;

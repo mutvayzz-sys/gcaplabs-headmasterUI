@@ -8,7 +8,7 @@ import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from '
 import { randomBytes } from 'node:crypto';
 import { dirname, join } from 'node:path';
 import { homedir } from 'node:os';
-import type { HermeshqProvisionSnapshot } from '../connection/connectionConfig';
+import type { Agent37ProvisionSnapshot } from '../connection/connectionConfig';
 
 function resolveHermesHome(): string {
   if (process.env.HERMES_HOME) return process.env.HERMES_HOME;
@@ -51,7 +51,7 @@ export interface ApplyProvisionResult {
 }
 
 /** Applies provision snapshot to the local Hermes runtime config/env files. */
-export function applyProvisionToRuntime(provision: HermeshqProvisionSnapshot): ApplyProvisionResult {
+export function applyProvisionToRuntime(provision: Agent37ProvisionSnapshot): ApplyProvisionResult {
   try {
     if (provision.mode === 'headmaster_remote') {
       return {
@@ -74,11 +74,11 @@ export function applyProvisionToRuntime(provision: HermeshqProvisionSnapshot): A
 }
 
 /**
- * Writes system_prompt_override from HermesHQ provision to $HERMES_HOME/SOUL.md.
+ * Writes system_prompt_override from Agent37 provision to $HERMES_HOME/SOUL.md.
  * SOUL.md is the documented Hermes mechanism for the primary system prompt
  * (slot #1). The runtime reads it at gateway startup.
  */
-function applySystemPromptOverride(hermesHome: string, provision: HermeshqProvisionSnapshot): void {
+function applySystemPromptOverride(hermesHome: string, provision: Agent37ProvisionSnapshot): void {
   if (!provision.system_prompt_override) return;
   const soulPath = join(hermesHome, 'SOUL.md');
   try {
@@ -89,7 +89,7 @@ function applySystemPromptOverride(hermesHome: string, provision: HermeshqProvis
   }
 }
 
-function applyModelConfig(hermesHome: string, provision: HermeshqProvisionSnapshot): void {
+function applyModelConfig(hermesHome: string, provision: Agent37ProvisionSnapshot): void {
   const updates: Record<string, string> = {};
   if (provision.default_model) updates['default'] = provision.default_model;
   if (provision.default_provider) updates['provider'] = provision.default_provider;
@@ -158,7 +158,7 @@ function patchModelSection(content: string, updates: Record<string, string>): st
  * For headmaster_remote the key comes from the provision snapshot (container
  * generated it); for headmaster_local we generate one ourselves.
  */
-function applyNousConfig(hermesHome: string, provision: HermeshqProvisionSnapshot): ApplyProvisionResult {
+function applyNousConfig(hermesHome: string, provision: Agent37ProvisionSnapshot): ApplyProvisionResult {
   const envPath = join(hermesHome, '.env');
   if (!existsSync(envPath)) return { apiServerKey: null, needsRestart: false };
 
@@ -169,7 +169,7 @@ function applyNousConfig(hermesHome: string, provision: HermeshqProvisionSnapsho
     env = patchEnvLine(env, 'NOUS_API_KEY', provision.nous_api_key);
   }
 
-  // Inject any provider API keys shipped by HermesHQ (e.g. KIMI_API_KEY)
+  // Inject any provider API keys shipped by Agent37 (e.g. KIMI_API_KEY)
   const runtimeEnvKeys = Object.keys(provision.runtime_env ?? {});
   if (runtimeEnvKeys.length > 0) {
     for (const [key, value] of Object.entries(provision.runtime_env!)) {
@@ -244,7 +244,7 @@ function ensureYamlSection(content: string, section: string, key: string, value:
   return `${content}\n${section}:\n  ${key}: ${value}\n`;
 }
 
-function applyHonchoConfig(hermesHome: string, provision: HermeshqProvisionSnapshot): void {
+function applyHonchoConfig(hermesHome: string, provision: Agent37ProvisionSnapshot): void {
   const honchoPath = join(hermesHome, 'honcho.json');
   const current = readJson(honchoPath);
 

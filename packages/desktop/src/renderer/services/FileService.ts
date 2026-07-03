@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { getBaseUrl } from '@/common/adapter/httpBridge';
+import { getBaseUrl, supportsResponsesApi } from '@/common/adapter/httpBridge';
 import { trackUpload, type UploadSource } from '@/renderer/hooks/file/useUploadState';
 
 /** Sentinel error message used when an upload is cancelled by the caller. */
@@ -29,6 +29,11 @@ export interface UploadFileOptions {
  * @param onProgress Optional callback receiving upload percentage (0-100).
  * @param options    Optional bag — currently supports an `AbortSignal` so callers can cancel.
  */
+function runtimeBearerToken(): string | null {
+  const w = typeof window !== 'undefined' ? (window as Window & { __runtimeBearerToken?: string; __apiServerKey?: string }) : null;
+  return w?.__runtimeBearerToken || w?.__apiServerKey || null;
+}
+
 export async function uploadFileViaHttp(
   file: File,
   conversation_id?: string,
@@ -36,18 +41,29 @@ export async function uploadFileViaHttp(
   file_name?: string,
   options?: UploadFileOptions
 ): Promise<string> {
+  const remoteRuntime = supportsResponsesApi();
   const formData = new FormData();
-  formData.append('file', file);
-  if (file_name) {
-    formData.append('file_name', file_name);
-  }
-  if (conversation_id) {
-    formData.append('conversation_id', conversation_id);
+  formData.append('file', file, file_name || file.name);
+  if (!remoteRuntime) {
+    if (file_name) {
+      formData.append('file_name', file_name);
+    }
+    if (conversation_id) {
+      formData.append('conversation_id', conversation_id);
+    }
   }
 
   return new Promise<string>((resolve, reject) => {
     const xhr = new XMLHttpRequest();
-    xhr.open('POST', `${getBaseUrl()}/api/fs/upload`);
+    const uploadUrl = remoteRuntime
+      ? `${getBaseUrl().replace(/\/$/, '')}/v1/files/content`
+      : `${getBaseUrl()}/api/fs/upload`;
+    xhr.open(remoteRuntime ? 'PUT' : 'POST', uploadUrl);
+    if (remoteRuntime) {
+      xhr.setRequestHeader('X-File-Path', file_name || file.name);
+      const bearer = runtimeBearerToken();
+      if (bearer) xhr.setRequestHeader('Authorization', `Bearer ${bearer}`);
+    }
 
     // Wire AbortSignal → xhr.abort. Closing the XHR tears down the underlying
     // socket; the backend (axum/multer) treats the truncated multipart body as
@@ -96,11 +112,12 @@ export async function uploadFileViaHttp(
         return;
       }
       try {
-        const result = JSON.parse(xhr.responseText) as { success: boolean; data?: string };
-        if (!result.success || typeof result.data !== 'string' || !result.data) {
+        const result = JSON.parse(xhr.responseText) as { success?: boolean; data?: string; path?: string };
+        const uploadedPath = remoteRuntime ? result.path || result.data : result.data;
+        if ((!remoteRuntime && !result.success) || typeof uploadedPath !== 'string' || !uploadedPath) {
           reject(new Error('Upload failed: server returned unsuccessful response'));
         } else {
-          resolve(result.data);
+          resolve(uploadedPath);
         }
       } catch {
         reject(new Error('Upload failed: invalid server response'));
@@ -316,12 +333,15 @@ class FileServiceClass {
 
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
-      // In Electron environment, dragged files have additional path property
+      // In Electron environment, dragged files have additional path property.
+      // Agent37 cloud cannot read local absolute paths, so remote mode uploads
+      // every file and returns an instance path. Local mode can still skip the
+      // upload when Electron already gives us a disk path.
       const electronFile = file as File & { path?: string };
+      const mustUpload = supportsResponsesApi();
 
-      let file_path = electronFile.path || '';
+      let file_path = mustUpload ? '' : electronFile.path || '';
 
-      // If no valid path (WebUI or some dragged files may not have paths), upload via HTTP multipart
       if (!file_path) {
         // Each upload owns its own AbortController; the tracker exposes an `abort()`
         // that triggers the signal so user-driven cancel and conversation-switch

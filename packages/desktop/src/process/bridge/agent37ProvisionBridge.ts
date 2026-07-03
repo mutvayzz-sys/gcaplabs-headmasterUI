@@ -7,7 +7,7 @@
  *
  * Exposes the Agent37 control plane (now proxied through the Headmaster
  * Console BFF) to the renderer. The IPC channel names keep the historical
- * `hermeshq:*` prefix to avoid churning renderer-side bindings; the underlying
+ * `agent37:*` prefix to avoid churning renderer-side bindings; the underlying
  * implementation talks to Console2's `/api/desktop/provision/current` and
  * `/api/desktop/runtime/validate` endpoints.
  */
@@ -26,25 +26,25 @@ import {
 } from '../connection/connectionConfig';
 
 export function initAgent37ProvisionBridge(): void {
-  ipcMain.handle('hermeshq:get-provision', () => {
+  ipcMain.handle('agent37:get-provision', () => {
     return getAgent37Provision();
   });
 
   ipcMain.handle(
-    'hermeshq:provision',
+    'agent37:provision',
     async (_event, request: Agent37ProvisionRequest) => {
       return provisionAgent37Desktop(request);
     }
   );
 
   ipcMain.handle(
-    'hermeshq:validate-runtime',
+    'agent37:validate-runtime',
     async (_event, request: Agent37RuntimeValidationRequest) => {
       return validateAgent37RuntimeAccess(request);
     }
   );
 
-  ipcMain.handle('hermeshq:clear-provision', () => {
+  ipcMain.handle('agent37:clear-provision', () => {
     clearAgent37Provision();
     return { success: true };
   });

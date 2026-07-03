@@ -290,7 +290,7 @@ describe('Hermes chat adapter', () => {
     const sent = await sendHermesMessage({ conversation_id: conversation.id, input: 'Hello remote' });
 
     expect(mocks.request).not.toHaveBeenCalled();
-    expect(submitResponseAndStream).toHaveBeenCalledWith('Hello remote', conversation.id, expect.any(Object));
+    expect(submitResponseAndStream).toHaveBeenCalledWith('Hello remote', conversation.id, expect.any(Object), undefined, []);
     expect(sent.runtime.state).toBe('running');
     expect(mocks.broadcast).toHaveBeenCalledWith(
       'message.stream',

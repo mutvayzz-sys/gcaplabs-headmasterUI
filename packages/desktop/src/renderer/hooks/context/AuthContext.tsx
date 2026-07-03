@@ -61,6 +61,7 @@ interface DesktopAgent37Provision {
     forward_auth_token?: string | null;
     forward_auth_expires_at?: string | null;
   };
+  session_namespace?: string | null;
 }
 
 interface DesktopAgent37Config {
@@ -69,12 +70,6 @@ interface DesktopAgent37Config {
   provision?: DesktopAgent37Provision | null;
 }
 
-// Legacy aliases — kept for one release so any in-flight code that still
-// imports `DesktopHermeshq*` keeps compiling. New code MUST use the
-// `DesktopAgent37*` names.
-type DesktopHermeshqUser = DesktopAgent37User;
-type DesktopHermeshqProvision = DesktopAgent37Provision;
-type DesktopHermeshqConfig = DesktopAgent37Config;
 
 interface RegisterParams {
   username: string;
@@ -107,23 +102,20 @@ const AUTH_USER_ENDPOINT = '/api/auth/user';
 const isDesktopRuntime = typeof window !== 'undefined' && Boolean(window.electronAPI);
 
 // Build-time Console URL. The canonical env var is `VITE_CONSOLE_URL`;
-// `VITE_HERMESHQ_URL` is still read for one release as a transition shim.
-// The console provisions Agent37 Cloud runtimes (no longer a HermesHQ
+// `VITE_AGENT37_URL` is still read for one release as a transition shim.
+// The console provisions Agent37 Cloud runtimes (no longer a Agent37
 // control plane).
 const CONSOLE_URL = (
   ((import.meta as ImportMeta & { env?: Record<string, string | undefined> }).env?.VITE_CONSOLE_URL as
     | string
     | undefined) ??
-  ((import.meta as ImportMeta & { env?: Record<string, string | undefined> }).env?.VITE_HERMESHQ_URL as
+  ((import.meta as ImportMeta & { env?: Record<string, string | undefined> }).env?.VITE_AGENT37_URL as
     | string
     | undefined) ??
   'https://console.gcaplabs.com'
 ).replace(/\/$/, '');
-// Legacy alias — kept for one release so in-flight code referencing the
-// `HERMESHQ_URL` constant name still works.
-const HERMESHQ_URL = CONSOLE_URL;
 
-async function refreshHermeshqToken(serverUrl: string, token: string): Promise<string | null> {
+async function refreshAgent37Token(serverUrl: string, token: string): Promise<string | null> {
   try {
     const response = await fetch(`${serverUrl}/api/auth/refresh`, {
       method: 'POST',
@@ -195,8 +187,7 @@ function resolveDesktopServerUrl(configUrl?: string): string {
   // Migrate retired control-plane domains so clients with a stale stored URL
   // land on the Agent37-backed Headmaster Console.
   return url
-    .replace('://hermeshq.gcaplabs.com', '://console.gcaplabs.com')
-    .replace('://hq.gcaplabs.com', '://console.gcaplabs.com');
+    .replace('://agent37.gcaplabs.com', '://console.gcaplabs.com');
 }
 
 async function extractRemoteSessionToken(endpointUrl: string): Promise<string | null> {
@@ -213,48 +204,47 @@ async function extractRemoteSessionToken(endpointUrl: string): Promise<string | 
 
 async function applyProvisionGlobals(provision: DesktopAgent37Provision): Promise<void> {
   if (typeof window === 'undefined') return;
-  // Canonical Agent37 seam; the `__hermeshqProvision` global is kept as a
-  // read-only alias so existing renderer-side consumers (model provider list,
-  // capability gating, app settings) keep working without a rewrite.
-  (window as any).__hermeshqProvision = provision;
-  (window as any).__agent37Provision = provision;
-  if ((provision as any).session_namespace) {
-    (window as any).__hermesSessionKey = (provision as any).session_namespace;
+  const runtimeWindow = window as Window & {
+    __agent37Provision?: DesktopAgent37Provision;
+    __agent37Endpoint?: string;
+    __runtimeApiBasePath?: string;
+    __runtimeBearerToken?: string;
+    __apiServerKey?: string;
+    __hermesSessionKey?: string;
+    __hermesSessionToken?: string;
+  };
+  runtimeWindow.__agent37Provision = provision;
+  if (provision.session_namespace) {
+    runtimeWindow.__hermesSessionKey = provision.session_namespace;
   }
   const containerUrl = provision.runtime?.base_url || provision.cloud_container_config?.endpoint_url;
   if (containerUrl) {
     const normalizedEndpoint = containerUrl.replace(/\/$/, '');
     window.__cloudContainerEndpoint = normalizedEndpoint;
-    (window as any).__agent37Endpoint = normalizedEndpoint;
-    (window as any).__runtimeApiBasePath = provision.runtime?.api_base_path || '/v1';
+    runtimeWindow.__agent37Endpoint = normalizedEndpoint;
+    runtimeWindow.__runtimeApiBasePath = provision.runtime?.api_base_path || '/v1';
     const bearerToken =
       provision.cloud_container_config?.forward_auth_token ?? provision.cloud_container_config?.api_server_key;
     if (bearerToken) {
-      (window as any).__apiServerKey = bearerToken;
-      (window as any).__runtimeBearerToken = bearerToken;
+      runtimeWindow.__apiServerKey = bearerToken;
+      runtimeWindow.__runtimeBearerToken = bearerToken;
     }
     if (!provision.cloud_container_config?.forward_auth_token) {
       const token = await extractRemoteSessionToken(containerUrl);
-      if (token) (window as any).__hermesSessionToken = token;
+      if (token) runtimeWindow.__hermesSessionToken = token;
     }
   } else {
     delete window.__cloudContainerEndpoint;
-    delete (window as any).__agent37Endpoint;
-    delete (window as any).__runtimeApiBasePath;
-    delete (window as any).__runtimeBearerToken;
+    delete runtimeWindow.__agent37Endpoint;
+    delete runtimeWindow.__runtimeApiBasePath;
+    delete runtimeWindow.__runtimeBearerToken;
   }
   queueMicrotask(() => {
-    // Fire BOTH event names. The legacy `hermeshq:provision-updated` is the
-    // internal seam; `agent37:provision-updated` is the canonical name and
-    // is what new code should listen on. Removing the legacy fire would
-    // break every renderer consumer that listens today, so keep it as a
-    // shim until a future major cuts over.
-    window.dispatchEvent(new CustomEvent('hermeshq:provision-updated'));
     window.dispatchEvent(new CustomEvent('agent37:provision-updated'));
   });
 }
 
-// Node's `process` global does not exist in the packaged Electron renderer, so
+// Node's `process` global does not exist
 // derive the platform from the user agent instead (using `process.platform` here
 // throws "process is not defined" and stalls bootstrap on "Preparing your workspace…").
 function getRendererPlatform(): NodeJS.Platform {
@@ -266,7 +256,7 @@ function getRendererPlatform(): NodeJS.Platform {
 }
 
 async function provisionDesktopSession(): Promise<{ provision: DesktopAgent37Provision } | { error: string }> {
-  const result = await window.electronAPI?.provisionHermeshq?.({
+  const result = await window.electronAPI?.provisionAgent37?.({
     client: 'headmaster_desktop',
     version: __APP_VERSION__,
     platform: getRendererPlatform(),
@@ -296,9 +286,8 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
   const abortRef = useRef<AbortController | null>(null);
 
   const refresh = useCallback(async () => {
-    try {
-      if (isDesktopRuntime) {
-        // Desktop mode: validate stored HermesHQ JWT against the baked-in server URL
+    if (isDesktopRuntime) {
+        // Desktop mode: validate stored Agent37 JWT against the baked-in server URL
         const config = (await window.electronAPI?.getAgent37Config?.()) as DesktopAgent37Config | undefined;
         const serverUrl = resolveDesktopServerUrl(config?.url);
         const token = config?.token ?? '';
@@ -311,19 +300,19 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
         }
 
         // Try to refresh the token first so sessions stay alive silently
-        const freshToken = await refreshHermeshqToken(serverUrl, token);
+        const freshToken = await refreshAgent37Token(serverUrl, token);
         if (freshToken) {
-          await window.electronAPI?.setHermeshqToken?.(freshToken);
+          await window.electronAPI?.setAgent37Token?.(freshToken);
         }
 
         if (!config?.url && serverUrl) {
-          await window.electronAPI?.setHermeshqUrl?.(serverUrl);
+          await window.electronAPI?.setAgent37Url?.(serverUrl);
         }
 
         const provisionResult = await provisionDesktopSession();
         if ('error' in provisionResult) {
-          await window.electronAPI?.clearHermeshqToken?.();
-          await window.electronAPI?.clearHermeshqProvision?.();
+          await window.electronAPI?.clearAgent37Token?.();
+          await window.electronAPI?.clearAgent37Provision?.();
           setUser(null);
           setStatus('unauthenticated');
         } else {
@@ -351,9 +340,6 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
         setStatus('unauthenticated');
       }
       setReady(true);
-    } catch (error) {
-      throw error;
-    }
   }, []);
 
   useEffect(() => {
@@ -365,7 +351,7 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
 
   const login = useCallback(async ({ username, password, remember }: LoginParams): Promise<LoginResult> => {
     if (isDesktopRuntime) {
-      const config = (await window.electronAPI?.getHermeshqConfig?.()) as DesktopHermeshqConfig | undefined;
+      const config = (await window.electronAPI?.getAgent37Config?.()) as DesktopAgent37Config | undefined;
       const serverUrl = resolveDesktopServerUrl(config?.url);
 
       if (!serverUrl) {
@@ -413,13 +399,13 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
           return { success: false, message: 'Unexpected server response.', code: 'serverError' };
         }
 
-        await window.electronAPI?.setHermeshqUrl?.(serverUrl);
-        await window.electronAPI?.setHermeshqToken?.(data.access_token);
+        await window.electronAPI?.setAgent37Url?.(serverUrl);
+        await window.electronAPI?.setAgent37Token?.(data.access_token);
 
         const provisionResult = await provisionDesktopSession();
         if ('error' in provisionResult) {
-          await window.electronAPI?.clearHermeshqToken?.();
-          await window.electronAPI?.clearHermeshqProvision?.();
+          await window.electronAPI?.clearAgent37Token?.();
+          await window.electronAPI?.clearAgent37Provision?.();
           setUser(null);
           setStatus('unauthenticated');
           setReady(true);
@@ -515,15 +501,15 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
   const loginWithOAuthToken = useCallback(async (token: string): Promise<LoginResult> => {
     if (!isDesktopRuntime)
       return { success: false, message: 'OAuth login only available in desktop mode.', code: 'serverError' };
-    const config = (await window.electronAPI?.getHermeshqConfig?.()) as DesktopHermeshqConfig | undefined;
+    const config = (await window.electronAPI?.getAgent37Config?.()) as DesktopAgent37Config | undefined;
     const serverUrl = resolveDesktopServerUrl(config?.url);
     if (!serverUrl) return { success: false, message: 'Server not configured.', code: 'serverError' };
     try {
-      await window.electronAPI?.setHermeshqUrl?.(serverUrl);
-      await window.electronAPI?.setHermeshqToken?.(token);
+      await window.electronAPI?.setAgent37Url?.(serverUrl);
+      await window.electronAPI?.setAgent37Token?.(token);
       const provisionResult = await provisionDesktopSession();
       if ('error' in provisionResult) {
-        await window.electronAPI?.clearHermeshqToken?.();
+        await window.electronAPI?.clearAgent37Token?.();
         return { success: false, message: provisionResult.error, code: 'serverError' };
       }
       const { provision } = provisionResult;
@@ -538,7 +524,7 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
   }, []);
 
   const register = useCallback(async ({ username, password, email }: RegisterParams): Promise<RegisterResult> => {
-    const config = (await window.electronAPI?.getHermeshqConfig?.()) as DesktopHermeshqConfig | undefined;
+    const config = (await window.electronAPI?.getAgent37Config?.()) as DesktopAgent37Config | undefined;
     const serverUrl = resolveDesktopServerUrl(config?.url);
     if (!serverUrl) return { success: false, message: 'Server not configured. Please contact your administrator.' };
     try {
@@ -576,9 +562,9 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
           if (!response.ok || !data.access_token) {
             return { success: false, message: data?.detail ?? 'Invalid MFA code', code: 'invalidCredentials' };
           }
-          await window.electronAPI?.setHermeshqToken?.(data.access_token);
+          await window.electronAPI?.setAgent37Token?.(data.access_token);
           if (params.remember) {
-            await window.electronAPI?.setHermeshqUrl?.(serverUrl);
+            await window.electronAPI?.setAgent37Url?.(serverUrl);
           }
           const provisionResult = await provisionDesktopSession();
           if ('error' in provisionResult) {
@@ -601,7 +587,7 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
 
   const logout = useCallback(async () => {
     if (isDesktopRuntime) {
-      const config = await window.electronAPI?.getHermeshqConfig?.();
+      const config = await window.electronAPI?.getAgent37Config?.();
       if (config?.url && config?.token) {
         try {
           await fetch(`${config.url}/api/auth/logout`, {
@@ -612,8 +598,8 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
           // ignore network errors on logout
         }
       }
-      await window.electronAPI?.clearHermeshqToken?.();
-      await window.electronAPI?.clearHermeshqProvision?.();
+      await window.electronAPI?.clearAgent37Token?.();
+      await window.electronAPI?.clearAgent37Provision?.();
       setUser(null);
       setStatus('unauthenticated');
       clearAuthCache();

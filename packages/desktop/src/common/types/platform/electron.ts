@@ -22,8 +22,7 @@ export interface ElectronBridgeAPI {
   setRemoteConnectionConfig?: (config: { host: string; port: number; token: string }) => Promise<unknown>;
   restartRuntime?: () => Promise<{ ok: boolean; port?: number; error?: string }>;
   checkHermesRuntime?: () => Promise<{ detected: boolean; path?: string; choice?: string; customPath?: string }>;
-  // Agent37 Console2 BFF config — canonical names. The `getHermeshq*`
-  // aliases below are kept for one release as a transition shim.
+  // Agent37 Console BFF config.
   getAgent37Config?: () => Promise<{ url: string; token: string; provision?: unknown | null }>;
   getAgent37Provision?: () => Promise<unknown | null>;
   setAgent37Url?: (url: string) => Promise<{ success: boolean }>;
@@ -46,29 +45,7 @@ export interface ElectronBridgeAPI {
     status?: number;
     error?: string;
   }>;
-  // Legacy `hermeshq:*` aliases — kept for one release.
-  getHermeshqConfig?: () => Promise<{ url: string; token: string; provision?: unknown | null }>;
-  getHermeshqProvision?: () => Promise<unknown | null>;
-  setHermeshqUrl?: (url: string) => Promise<{ success: boolean }>;
-  setHermeshqToken?: (token: string) => Promise<{ success: boolean }>;
-  clearHermeshqToken?: () => Promise<{ success: boolean }>;
-  clearHermeshqProvision?: () => Promise<{ success: boolean }>;
-  provisionHermeshq?: (request: {
-    client: 'headmaster_desktop';
-    version: string;
-    platform: NodeJS.Platform;
-  }) => Promise<{
-    success: boolean;
-    provision?: unknown;
-    status?: number;
-    error?: string;
-  }>;
-  validateHermeshqRuntime?: (request: { runtime_id: string; requested_capability: string }) => Promise<{
-    success: boolean;
-    validation?: unknown;
-    status?: number;
-    error?: string;
-  }>;
+
   saveCredentials?: (creds: { username: string; password: string }) => Promise<{ success: boolean; error?: string }>;
   loadCredentials?: () => Promise<{ success: boolean; credentials: { username: string; password: string } | null }>;
   clearCredentials?: () => Promise<{ success: boolean }>;

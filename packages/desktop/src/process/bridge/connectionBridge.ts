@@ -10,11 +10,11 @@ import {
   setConnectionMode,
   getRemoteConfig,
   setRemoteConfig,
-  getHermeshqConfig,
-  setHermeshqUrl,
-  setHermeshqToken,
-  clearHermeshqToken,
-  clearHermeshqProvision,
+  getAgent37Config,
+  setAgent37Url,
+  setAgent37Token,
+  clearAgent37Token,
+  clearAgent37Provision,
   type ConnectionMode,
   type RemoteConnectionConfig,
 } from '../connection/connectionConfig';
@@ -38,23 +38,23 @@ export function initConnectionBridge(): void {
     return { success: true };
   });
 
-  ipcMain.handle('hermeshq:get-config', () => {
-    return getHermeshqConfig();
+  ipcMain.handle('agent37:get-config', () => {
+    return getAgent37Config();
   });
 
-  ipcMain.handle('hermeshq:set-url', (_event, url: string) => {
-    setHermeshqUrl(typeof url === 'string' ? url : '');
+  ipcMain.handle('agent37:set-url', (_event, url: string) => {
+    setAgent37Url(typeof url === 'string' ? url : '');
     return { success: true };
   });
 
-  ipcMain.handle('hermeshq:set-token', (_event, token: string) => {
-    setHermeshqToken(typeof token === 'string' ? token : '');
+  ipcMain.handle('agent37:set-token', (_event, token: string) => {
+    setAgent37Token(typeof token === 'string' ? token : '');
     return { success: true };
   });
 
-  ipcMain.handle('hermeshq:clear-token', () => {
-    clearHermeshqToken();
-    clearHermeshqProvision();
+  ipcMain.handle('agent37:clear-token', () => {
+    clearAgent37Token();
+    clearAgent37Provision();
     return { success: true };
   });
 }

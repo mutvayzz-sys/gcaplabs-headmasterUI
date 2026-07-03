@@ -27,18 +27,14 @@ export const fetchProviders = async (): Promise<IProvider[]> => {
 };
 
 /**
- * Read the provisioned provider catalog from the Agent37 Console2 BFF
- * provision snapshot (canonical: `window.__agent37Provision`; legacy alias
- * `window.__hermeshqProvision` is still read for one release). These are
- * the admin-controlled providers shipped in the provision response — they
- * take priority over the local runtime's /api/model/options (which only
- * sees local .env keys).
+ * Read the provisioned provider catalog from the Agent37 Console BFF provision snapshot.
+ * These are admin-controlled providers shipped in the provision response.
  */
 export function readProvisionedProviders(): IProvider[] {
   if (typeof window === 'undefined') return [];
-  const provision = ((window as any).__agent37Provision ??
-    (window as any).__hermeshqProvision) as { providers?: Array<Record<string, unknown>> } | undefined;
-  if (!provision?.providers || !Array.isArray(provision.providers)) return [];
+  const provision = (window as Window & { __agent37Provision?: { providers?: Array<Record<string, unknown>> } })
+    .__agent37Provision;
+
   return provision.providers
     .filter((p) => p && typeof p.slug === 'string' && typeof p.name === 'string')
     .map(
@@ -66,11 +62,10 @@ export function readProvisionedDefaultModel(): {
   base_url: string;
 } | null {
   if (typeof window === 'undefined') return null;
-  const provision = ((window as any).__agent37Provision ??
-    (window as any).__hermeshqProvision) as
-    | { default_model?: string | null; default_provider?: string | null; default_base_url?: string | null }
-    | undefined;
-  if (!provision?.default_model) return null;
+  const provision = (window as Window & {
+    __agent37Provision?: { default_model?: string | null; default_provider?: string | null; default_base_url?: string | null };
+  }).__agent37Provision;
+
   return {
     model: provision.default_model,
     provider: provision.default_provider ?? '',
@@ -113,16 +108,16 @@ export const useModelProviderList = (): ModelProviderListResult => {
 
   // Track provisioned providers so we re-render when the provision snapshot
   // arrives (dispatched via the 'agent37:provision-updated' DOM event; the
-  // legacy 'hermeshq:provision-updated' is also listened to as a one-release
+  // legacy 'agent37:provision-updated' is also listened to as a one-release
   // shim).
   const [provisionedProviders, setProvisionedProviders] = useState<IProvider[]>(() => readProvisionedProviders());
   useEffect(() => {
     const handler = () => setProvisionedProviders(readProvisionedProviders());
     window.addEventListener('agent37:provision-updated', handler);
-    window.addEventListener('hermeshq:provision-updated', handler);
+    window.addEventListener('agent37:provision-updated', handler);
     return () => {
       window.removeEventListener('agent37:provision-updated', handler);
-      window.removeEventListener('hermeshq:provision-updated', handler);
+      window.removeEventListener('agent37:provision-updated', handler);
     };
   }, []);
 

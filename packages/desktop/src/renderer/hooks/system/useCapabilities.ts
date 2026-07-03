@@ -25,11 +25,8 @@ export interface CapabilityContext {
 }
 
 function readCapabilitiesFromWindow(): CapabilityContext {
-  // The AuthContext sets this after successful provision. The canonical
-  // Agent37 global is `__agent37Provision`; the legacy `__hermeshqProvision`
-  // is kept as a read alias for one release.
-  const provision = ((window as any).__agent37Provision ??
-    (window as any).__hermeshqProvision) as Record<string, unknown> | undefined;
+  // AuthContext sets this after successful Agent37 provision.
+  const provision = (window as Window & { __agent37Provision?: Record<string, unknown> }).__agent37Provision;
   if (provision) {
     const caps = Array.isArray(provision.capabilities)
       ? provision.capabilities.filter((c): c is string => typeof c === 'string')
@@ -55,13 +52,9 @@ export function useCapabilities(): CapabilityContext {
   const [caps, setCaps] = useState(() => readCapabilitiesFromWindow());
   useEffect(() => {
     const handler = () => setCaps(readCapabilitiesFromWindow());
-    // Listen on BOTH names — the AuthContext fires both as a transition
-    // shim. New code should listen on `agent37:provision-updated`.
     window.addEventListener('agent37:provision-updated', handler);
-    window.addEventListener('hermeshq:provision-updated', handler);
     return () => {
       window.removeEventListener('agent37:provision-updated', handler);
-      window.removeEventListener('hermeshq:provision-updated', handler);
     };
   }, []);
   return caps;

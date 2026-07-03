@@ -16,12 +16,12 @@ vi.mock('electron', () => ({
 }));
 
 import {
-  clearHermeshqProvision,
-  getHermeshqConfig,
-  getHermeshqProvision,
-  setHermeshqProvision,
-  setHermeshqToken,
-  setHermeshqUrl,
+  clearAgent37Provision,
+  getAgent37Config,
+  getAgent37Provision,
+  setAgent37Provision,
+  setAgent37Token,
+  setAgent37Url,
 } from '@/process/connection/connectionConfig';
 
 beforeAll(() => {
@@ -29,10 +29,10 @@ beforeAll(() => {
 });
 
 describe('connectionConfig', () => {
-  it('persists HermesHQ provisioning metadata alongside the session token', () => {
-    setHermeshqUrl('http://192.168.0.102:3421/');
-    setHermeshqToken('token-123');
-    setHermeshqProvision({
+  it('persists Agent37 provisioning metadata alongside the session token', () => {
+    setAgent37Url('http://192.168.0.102:3421/');
+    setAgent37Token('token-123');
+    setAgent37Provision({
       mode: 'headmaster_local',
       user: {
         id: 'user-1',
@@ -50,7 +50,7 @@ describe('connectionConfig', () => {
       refreshed_at: '2026-06-25T00:00:00.000Z',
     });
 
-    const config = getHermeshqConfig();
+    const config = getAgent37Config();
     expect(config).toMatchObject({
       url: 'http://192.168.0.102:3421',
       token: 'token-123',
@@ -75,7 +75,7 @@ describe('connectionConfig', () => {
   });
 
   it('clears provision metadata when requested', () => {
-    setHermeshqProvision({
+    setAgent37Provision({
       mode: 'headmaster_local',
       user: {
         id: 'user-2',
@@ -89,13 +89,13 @@ describe('connectionConfig', () => {
       },
     });
 
-    expect(getHermeshqProvision()).toMatchObject({
+    expect(getAgent37Provision()).toMatchObject({
       user: {
         username: 'demo2',
       },
     });
 
-    clearHermeshqProvision();
-    expect(getHermeshqProvision()).toBeNull();
+    clearAgent37Provision();
+    expect(getAgent37Provision()).toBeNull();
   });
 });

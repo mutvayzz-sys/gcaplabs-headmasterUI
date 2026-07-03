@@ -5,7 +5,7 @@
  */
 
 import { BrowserWindow, ipcMain, session } from 'electron';
-import { getHermeshqConfig } from '../connection/connectionConfig';
+import { getAgent37Config } from '../connection/connectionConfig';
 
 const SUCCESS_PATH = '/desktop-oauth-success';
 
@@ -13,11 +13,10 @@ export function initOAuthBridge(): void {
   ipcMain.handle(
     'oauth:trigger-login',
     async (event, provider: string): Promise<{ success: boolean; token?: string; error?: string }> => {
-      const config = getHermeshqConfig();
+      const config = getAgent37Config();
       const baseUrl = (config?.url ?? 'https://console.gcaplabs.com')
         .replace(/\/$/, '')
-        .replace('://hermeshq.gcaplabs.com', '://console.gcaplabs.com')
-        .replace('://hq.gcaplabs.com', '://console.gcaplabs.com');
+        .replace('://agent37.gcaplabs.com', '://console.gcaplabs.com');
       const loginUrl = `${baseUrl}/api/auth/oidc/login?provider=${encodeURIComponent(provider)}&desktop=true`;
 
       return new Promise((resolve) => {
