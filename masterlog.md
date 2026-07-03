@@ -6,7 +6,7 @@
 
 Reviewed `Migration.md` and applied the owner's follow-up decisions:
 
-- Rebased `gcaplabs-headmasterUI/main` onto `origin/main`; upstream had bumped desktop to `0.2.26`, so the five Agent37 desktop commits now sit on top of that version bump.
+- Rebased `gcaplabs-headmasterUI/main` onto `origin/main`; upstream had bumped desktop to `0.2.27`, so the five Agent37 desktop commits now sit on top of that version bump.
 - Kept the existing Agent37 runtime as the smoke-test target. Do not create a new runtime unless explicitly asked.
 - Kept the local Headmaster runtime path. The app still ships/owns local runtime support for app/dev/fallback use; the Agent37 cutover does not delete `hermesBootstrap.ts` or local runtime UI.
 - Kept `applyProvisionToRuntime.ts` for the local runtime path. It remains the right place to write local `SOUL.md`, model/provider env/config, and memory/provider settings. It does not customize Agent37 cloud instances; use Agent37 templates or a future Agent37 API for that.
