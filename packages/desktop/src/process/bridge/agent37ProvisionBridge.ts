@@ -14,10 +14,17 @@
 
 import { ipcMain } from 'electron';
 import {
+  getManagedRuntime,
   provisionAgent37Desktop,
+  resizeManagedRuntime,
+  restartManagedRuntime,
+  startManagedRuntime,
+  stopManagedRuntime,
+  updateManagedRuntime,
   validateAgent37RuntimeAccess,
   type Agent37ProvisionRequest,
   type Agent37RuntimeValidationRequest,
+  type ResizeInput,
 } from '../services/agent37ProvisionService';
 import {
   clearAgent37Provision,
@@ -48,6 +55,16 @@ export function initAgent37ProvisionBridge(): void {
     clearAgent37Provision();
     return { success: true };
   });
+
+  // Managed-runtime lifecycle (proxied to console /api/chat/runtime/*).
+  // Channels are read-only in the renderer; the IPC layer is the only
+  // surface that talks to the console.
+  ipcMain.handle('agent37:runtime:get', () => getManagedRuntime());
+  ipcMain.handle('agent37:runtime:start', () => startManagedRuntime());
+  ipcMain.handle('agent37:runtime:stop', () => stopManagedRuntime());
+  ipcMain.handle('agent37:runtime:restart', () => restartManagedRuntime());
+  ipcMain.handle('agent37:runtime:update', () => updateManagedRuntime());
+  ipcMain.handle('agent37:runtime:resize', (_event, input: ResizeInput) => resizeManagedRuntime(input));
 }
 
 // Re-export for downstream type consumers

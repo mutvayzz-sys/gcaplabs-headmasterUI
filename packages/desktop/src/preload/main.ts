@@ -65,6 +65,17 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('agent37:provision', request),
   validateAgent37Runtime: (request: { runtime_id: string; requested_capability: string }) =>
     ipcRenderer.invoke('agent37:validate-runtime', request),
+  // Managed-runtime lifecycle (proxied to console /api/chat/runtime/*). The
+  // renderer never talks to the console directly; everything routes through
+  // these IPC channels. The console is the source of truth for the singleton
+  // (resolved from the logged-in user's profile).
+  getAgent37Runtime: () => ipcRenderer.invoke('agent37:runtime:get'),
+  startAgent37Runtime: () => ipcRenderer.invoke('agent37:runtime:start'),
+  stopAgent37Runtime: () => ipcRenderer.invoke('agent37:runtime:stop'),
+  restartAgent37Runtime: () => ipcRenderer.invoke('agent37:runtime:restart'),
+  updateAgent37Runtime: () => ipcRenderer.invoke('agent37:runtime:update'),
+  resizeAgent37Runtime: (input: { cpu?: number; memory?: number; disk?: number }) =>
+    ipcRenderer.invoke('agent37:runtime:resize', input),
 
   saveCredentials: (creds: { username: string; password: string }) => ipcRenderer.invoke('credentials:save', creds),
   loadCredentials: () => ipcRenderer.invoke('credentials:load'),

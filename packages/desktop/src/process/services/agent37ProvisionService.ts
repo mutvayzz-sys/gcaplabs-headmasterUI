@@ -280,3 +280,159 @@ export function broadcastApiServerKey(_key: string | null): void {
   }
 }
 
+// --- Managed-runtime lifecycle (Agent37 instances, surfaced through the console BFF) ---
+//
+// The Headmaster console owns the lifecycle of the user's Agent37 instance via
+// /api/chat/runtime/*. The desktop proxies those calls so any settings panel
+// here can Start/Stop/Restart/Update/Resize the runtime without leaving the
+// Electron shell. The console is still the source of truth (the singleton is
+// resolved server-side from the logged-in user), so the desktop does not need
+// to know the runtime id — it just needs the user's session token, which is
+// already loaded into getAgent37Config().
+
+export interface ManagedRuntime {
+  agent37_id: string;
+  name: string | null;
+  status: string | null;
+  template: string | null;
+  cpu: number | null;
+  memory: number | null;
+  disk: number | null;
+  live_status: string | null;
+  past_due: boolean;
+  update_available: boolean;
+  ports: Array<{ port: number; default: boolean; url: string }>;
+  created_at: string;
+}
+
+export interface RuntimeLifecycleResult<T = unknown> {
+  success: boolean;
+  data?: T;
+  status?: number;
+  error?: string;
+}
+
+const RUNTIME_ACTIONS = ['start', 'stop', 'restart', 'update'] as const;
+type RuntimeAction = (typeof RUNTIME_ACTIONS)[number];
+
+async function runtimeActionRequest<T = unknown>(action: RuntimeAction): Promise<RuntimeLifecycleResult<T>> {
+  const config = getAgent37Config();
+  if (!config.token) {
+    return { success: false, error: 'Agent37 session is not configured.' };
+  }
+  const baseUrl = resolveBaseUrl();
+  try {
+    const response = await fetch(`${baseUrl}/api/chat/runtime/${action}`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${config.token}`,
+      },
+    });
+    if (!response.ok) {
+      if (response.status === 401 || response.status === 403) {
+        clearAgent37Provision();
+        return { success: false, status: response.status, error: 'Agent37 session expired — sign in again.' };
+      }
+      const detail = (await readJson<{ error?: string }>(response))?.error;
+      return {
+        success: false,
+        status: response.status,
+        error: detail || `Runtime ${action} failed (HTTP ${response.status})`,
+      };
+    }
+    const data = (await readJson<T>(response)) ?? null;
+    return { success: true, data: (data ?? undefined) as T | undefined };
+  } catch (err) {
+    const reason = err instanceof Error ? err.message : `Network error during runtime ${action}`;
+    return { success: false, error: reason };
+  }
+}
+
+export function getManagedRuntime(): Promise<RuntimeLifecycleResult<ManagedRuntime>> {
+  return getManagedRuntimeImpl();
+}
+
+export function startManagedRuntime(): Promise<RuntimeLifecycleResult> {
+  return runtimeActionRequest('start');
+}
+
+export function stopManagedRuntime(): Promise<RuntimeLifecycleResult> {
+  return runtimeActionRequest('stop');
+}
+
+export function restartManagedRuntime(): Promise<RuntimeLifecycleResult> {
+  return runtimeActionRequest('restart');
+}
+
+export function updateManagedRuntime(): Promise<RuntimeLifecycleResult> {
+  return runtimeActionRequest('update');
+}
+
+export interface ResizeInput {
+  cpu?: number;
+  memory?: number;
+  disk?: number;
+}
+
+export async function resizeManagedRuntime(input: ResizeInput): Promise<RuntimeLifecycleResult> {
+  const config = getAgent37Config();
+  if (!config.token) {
+    return { success: false, error: 'Agent37 session is not configured.' };
+  }
+  const baseUrl = resolveBaseUrl();
+  try {
+    const response = await fetch(`${baseUrl}/api/chat/runtime/resize`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${config.token}`,
+      },
+      body: JSON.stringify(input),
+    });
+    if (!response.ok) {
+      if (response.status === 401 || response.status === 403) {
+        clearAgent37Provision();
+        return { success: false, status: response.status, error: 'Agent37 session expired — sign in again.' };
+      }
+      const detail = (await readJson<{ error?: string }>(response))?.error;
+      return {
+        success: false,
+        status: response.status,
+        error: detail || `Runtime resize failed (HTTP ${response.status})`,
+      };
+    }
+    return { success: true };
+  } catch (err) {
+    const reason = err instanceof Error ? err.message : 'Network error during runtime resize';
+    return { success: false, error: reason };
+  }
+}
+
+async function getManagedRuntimeImpl(): Promise<RuntimeLifecycleResult<ManagedRuntime>> {
+  const config = getAgent37Config();
+  if (!config.token) {
+    return { success: false, error: 'Agent37 session is not configured.' };
+  }
+  const baseUrl = resolveBaseUrl();
+  try {
+    const response = await fetch(`${baseUrl}/api/chat/runtime`, {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${config.token}` },
+      cache: 'no-store',
+    });
+    if (!response.ok) {
+      if (response.status === 401 || response.status === 403) {
+        clearAgent37Provision();
+        return { success: false, status: response.status, error: 'Agent37 session expired — sign in again.' };
+      }
+      return { success: false, status: response.status, error: `Runtime fetch failed (HTTP ${response.status})` };
+    }
+    const data = (await readJson<ManagedRuntime>(response)) ?? null;
+    if (!data) return { success: false, error: 'Empty runtime response' };
+    return { success: true, data };
+  } catch (err) {
+    const reason = err instanceof Error ? err.message : 'Network error fetching runtime';
+    return { success: false, error: reason };
+  }
+}
+
