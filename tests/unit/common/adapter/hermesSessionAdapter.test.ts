@@ -12,9 +12,11 @@ import {
   fromHermesMessage,
   fromHermesSession,
   getHermesConversation,
+  getHermesConversationMessages,
   listHermesConversations,
   rememberOpenHermesConversation,
   resetHermesSessionAdapterStateForTests,
+  updateHermesConversation,
   type HermesSessionInfo,
   type HermesSessionMessage,
 } from '../../../../packages/desktop/src/common/adapter/hermesSessionAdapter';
@@ -161,19 +163,14 @@ describe('Hermes session adapter', () => {
     );
   });
 
-  it('includes normal single-turn chats while excluding empty sessions', async () => {
+  it('lists Agent37 sessions from /v1/sessions without filtering empty summaries', async () => {
     const empty = session({ id: 'empty', message_count: 0 });
     const single = session({ id: 'single', message_count: 4 });
     const multiple = session({ id: 'multiple', message_count: 3 });
 
     mocks.httpRequest.mockImplementation(async (_method: string, url: string) => {
-      if (url.startsWith('/api/sessions?')) {
-        return {
-          limit: 200,
-          offset: 0,
-          sessions: [empty, single, multiple],
-          total: 3,
-        };
+      if (url === '/v1/sessions') {
+        return [empty, single, multiple];
       }
       throw new Error(`Unexpected request: ${url}`);
     });
@@ -181,10 +178,23 @@ describe('Hermes session adapter', () => {
     const result = await listHermesConversations({ limit: 20 });
 
     expect(empty.id).toBe('empty');
-    expect(result.items.map((item) => item.id)).toEqual(['single', 'multiple']);
-    expect(result.total).toBe(2);
+    expect(result.items.map((item) => item.id)).toEqual(['empty', 'single', 'multiple']);
+    expect(result.total).toBe(3);
     expect(result.has_more).toBe(false);
-    expect(String(mocks.httpRequest.mock.calls[0]?.[1])).not.toContain('min_messages');
+    expect(mocks.httpRequest.mock.calls[0]?.[1]).toBe('/v1/sessions');
+  });
+
+  it('accepts wrapped Agent37 session list response shapes', async () => {
+    mocks.httpRequest.mockImplementation(async (_method: string, url: string) => {
+      if (url === '/v1/sessions') {
+        return { sessions: [session({ id: 'wrapped' })] };
+      }
+      throw new Error(`Unexpected request: ${url}`);
+    });
+
+    const result = await listHermesConversations({ limit: 20 });
+
+    expect(result.items.map((item) => item.id)).toEqual(['wrapped']);
   });
 
   it('includes locally open zero-message sessions in the sidebar list', async () => {
@@ -192,8 +202,8 @@ describe('Hermes session adapter', () => {
     rememberOpenHermesConversation(local.id, undefined, local);
 
     mocks.httpRequest.mockImplementation(async (_method: string, url: string) => {
-      if (url.startsWith('/api/sessions?')) {
-        return { limit: 200, offset: 0, sessions: [], total: 0 };
+      if (url === '/v1/sessions') {
+        return [];
       }
       throw new Error(`Unexpected request: ${url}`);
     });
@@ -213,8 +223,8 @@ describe('Hermes session adapter', () => {
     ];
 
     mocks.httpRequest.mockImplementation(async (_method: string, url: string) => {
-      if (url.startsWith('/api/sessions?')) {
-        return { limit: 200, offset: 0, sessions, total: sessions.length };
+      if (url === '/v1/sessions') {
+        return sessions;
       }
       throw new Error(`Unexpected request: ${url}`);
     });
@@ -235,8 +245,8 @@ describe('Hermes session adapter', () => {
     const sessions = [session({ id: 'tracked-1', message_count: 3 }), session({ id: 'tracked-2', message_count: 3 })];
 
     mocks.httpRequest.mockImplementation(async (_method: string, url: string) => {
-      if (url.startsWith('/api/sessions?')) {
-        return { limit: 200, offset: 0, sessions, total: sessions.length };
+      if (url === '/v1/sessions') {
+        return sessions;
       }
       throw new Error(`Unexpected request: ${url}`);
     });
@@ -249,5 +259,39 @@ describe('Hermes session adapter', () => {
     expect(first.has_more).toBe(true);
     expect(second.items.map((item) => item.id)).toEqual(['tracked-2']);
     expect(second.has_more).toBe(false);
+  });
+
+  it('loads transcript history from Agent37 session detail', async () => {
+    mocks.httpRequest.mockImplementation(async (_method: string, url: string) => {
+      if (url === '/v1/sessions/session-1') {
+        return {
+          id: 'session-1',
+          messages: [{ role: 'assistant', content: 'Saved reply', created_at: 1_750_000_200 }],
+        };
+      }
+      throw new Error(`Unexpected request: ${url}`);
+    });
+
+    const result = await getHermesConversationMessages({ conversation_id: 'session-1' });
+
+    expect(result.items).toHaveLength(1);
+    expect(result.items[0]).toMatchObject({
+      conversation_id: 'session-1',
+      content: { content: 'Saved reply' },
+    });
+    expect(mocks.httpRequest.mock.calls[0]?.[1]).toBe('/v1/sessions/session-1');
+  });
+
+  it('renames sessions through Agent37 while keeping local draft rename resilient to 404', async () => {
+    const local = fromHermesSession(session({ id: 'draft', title: 'Draft' }));
+    rememberOpenHermesConversation(local.id, undefined, local);
+    mocks.httpRequest.mockRejectedValue(new Error('Backend PATCH failed (404): Session not found'));
+
+    await expect(updateHermesConversation('draft', { name: 'Renamed draft' })).resolves.toBe(true);
+
+    expect(mocks.httpRequest).toHaveBeenCalledWith('PATCH', '/v1/sessions/draft', { title: 'Renamed draft' }, {
+      silentStatuses: [404],
+    });
+    await expect(getHermesConversation('draft')).resolves.toMatchObject({ name: 'Renamed draft' });
   });
 });

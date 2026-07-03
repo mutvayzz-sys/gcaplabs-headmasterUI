@@ -10,26 +10,67 @@ import { fromApiConversation } from './apiModelMapper';
 import { aioncoreHttpRequest, isAioncoreAvailable, rememberConversationRoute } from './aioncoreBridge';
 import { httpRequest } from './httpBridge';
 
-export interface HermesSessionInfo {
+export interface Agent37SessionSummary {
+  id: string;
+  title?: string | null;
+  preview?: string | null;
+  last_active?: number | null;
+  started_at?: number | null;
+  created_at?: number | null;
+  updated_at?: number | null;
+  ended_at?: number | null;
+  model?: string | null;
+  agent?: string | null;
+  status?: string | null;
+}
+
+export interface Agent37HistoryMessage {
+  id?: string;
+  session_id?: string;
+  role: 'assistant' | 'system' | 'tool' | 'user';
+  content: unknown;
+  thinking?: string | null;
+  reasoning?: string | null;
+  reasoning_content?: string | null;
+  created_at?: number;
+  timestamp?: number;
+  text?: unknown;
+  tool_call_id?: string | null;
+  tool_calls?: unknown;
+  tool_name?: string;
+  name?: string;
+  context?: unknown;
+}
+
+export interface Agent37SessionDetail extends Agent37SessionSummary {
+  agent?: string;
+  history?: Agent37HistoryMessage[];
+  messages?: Agent37HistoryMessage[];
+}
+
+type Agent37SessionListResponse =
+  | Agent37SessionSummary[]
+  | {
+      sessions?: Agent37SessionSummary[];
+      items?: Agent37SessionSummary[];
+      data?: Agent37SessionSummary[];
+    };
+
+// Back-compat type names: older renderer code still imports Hermes* names.
+export type HermesSessionInfo = Agent37SessionSummary & {
   archived?: boolean;
   cwd?: string | null;
-  ended_at: number | null;
-  id: string;
+  ended_at?: number | null;
   _lineage_root_id?: string | null;
-  input_tokens: number;
-  is_active: boolean;
-  last_active: number;
-  message_count: number;
-  model: string | null;
-  output_tokens: number;
-  preview: string | null;
-  source: string | null;
-  started_at: number;
-  title: string | null;
-  tool_call_count: number;
+  input_tokens?: number;
+  is_active?: boolean;
+  message_count?: number;
+  output_tokens?: number;
+  source?: string | null;
+  tool_call_count?: number;
   profile?: string;
   is_default_profile?: boolean;
-}
+};
 
 export interface HermesPaginatedSessions {
   limit: number;
@@ -38,20 +79,7 @@ export interface HermesPaginatedSessions {
   total: number;
 }
 
-export interface HermesSessionMessage {
-  id?: string;
-  content: unknown;
-  name?: string;
-  reasoning?: string | null;
-  reasoning_content?: string | null;
-  role: 'assistant' | 'system' | 'tool' | 'user';
-  text?: unknown;
-  timestamp?: number;
-  tool_call_id?: string | null;
-  tool_calls?: unknown;
-  tool_name?: string;
-  context?: unknown;
-}
+export type HermesSessionMessage = Agent37HistoryMessage;
 
 export interface HermesSessionMessagesResponse {
   messages: HermesSessionMessage[];
@@ -73,7 +101,7 @@ const toMilliseconds = (value: number | null | undefined): number => {
   return value < 10_000_000_000 ? Math.round(value * 1000) : Math.round(value);
 };
 
-const modelFromHermes = (model: string | null): TProviderWithModel => {
+const modelFromAgent37 = (model: string | null | undefined): TProviderWithModel => {
   const value = model || '';
   const separator = value.indexOf('/');
   const provider = separator > 0 ? value.slice(0, separator) : '';
@@ -87,11 +115,21 @@ const modelFromHermes = (model: string | null): TProviderWithModel => {
   };
 };
 
-const sessionName = (session: HermesSessionInfo): string =>
+const sessionName = (session: Agent37SessionSummary): string =>
   session.title?.trim() || session.preview?.trim() || 'New Chat';
 
-const profileQuery = (profile: string | undefined): string =>
-  profile && profile !== 'default' ? `?profile=${encodeURIComponent(profile)}` : '';
+const sessionStatus = (session: HermesSessionInfo): 'running' | 'finished' => {
+  const status = session.status?.toLowerCase();
+  if (status === 'running' || status === 'thinking' || status === 'active') return 'running';
+  if (session.is_active === true) return 'running';
+  return 'finished';
+};
+
+export function getAgent37SessionHistory(detail: Agent37SessionDetail): Agent37HistoryMessage[] {
+  if (Array.isArray(detail.history)) return detail.history;
+  if (Array.isArray(detail.messages)) return detail.messages;
+  return [];
+}
 
 async function listAioncoreConversations(params: {
   cursor?: string;
@@ -118,19 +156,19 @@ async function listAioncoreConversations(params: {
 }
 
 function mergeConversationPages(
-  hermes: PaginatedResult<TChatConversation>,
+  agent37: PaginatedResult<TChatConversation>,
   aioncore: PaginatedResult<TChatConversation>,
   limit: number,
   visibleOffset: number
 ): PaginatedResult<TChatConversation> {
   const byId = new Map<string, TChatConversation>();
-  for (const item of [...hermes.items, ...aioncore.items]) {
+  for (const item of [...agent37.items, ...aioncore.items]) {
     const existing = byId.get(item.id);
     if (!existing || (item.modified_at ?? 0) >= (existing.modified_at ?? 0)) {
       byId.set(item.id, item);
     }
   }
-  const merged = [...byId.values()].sort((a, b) => (b.modified_at ?? 0) - (a.modified_at ?? 0));
+  const merged = [...byId.values()].toSorted((a, b) => (b.modified_at ?? 0) - (a.modified_at ?? 0));
   const visible = merged.slice(visibleOffset, visibleOffset + limit);
   return {
     items: visible,
@@ -145,32 +183,26 @@ export async function listUserConversations(params: {
 }): Promise<PaginatedResult<TChatConversation>> {
   const limit = params.limit ?? 100;
   const visibleOffset = Number.parseInt(params.cursor || '0', 10) || 0;
-  const hermes = await listHermesConversations({ cursor: '0', limit: 500 });
+  const agent37 = await listHermesConversations({ cursor: '0', limit: 500 });
   if (!isAioncoreAvailable()) {
-    const visible = hermes.items.slice(visibleOffset, visibleOffset + limit);
+    const visible = agent37.items.slice(visibleOffset, visibleOffset + limit);
     return {
       items: visible,
-      total: hermes.total,
-      has_more: visibleOffset + visible.length < hermes.total,
+      total: agent37.total,
+      has_more: visibleOffset + visible.length < agent37.total,
     };
   }
   try {
     const aioncore = await listAioncoreConversations({ limit: 500 });
-    const merged = mergeConversationPages(hermes, aioncore, limit, visibleOffset);
-    return merged;
+    return mergeConversationPages(agent37, aioncore, limit, visibleOffset);
   } catch {
-    const visible = hermes.items.slice(visibleOffset, visibleOffset + limit);
+    const visible = agent37.items.slice(visibleOffset, visibleOffset + limit);
     return {
       items: visible,
-      total: hermes.total,
-      has_more: visibleOffset + visible.length < hermes.total,
+      total: agent37.total,
+      has_more: visibleOffset + visible.length < agent37.total,
     };
   }
-}
-
-function isTrackedHermesSession(session: HermesSessionInfo): boolean {
-  if (locallyOpenSessions.has(session.id)) return true;
-  return session.message_count >= 1;
 }
 
 export function forgetOpenHermesConversation(id: string): void {
@@ -198,16 +230,18 @@ export function getHermesConversationProfile(id: string): string | undefined {
 
 export function fromHermesSession(session: HermesSessionInfo): TChatConversation {
   if (session.profile) sessionProfiles.set(session.id, session.profile);
+  const started = session.started_at ?? session.created_at ?? session.last_active ?? Date.now();
+  const lastActive = session.last_active ?? session.updated_at ?? session.ended_at ?? started;
   const conversation = {
     id: session.id,
     name: sessionName(session),
     desc: session.preview || undefined,
     type: 'aionrs',
-    created_at: toMilliseconds(session.started_at),
-    modified_at: toMilliseconds(session.last_active || session.started_at),
-    status: session.is_active ? 'running' : 'finished',
+    created_at: toMilliseconds(started),
+    modified_at: toMilliseconds(lastActive),
+    status: sessionStatus(session),
     source: session.source || 'headmaster',
-    model: modelFromHermes(session.model),
+    model: modelFromAgent37(session.model),
     extra: {
       workspace: session.cwd || '',
       custom_workspace: Boolean(session.cwd),
@@ -217,6 +251,7 @@ export function fromHermesSession(session: HermesSessionInfo): TChatConversation
       hermes_profile: session.profile,
       hermes_archived: Boolean(session.archived),
       hermes_lineage_root_id: session._lineage_root_id || undefined,
+      agent_name: session.agent || undefined,
     },
   } as TChatConversation;
   if (locallyOpenSessions.has(session.id)) localConversations.set(session.id, conversation);
@@ -253,11 +288,11 @@ const contentToText = (content: unknown): string => {
 };
 
 export function fromHermesMessage(message: HermesSessionMessage, conversationId: string, index: number): TMessage[] {
-  const createdAt = toMilliseconds(message.timestamp);
+  const createdAt = toMilliseconds(message.created_at ?? message.timestamp);
   const idBase =
     typeof message.id === 'string' && message.id.trim().length > 0 ? message.id.trim() : `${conversationId}:${index}`;
   const mapped: TMessage[] = [];
-  const reasoning = message.reasoning_content || message.reasoning;
+  const reasoning = message.reasoning_content || message.reasoning || message.thinking;
 
   if (reasoning) {
     mapped.push({
@@ -366,30 +401,22 @@ export function fromHermesMessage(message: HermesSessionMessage, conversationId:
   return mapped;
 }
 
+async function fetchAgent37Sessions(): Promise<Agent37SessionSummary[]> {
+  const result = await httpRequest<Agent37SessionListResponse>('GET', '/v1/sessions');
+  if (Array.isArray(result)) return result;
+  if (Array.isArray(result.sessions)) return result.sessions;
+  if (Array.isArray(result.items)) return result.items;
+  return Array.isArray(result.data) ? result.data : [];
+}
+
 export async function listHermesConversations(params: {
   cursor?: string;
   limit?: number;
 }): Promise<PaginatedResult<TChatConversation>> {
   const limit = params.limit ?? 100;
   const visibleOffset = Number.parseInt(params.cursor || '0', 10) || 0;
-  const candidates: HermesSessionInfo[] = [];
-  let rawOffset = 0;
-  const rawLimit = 200;
-
-  while (true) {
-    const query = new URLSearchParams({
-      limit: String(rawLimit),
-      offset: String(rawOffset),
-      order: 'recent',
-    });
-    const page = await httpRequest<HermesPaginatedSessions>('GET', `/api/sessions?${query}`);
-    candidates.push(...page.sessions);
-    rawOffset += page.sessions.length;
-    if (page.sessions.length === 0 || rawOffset >= page.total) break;
-  }
-
-  const trackedSessions = candidates.filter(isTrackedHermesSession);
-  const conversations = trackedSessions.map(fromHermesSession);
+  const sessions = await fetchAgent37Sessions();
+  const conversations = sessions.map((session) => fromHermesSession(session as HermesSessionInfo));
   const seenIds = new Set(conversations.map((conversation) => conversation.id));
   for (const id of locallyOpenSessions) {
     if (seenIds.has(id)) continue;
@@ -398,35 +425,25 @@ export async function listHermesConversations(params: {
     conversations.push(local);
     seenIds.add(id);
   }
-  conversations.sort((a, b) => (b.modified_at ?? 0) - (a.modified_at ?? 0));
-  const visible = conversations.slice(visibleOffset, visibleOffset + limit);
+  const ordered = conversations.toSorted((a, b) => (b.modified_at ?? 0) - (a.modified_at ?? 0));
+  const visible = ordered.slice(visibleOffset, visibleOffset + limit);
   return {
     items: visible,
-    total: conversations.length,
-    has_more: visibleOffset + visible.length < conversations.length,
+    total: ordered.length,
+    has_more: visibleOffset + visible.length < ordered.length,
   };
 }
 
 export async function getHermesConversation(id: string): Promise<TChatConversation | null> {
-  const profile = sessionProfiles.get(id);
-  let session: HermesSessionInfo | null | undefined;
-  try {
-    session = await httpRequest<HermesSessionInfo>(
-      'GET',
-      `/api/sessions/${encodeURIComponent(id)}${profileQuery(profile)}`,
-      undefined,
-      {
-        silentStatuses: [404],
-      }
-    );
-  } catch (error) {
+  const detail = await httpRequest<Agent37SessionDetail>('GET', `/v1/sessions/${encodeURIComponent(id)}`, undefined, {
+    silentStatuses: [404],
+  }).catch((error): null => {
     const local = localConversations.get(id);
-    if (local) return local;
+    if (local) return null;
     throw error;
-  }
-  if (!session) return localConversations.get(id) ?? null;
-  if (!isTrackedHermesSession(session)) return localConversations.get(id) ?? null;
-  return fromHermesSession(session);
+  });
+  if (!detail) return localConversations.get(id) ?? null;
+  return fromHermesSession(detail as HermesSessionInfo);
 }
 
 export async function getHermesConversationMessages(params: {
@@ -436,12 +453,9 @@ export async function getHermesConversationMessages(params: {
   order?: string;
   content_mode?: 'compact' | 'full';
 }): Promise<PaginatedResult<TMessage>> {
-  const profile = sessionProfiles.get(params.conversation_id);
-  const result = await httpRequest<HermesSessionMessagesResponse>(
-    'GET',
-    `/api/sessions/${encodeURIComponent(params.conversation_id)}/messages${profileQuery(profile)}`
-  );
-  const all = result.messages.flatMap((message, index) => fromHermesMessage(message, params.conversation_id, index));
+  const result = await httpRequest<Agent37SessionDetail>('GET', `/v1/sessions/${encodeURIComponent(params.conversation_id)}`);
+  const history = getAgent37SessionHistory(result);
+  const all = history.flatMap((message, index) => fromHermesMessage(message, params.conversation_id, index));
   const pageSize = params.page_size ?? all.length;
   const page = Math.max(0, params.page ?? 0);
   const start = page * pageSize;
@@ -456,34 +470,29 @@ export async function getHermesConversationMessages(params: {
 export async function updateHermesConversation(id: string, updates: Partial<TChatConversation>): Promise<boolean> {
   const body: Record<string, unknown> = {};
   if (typeof updates.name === 'string') body.title = updates.name;
-  const extra = updates.extra as Record<string, unknown> | undefined;
-  if (typeof extra?.hermes_archived === 'boolean') body.archived = extra.hermes_archived;
-  const profile = sessionProfiles.get(id);
-  if (profile && profile !== 'default') body.profile = profile;
   const local = localConversations.get(id);
   if (local) {
     localConversations.set(id, {
       ...local,
       ...updates,
       extra: {
-        ...(local.extra ?? {}),
-        ...((updates.extra as Record<string, unknown> | undefined) ?? {}),
+        ...local.extra,
+        ...(updates.extra as Record<string, unknown> | undefined),
       },
     } as TChatConversation);
   }
   if (!Object.keys(body).length) return true;
-  const result = await httpRequest<{ ok: boolean }>('PATCH', `/api/sessions/${encodeURIComponent(id)}`, body);
-  return result.ok;
+  await httpRequest<unknown>('PATCH', `/v1/sessions/${encodeURIComponent(id)}`, body, { silentStatuses: [404] }).catch((error) => {
+    if (local) return;
+    throw error;
+  });
+  return true;
 }
 
 export async function deleteHermesConversation(id: string): Promise<boolean> {
-  const profile = sessionProfiles.get(id);
-  const result = await httpRequest<{ ok: boolean }>(
-    'DELETE',
-    `/api/sessions/${encodeURIComponent(id)}${profileQuery(profile)}`
-  );
+  await httpRequest<unknown>('DELETE', `/v1/sessions/${encodeURIComponent(id)}`);
   sessionProfiles.delete(id);
   locallyOpenSessions.delete(id);
   localConversations.delete(id);
-  return result.ok;
+  return true;
 }

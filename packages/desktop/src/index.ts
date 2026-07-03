@@ -328,7 +328,7 @@ ipcMain.on('get-backend-startup-failure', (event) => {
 
 const RUNTIME_STATUS_ENDPOINTS: Array<{ id: string; endpoint: string; countKey: string }> = [
   { id: 'runtime.status', endpoint: '/api/status', countKey: '' },
-  { id: 'runtime.sessions', endpoint: '/api/sessions', countKey: 'sessions' },
+  { id: 'runtime.sessions', endpoint: '/v1/sessions', countKey: 'sessions' },
   { id: 'runtime.models', endpoint: '/api/model/options', countKey: 'options' },
   { id: 'runtime.skills', endpoint: '/api/skills', countKey: 'skills' },
   { id: 'runtime.mcp', endpoint: '/api/mcp/servers', countKey: 'servers' },
@@ -389,9 +389,11 @@ ipcMain.handle('runtime:get-status', async () => {
             detail: `Unexpected content-type: ${ct}`,
           };
         }
-        const data = (await res.json()) as Record<string, unknown>;
+        const data = (await res.json()) as Record<string, unknown> | unknown[];
         let detail = 'OK';
-        if (entry.countKey) {
+        if (Array.isArray(data)) {
+          detail = `${data.length} record${data.length === 1 ? '' : 's'}`;
+        } else if (entry.countKey) {
           const list = data[entry.countKey];
           if (Array.isArray(list)) {
             detail = `${list.length} record${list.length === 1 ? '' : 's'}`;

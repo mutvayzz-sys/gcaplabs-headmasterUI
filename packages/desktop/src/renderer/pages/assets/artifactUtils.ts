@@ -89,18 +89,31 @@ export function artifactHref(value: string): string {
 export function artifactLabel(value: string): string {
   try {
     const url = new URL(value);
-    const item = url.pathname.split('/').filter(Boolean).pop();
+    const item = url.pathname.split('/').findLast(Boolean);
     return item || value;
   } catch {
-    const parts = value.split(/[\\/]/).filter(Boolean);
-    return parts.pop() || value;
+    return value.split(/[\\/]/).findLast(Boolean) || value;
   }
 }
 
+function stringifyMessagePart(value: unknown): string {
+  if (typeof value === 'string') return value;
+  if (Array.isArray(value)) return value.map(stringifyMessagePart).filter(Boolean).join('\n');
+  if (value && typeof value === 'object') {
+    const record = value as Record<string, unknown>;
+    if (typeof record.text === 'string') return record.text;
+    if (typeof record.content === 'string') return record.content;
+  }
+  return '';
+}
+
 function messageText(message: HermesSessionMessage): string {
-  if (typeof message.content === 'string' && message.content.trim()) return message.content;
-  if (typeof message.text === 'string' && message.text.trim()) return message.text;
-  if (typeof message.context === 'string' && message.context.trim()) return message.context;
+  const content = stringifyMessagePart(message.content).trim();
+  if (content) return content;
+  const text = stringifyMessagePart(message.text).trim();
+  if (text) return text;
+  const context = stringifyMessagePart(message.context).trim();
+  if (context) return context;
   return '';
 }
 
@@ -193,7 +206,7 @@ export function collectArtifactsForSession(
         label: artifactLabel(value),
         sessionId,
         sessionTitle,
-        timestamp: message.timestamp ?? Date.now(),
+        timestamp: message.created_at ?? message.timestamp ?? Date.now(),
       });
     });
   }

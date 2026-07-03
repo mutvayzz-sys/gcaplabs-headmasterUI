@@ -6,7 +6,11 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { httpRequest } from '@/common/adapter/httpBridge';
-import { listHermesConversations, type HermesSessionMessage } from '@/common/adapter/hermesSessionAdapter';
+import {
+  getAgent37SessionHistory,
+  listHermesConversations,
+  type Agent37SessionDetail,
+} from '@/common/adapter/hermesSessionAdapter';
 import { type ArtifactKind, type ArtifactRecord, collectArtifactsForSession } from './artifactUtils';
 
 export type DeliverableFilter = 'all' | ArtifactKind;
@@ -23,15 +27,13 @@ export function useDeliverables() {
       const conversations = await listHermesConversations({ limit: 40 });
       const collected: ArtifactRecord[] = [];
 
-      for (const conversation of conversations.items.slice(0, 20)) {
+      const sessionArtifacts = await Promise.all(conversations.items.slice(0, 20).map(async (conversation) => {
         const sessionId = conversation.id;
         const sessionTitle = conversation.name || sessionId;
-        const result = await httpRequest<{ messages: HermesSessionMessage[] }>(
-          'GET',
-          `/api/sessions/${encodeURIComponent(sessionId)}/messages`
-        );
-        collected.push(...collectArtifactsForSession(sessionId, sessionTitle, result.messages ?? []));
-      }
+        const result = await httpRequest<Agent37SessionDetail>('GET', `/v1/sessions/${encodeURIComponent(sessionId)}`);
+        return collectArtifactsForSession(sessionId, sessionTitle, getAgent37SessionHistory(result));
+      }));
+      collected.push(...sessionArtifacts.flat());
 
       collected.sort((a, b) => b.timestamp - a.timestamp);
       setArtifacts(collected);
