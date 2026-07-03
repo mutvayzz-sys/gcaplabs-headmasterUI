@@ -63,6 +63,8 @@ type ActiveTurn = {
   responseId?: string;
 };
 
+type ResponseStreamCallbacks = Parameters<typeof submitResponseAndStream>[2];
+
 const STREAM_DELTA_FLUSH_MS = 32;
 
 /**
@@ -454,23 +456,14 @@ async function respondToPendingRequest(request: PendingInteractiveRequest, respo
     }
     // Re-issue the user's decision as a fresh turn on the same session.
     const resumeText = formatInteractiveResume(request, responseValue);
-    await submitResponseAndStream(resumeText, turn.liveSessionId, {
-      onChunk() {
-        /* no-op: the resume turn's content is rendered by the existing turn pipeline below */
-      },
-      onToolEvent() {
-        /* no-op */
-      },
-      onReasoning() {
-        /* no-op */
-      },
-      onDone() {
-        /* no-op */
-      },
-      onError(message) {
-        finishTurn(turn.liveSessionId, message, message);
-      },
-    });
+    const responseResult = await submitResponseAndStream(resumeText, turn.liveSessionId, createAgent37StreamCallbacks(turn));
+    if (!responseResult) {
+      finishTurn(
+        turn.liveSessionId,
+        'The runtime could not resume this response.',
+        'The runtime could not resume this response.'
+      );
+    }
     return;
   }
   // Local dashboard mode: use legacy WS-RPC.
@@ -561,6 +554,81 @@ const scheduleTurnTimeout = (turn: ActiveTurn): void => {
     );
   }, TURN_TIMEOUT_MS);
 };
+
+function createAgent37StreamCallbacks(turn: ActiveTurn): ResponseStreamCallbacks {
+  let toolCallIndex = 0;
+  return {
+    onResponseCreated(responseId, sessionId) {
+      turn.responseId = responseId;
+      if (sessionId && sessionId !== turn.liveSessionId) {
+        liveByStored.set(turn.conversationId, sessionId);
+        storedByLive.set(sessionId, turn.conversationId);
+        turnsByLive.delete(turn.liveSessionId);
+        turn.liveSessionId = sessionId;
+        turnsByLive.set(sessionId, turn);
+      }
+    },
+    onChunk(chunk) {
+      if (!chunk) return;
+      turn.sawContent = true;
+      turn.pendingContent += chunk;
+      scheduleContentFlush(turn);
+    },
+    onToolEvent(name, status, preview) {
+      emitResponse(turn, 'tool_group', [
+        {
+          call_id: `${turn.liveSessionId}:${name}:${toolCallIndex++}`,
+          name,
+          status: status === 'running' ? 'Executing' : status === 'completed' ? 'Success' : 'Error',
+          description: preview ?? name,
+          result_display: status === 'completed' ? preview : undefined,
+        },
+      ]);
+    },
+    onReasoning(reasoningText: string) {
+      if (reasoningText) emitResponse(turn, 'thought', { subject: 'reasoning', description: reasoningText });
+    },
+    onInteractiveRequest(data) {
+      // Agent37 currently has no interactive SSE event, but keeping this callback
+      // wired makes any future gateway-side prompt land in the same cancel +
+      // resubmit path as local confirmation UI.
+      registerPendingRequest({
+        kind: data.kind,
+        conversationId: turn.conversationId,
+        liveSessionId: turn.liveSessionId,
+        requestId: data.request_id,
+        confirmation: {
+          action: data.kind,
+          id: data.request_id,
+          call_id: data.request_id,
+          description: data.description ?? data.prompt ?? data.question ?? data.command ?? '',
+          title: data.description ?? data.prompt ?? data.question ?? 'Interactive request',
+          options: (data.choices ?? []).map((c) => ({ label: c, value: c })),
+          ...(data.env_var ? { command_type: data.env_var } : {}),
+        },
+      });
+    },
+    onDone(usage, outputText) {
+      if (turn.flushHandle) {
+        clearTimeout(turn.flushHandle);
+        turn.flushHandle = null;
+      }
+      if (turn.pendingContent) {
+        emitResponse(turn, 'content', { content: turn.pendingContent });
+        turn.pendingContent = '';
+      } else if (!turn.sawContent && outputText) {
+        emitResponse(turn, 'content', { content: outputText });
+      }
+      clearTimeout(turn.timeout);
+      emitResponse(turn, 'finish', usage ?? {});
+      emitCompleted(turn, usage ? `tokens: ${usage.input_tokens}+${usage.output_tokens}` : '');
+      turnsByLive.delete(turn.liveSessionId);
+    },
+    onError(message) {
+      finishTurn(turn.liveSessionId, message, message);
+    },
+  };
+}
 
 const abortTurn = (turn: ActiveTurn): void => {
   clearTurnTimeout(turn);
@@ -861,80 +929,13 @@ export async function sendHermesMessage(params: {
   };
 
   if (useResponsesApi) {
-    let toolCallIndex = 0;
-    void submitResponseAndStream(text, liveSessionId, {
-      onResponseCreated(responseId, sessionId) {
-        turn.responseId = responseId;
-        if (sessionId && sessionId !== liveSessionId) {
-          liveByStored.set(params.conversation_id, sessionId);
-          storedByLive.set(sessionId, params.conversation_id);
-        }
-      },
-      onChunk(chunk) {
-        if (!chunk) return;
-        turn.sawContent = true;
-        turn.pendingContent += chunk;
-        scheduleContentFlush(turn);
-      },
-      onToolEvent(name, status, preview) {
-        emitResponse(turn, 'tool_group', [
-          {
-            call_id: `${liveSessionId}:${name}:${toolCallIndex++}`,
-            name,
-            status: status === 'running' ? 'Executing' : status === 'completed' ? 'Success' : 'Error',
-            description: preview ?? name,
-            result_display: status === 'completed' ? preview : undefined,
-          },
-        ]);
-      },
-      onReasoning(reasoningText: string) {
-        if (reasoningText) emitResponse(turn, 'thought', { subject: 'reasoning', description: reasoningText });
-      },
-      onInteractiveRequest(data) {
-        // Surface the interactive prompt to the existing confirmation UI.
-        // The PendingInteractiveRequest system handles rendering and user input.
-        registerPendingRequest({
-          kind: data.kind,
-          conversationId: turn.conversationId,
-          liveSessionId: turn.liveSessionId,
-          requestId: data.request_id,
-          confirmation: {
-            action: data.kind,
-            id: data.request_id,
-            call_id: data.request_id,
-            description: data.description ?? data.prompt ?? data.question ?? data.command ?? '',
-            title: data.description ?? data.prompt ?? data.question ?? 'Interactive request',
-            options: (data.choices ?? []).map((c) => ({ label: c, value: c })),
-            ...(data.env_var ? { command_type: data.env_var } : {}),
-          },
-        });
-      },
-      onDone(usage, outputText) {
-        if (turn.flushHandle) {
-          clearTimeout(turn.flushHandle);
-          turn.flushHandle = null;
-        }
-        if (turn.pendingContent) {
-          emitResponse(turn, 'content', { content: turn.pendingContent });
-          turn.pendingContent = '';
-        } else if (!turn.sawContent && outputText) {
-          emitResponse(turn, 'content', { content: outputText });
-        }
-        clearTimeout(turn.timeout);
-        emitResponse(turn, 'finish', usage ?? {});
-        emitCompleted(turn, usage ? `tokens: ${usage.input_tokens}+${usage.output_tokens}` : '');
-        turnsByLive.delete(liveSessionId);
-      },
-      onError(message) {
-        finishTurn(liveSessionId, message, message);
-      },
-    }, undefined, responseFiles).then((responseResult) => {
+    void submitResponseAndStream(text, liveSessionId, createAgent37StreamCallbacks(turn), undefined, responseFiles).then((responseResult) => {
       if (responseResult) {
         turn.responseId = responseResult.responseId;
         return;
       }
       finishTurn(
-        liveSessionId,
+        turn.liveSessionId,
         'The runtime could not start this response.',
         'The runtime could not start this response.'
       );

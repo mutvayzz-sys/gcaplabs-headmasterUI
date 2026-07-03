@@ -1,5 +1,7 @@
 # veeplan.md — Headmaster Beta-Readiness Plan (Agent37-aligned)
 
+> **2026-07-03 superseding status:** Phases 0–7 below are historical architecture/execution context. Current owner decision: Agent37 Cloud is the primary backend, the existing provisioned runtime is the smoke-test target, and the local Headmaster runtime stays in the desktop app for local/dev/fallback use. Do not delete local runtime/bootstrap or `applyProvisionToRuntime.ts` as part of this migration. HermesHQ VPS teardown is owner-owned and not tracked here. Future STT stays a todo until a real runtime endpoint exists.
+
 > The single execution roadmap that takes GCAP Labs from today's state to a functioning,
 > beta-testable, multi-user product, modeled on Agent37's clean open-source implementation.
 >

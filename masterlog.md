@@ -1,5 +1,22 @@
 # Master Log
 
+## 2026-07-03
+
+### Agent37 migration review decisions + interactive prompt cleanup
+
+Reviewed `Migration.md` and applied the owner's follow-up decisions:
+
+- Rebased `gcaplabs-headmasterUI/main` onto `origin/main`; upstream had bumped desktop to `0.2.26`, so the five Agent37 desktop commits now sit on top of that version bump.
+- Kept the existing Agent37 runtime as the smoke-test target. Do not create a new runtime unless explicitly asked.
+- Kept the local Headmaster runtime path. The app still ships/owns local runtime support for app/dev/fallback use; the Agent37 cutover does not delete `hermesBootstrap.ts` or local runtime UI.
+- Kept `applyProvisionToRuntime.ts` for the local runtime path. It remains the right place to write local `SOUL.md`, model/provider env/config, and memory/provider settings. It does not customize Agent37 cloud instances; use Agent37 templates or a future Agent37 API for that.
+- Removed HermesHQ VPS teardown from the tracked product task list. The owner will handle destructive infra teardown manually.
+- Preserved STT as a future todo only: `isSttAvailable()` stays false until a real runtime endpoint exists.
+
+Code follow-up: the Agent37 pending-request path now resumes by cancelling the active `/v1/responses/{id}` turn and submitting the human decision as a fresh `/v1/responses` turn on the same session. The resume stream uses the normal Agent37 render callbacks, so the resumed answer/tool events actually show in the UI. Added focused unit coverage for this cancel+submit behavior.
+
+Docs follow-up: refreshed `ARCHITECTURE.md` and prepended current migration decisions to `mastertodo.md`. NotebookLM/home tracker refresh should be regenerated after this commit.
+
 ## 2026-07-02
 
 ### Stub removal + Composio MCP reload implementation

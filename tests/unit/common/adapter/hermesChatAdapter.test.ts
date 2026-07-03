@@ -25,6 +25,7 @@ vi.mock('../../../../packages/desktop/src/common/adapter/httpBridge', () => ({
 
 import {
   createHermesChatConversation,
+  confirmHermesPendingRequest,
   resetHermesChatRuntimeState,
   sendHermesMessage,
   stopHermesConversation,
@@ -33,6 +34,7 @@ import { rememberOpenHermesConversation } from '../../../../packages/desktop/src
 import {
   submitResponseAndStream,
   supportsResponsesApi,
+  cancelResponse,
 } from '../../../../packages/desktop/src/common/adapter/httpBridge';
 
 describe('Hermes chat adapter', () => {
@@ -41,6 +43,7 @@ describe('Hermes chat adapter', () => {
     mocks.broadcast.mockReset();
     vi.mocked(supportsResponsesApi).mockReturnValue(false);
     vi.mocked(submitResponseAndStream).mockResolvedValue(null);
+    vi.mocked(cancelResponse).mockClear();
     resetHermesChatRuntimeState();
   });
 
@@ -300,6 +303,73 @@ describe('Hermes chat adapter', () => {
       })
     );
   });
+
+  it('resumes Agent37 interactive prompts by cancelling and submitting the decision as a new turn', async () => {
+    vi.mocked(supportsResponsesApi).mockReturnValue(true);
+    let callCount = 0;
+    vi.mocked(submitResponseAndStream).mockImplementation(async (_input, _sessionId, callbacks) => {
+      callCount += 1;
+      if (callCount === 1) {
+        callbacks.onResponseCreated?.('resp-original', _sessionId);
+        callbacks.onInteractiveRequest?.({
+          kind: 'approval',
+          request_id: 'approval-1',
+          description: 'Allow command?',
+          choices: ['once', 'deny'],
+        });
+        return { responseId: 'resp-original', sessionId: _sessionId };
+      }
+      callbacks.onResponseCreated?.('resp-resume', _sessionId);
+      callbacks.onChunk('Approved result');
+      callbacks.onDone({ input_tokens: 2, output_tokens: 3 }, 'Approved result');
+      return { responseId: 'resp-resume', sessionId: _sessionId };
+    });
+
+    const conversation = await createHermesChatConversation({
+      type: 'aionrs',
+      name: 'Remote approval',
+      model: {
+        id: 'openai',
+        name: 'OpenAI',
+        platform: 'openai',
+        api_key: '',
+        base_url: '',
+        use_model: 'openai/gpt-5',
+      },
+      extra: {},
+    });
+
+    const sent = await sendHermesMessage({ conversation_id: conversation.id, input: 'Do the thing' });
+    expect(mocks.broadcast).toHaveBeenCalledWith(
+      'confirmation.add',
+      expect.objectContaining({ conversation_id: conversation.id, id: 'approval-1' })
+    );
+
+    await confirmHermesPendingRequest({
+      conversation_id: conversation.id,
+      call_id: 'approval-1',
+      msg_id: sent.msg_id,
+      data: 'once',
+    });
+
+    expect(cancelResponse).toHaveBeenCalledWith('resp-original');
+    expect(submitResponseAndStream).toHaveBeenLastCalledWith(
+      'User decision: once',
+      conversation.id,
+      expect.any(Object)
+    );
+    expect(mocks.broadcast).toHaveBeenCalledWith(
+      'message.stream',
+      expect.objectContaining({
+        conversation_id: conversation.id,
+        data: { content: 'Approved result' },
+      })
+    );
+    expect(mocks.broadcast).toHaveBeenCalledWith(
+      'confirmation.remove',
+      expect.objectContaining({ conversation_id: conversation.id, id: 'approval-1' })
+    );
+  });
 });
 
 describe('gateway edge cases', () => {
@@ -308,6 +378,7 @@ describe('gateway edge cases', () => {
     mocks.broadcast.mockReset();
     vi.mocked(supportsResponsesApi).mockReturnValue(false);
     vi.mocked(submitResponseAndStream).mockResolvedValue(null);
+    vi.mocked(cancelResponse).mockClear();
     resetHermesChatRuntimeState();
   });
 

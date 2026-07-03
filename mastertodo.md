@@ -1,5 +1,44 @@
 # Master To-Do
 
+## 🔧 CURRENT 2026-07-03: Agent37 cutover follow-up
+
+User decisions from the migration review:
+
+- **Use the existing Agent37 runtime for smoke testing.** Do not create new runtimes unless explicitly asked.
+- **Keep the local Headmaster runtime path.** The app still owns local/dev/fallback runtime support; do not delete `hermesBootstrap.ts` or the local runtime UI as part of the Agent37 cutover.
+- **Keep `applyProvisionToRuntime.ts` for local runtime only.** It writes local runtime files/env/config (`SOUL.md`, model/provider env, Honcho/Nous/provider keys). It does not customize Agent37 cloud instances. Cloud customization should be done through Agent37 templates or a future Agent37 API.
+- **HermesHQ VPS teardown is not tracked here.** Owner will handle that manually; do not queue or automate destructive infra teardown.
+- **Interactive Agent37 prompts:** rewire dead pending-request behavior to cancel the current `/v1/responses/{id}` turn, then submit the user's decision as a fresh `/v1/responses` input on the same session. Sudo/secret values must not be sent as persisted session text.
+
+### Remaining product/manual tasks
+
+1. **Manual desktop E2E smoke against the existing runtime**
+   - Fresh login provisions/loads the existing Agent37 runtime.
+   - Chat streams token-by-token through `/v1/responses`.
+   - File attachment uploads through `/v1/files/content` and the agent can read it inside the container.
+   - Tool call started/completed/failed events render.
+   - Cancel posts `/v1/responses/{id}/cancel`.
+   - Session list/detail/rename/delete use `/v1/sessions`.
+   - STT UI is clearly unavailable and never calls dead STT endpoints.
+
+2. **Push/release**
+   - Desktop rebased onto `origin/main` after version bump `0.2.26`; push local Agent37 commits plus follow-up cleanup commit.
+   - Console has local commit `f837a01`; push if not already remote.
+   - Decide whether to cut a desktop release build after push.
+
+3. **Docs / NotebookLM refresh**
+   - Regenerate `gcaplabs-home/notebooklm` bundles after docs/code cleanup.
+   - Upload/audit if auth is available; otherwise leave `STATUS.md` with exact next commands.
+
+4. **Future STT support**
+   - Keep `isSttAvailable()` false until a real runtime contract exists.
+   - Pick a contract later (`/api/stt`, `/api/stt/stream`, or Agent37-native).
+   - Add endpoint-specific tests before enabling UI calls.
+
+5. **Optional later cleanup**
+   - Vendored `hermeshq/` tree and old tests can be deleted/reworked later after confirming no build references remain.
+   - Do not bundle this with the current push unless explicitly requested.
+
 ## ✅ DONE 2026-07-02: stub removal + Composio MCP reload
 
 This pass turns the remaining Composio MCP registration work into a live reload path instead of a
