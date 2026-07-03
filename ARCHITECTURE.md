@@ -1,7 +1,7 @@
 # Headmaster architecture
 
 Last updated: 2026-07-03
-Desktop version: 0.2.27
+Desktop version: see root package.json
 
 This file is the current architecture note for the Headmaster desktop repo. Older notes in this repo may still mention HermesHQ as the backend; treat those as historical unless this file or source code says otherwise.
 

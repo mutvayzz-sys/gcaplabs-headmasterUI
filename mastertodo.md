@@ -22,7 +22,7 @@ User decisions from the migration review:
    - STT UI is clearly unavailable and never calls dead STT endpoints.
 
 2. **Push/release**
-   - Desktop rebased onto `origin/main` after version bump `0.2.27`; push local Agent37 commits plus follow-up cleanup commit.
+   - Desktop rebased onto `origin/main` after the latest version bump; push local Agent37 commits plus follow-up cleanup commit.
    - Console reconciliation commit `e66869d` has been pushed.
    - Decide whether to cut a desktop release build after push.
 
