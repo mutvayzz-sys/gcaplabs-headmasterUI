@@ -942,96 +942,13 @@ export async function sendHermesMessage(params: {
     return { msg_id: userMsgId, turn_id: turnId, runtime: runningRuntime(turnId) };
   }
 
-  // Local-dashboard mode: also use the Agent37 `/v1/responses` transport
-  // (the Hermes Python runtime exposes the Agent37 gateway surface when up
-  // to date — see the transport note in `httpBridge.ts`). The local session
-  // may live behind the bundled Hermes dashboard's reverse proxy; the
-  // gateway-port detection in `getRuntimeV1BaseUrl` handles the routing.
-  try {
-    let toolCallIndex = 0;
-    const result = await submitResponseAndStream(text, liveSessionId, {
-      onChunk(chunk) {
-        if (!chunk) return;
-        turn.sawContent = true;
-        turn.pendingContent += chunk;
-        if (!turn.flushHandle) {
-          turn.flushHandle = setTimeout(() => {
-            turn.flushHandle = null;
-            if (turn.pendingContent) {
-              emitResponse(turn, 'content', { content: turn.pendingContent });
-              turn.pendingContent = '';
-            }
-          }, STREAM_DELTA_FLUSH_MS);
-        }
-      },
-      onToolEvent(name, status, preview) {
-        emitResponse(turn, 'tool_group', [
-          {
-            call_id: `${liveSessionId}:${name}:${toolCallIndex++}`,
-            name,
-            status,
-            description: preview ?? name,
-            result_display: status === 'completed' ? preview : undefined,
-          },
-        ]);
-      },
-      onReasoning(text: string) {
-        emitResponse(turn, 'thought', { subject: 'reasoning', description: text });
-      },
-      onInteractiveRequest(data) {
-        // Interactive prompts are surfaced through the same PendingInteractive
-        // pipeline as the remote path; respondToPendingRequest handles resume.
-        registerPendingRequest({
-          kind: data.kind,
-          conversationId: turn.conversationId,
-          liveSessionId: turn.liveSessionId,
-          requestId: data.request_id,
-          confirmation: {
-            action: data.kind,
-            id: data.request_id,
-            call_id: data.request_id,
-            description: data.description ?? data.prompt ?? data.question ?? data.command ?? '',
-            title: data.description ?? data.prompt ?? data.question ?? 'Interactive request',
-            options: (data.choices ?? []).map((c) => ({ label: c, value: c })),
-            ...(data.env_var ? { command_type: data.env_var } : {}),
-          },
-        });
-      },
-      onDone(usage, outputText) {
-        if (turn.flushHandle) {
-          clearTimeout(turn.flushHandle);
-          turn.flushHandle = null;
-        }
-        if (turn.pendingContent) {
-          emitResponse(turn, 'content', { content: turn.pendingContent });
-          turn.pendingContent = '';
-        } else if (!turn.sawContent && outputText) {
-          emitResponse(turn, 'content', { content: outputText });
-        }
-        clearTimeout(turn.timeout);
-        emitResponse(turn, 'finish', usage ?? {});
-        emitCompleted(turn, usage ? `tokens: ${usage.input_tokens}+${usage.output_tokens}` : '');
-        turnsByLive.delete(liveSessionId);
-      },
-      onError(message) {
-        finishTurn(liveSessionId, message, message);
-      },
-    });
-
-    if (result) {
-      turn.responseId = result.responseId;
-      emitUserCreated();
-      return { msg_id: userMsgId, turn_id: turnId, runtime: runningRuntime(turnId) };
-    }
-    // No response id — fall through to retry-on-missing-session path
-  } catch {
-    // Network/socket error — fall through to the legacy gatewayRpcRequest retry
-  }
-
-  // Fallback: legacy WS-RPC `prompt.submit` for older Hermes dashboards that
-  // do not yet expose the Agent37 `/v1/responses` surface. The session.id
-  // lookup retries once on SessionNotFound to recover from a stale local
-  // session id.
+  // Local-dashboard mode: WS-RPC `prompt.submit`. Hermes emits streamed
+  // chunks via the `message.stream` WS event handled by
+  // `handleHermesGatewayEvent`. This branch is only reachable when
+  // `!useResponsesApi` (i.e. the bundled Hermes Python runtime, which
+  // exposes `/api/ws` WS-RPC but not the Agent37 `/v1/responses` REST
+  // surface). Remote (Agent37 Cloud) mode took the early-return at the
+  // top of this function.
   try {
     await gatewayRpcRequest('prompt.submit', { session_id: liveSessionId, text });
   } catch (error) {
