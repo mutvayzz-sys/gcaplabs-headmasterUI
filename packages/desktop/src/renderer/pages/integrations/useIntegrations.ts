@@ -6,6 +6,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { httpGet, httpPut } from '@/common/adapter/httpBridge';
+import { isRemoteContainerMode } from '@/common/adapter/backendUrl';
 
 export interface MessagingEnvVar {
   key: string;
@@ -55,6 +56,7 @@ interface UseIntegrationsReturn {
   webhooks: WebhookEntry[];
   loading: boolean;
   error: string | null;
+  remoteModeUnavailable: boolean;
   refresh: () => void;
   updatePlatform: (id: string, updates: Partial<PlatformConfig>) => Promise<void>;
   savePlatformEnv: (id: string, env: Record<string, string>) => Promise<void>;
@@ -134,6 +136,7 @@ function normalizePlatformFromChannel(raw: HermesMessagingPlatform): PlatformCon
 }
 
 export function useIntegrations(): UseIntegrationsReturn {
+  const remoteModeUnavailable = isRemoteContainerMode();
   const [platforms, setPlatforms] = useState<PlatformConfig[]>([]);
   const [webhooks, setWebhooks] = useState<WebhookEntry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -142,6 +145,12 @@ export function useIntegrations(): UseIntegrationsReturn {
   const fetchData = useCallback(async () => {
     setLoading(true);
     setError(null);
+    if (remoteModeUnavailable) {
+      setPlatforms([]);
+      setWebhooks([]);
+      setLoading(false);
+      return;
+    }
     try {
       const [platformsResponse, webhooksResponse] = await Promise.all([
         httpGet<HermesMessagingPlatformsResponse>('/api/messaging/platforms').invoke(),
@@ -157,23 +166,25 @@ export function useIntegrations(): UseIntegrationsReturn {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [remoteModeUnavailable]);
 
   const updatePlatform = useCallback(async (id: string, updates: Partial<PlatformConfig>) => {
+    if (remoteModeUnavailable) return;
     await httpPut<{ ok: boolean }, { enabled?: boolean }>(`/api/messaging/platforms/${encodeURIComponent(id)}`).invoke({
       enabled: updates.enabled,
     });
     setPlatforms((prev) => prev.map((p) => (p.id === id ? { ...p, enabled: updates.enabled ?? p.enabled } : p)));
-  }, []);
+  }, [remoteModeUnavailable]);
 
   const savePlatformEnv = useCallback(
     async (id: string, env: Record<string, string>) => {
+      if (remoteModeUnavailable) return;
       await httpPut<{ ok: boolean }, { env?: Record<string, string> }>(
         `/api/messaging/platforms/${encodeURIComponent(id)}`
       ).invoke({ env });
       await fetchData();
     },
-    [fetchData]
+    [fetchData, remoteModeUnavailable]
   );
 
   useEffect(() => {
@@ -185,6 +196,7 @@ export function useIntegrations(): UseIntegrationsReturn {
     webhooks,
     loading,
     error,
+    remoteModeUnavailable,
     refresh: fetchData,
     updatePlatform,
     savePlatformEnv,

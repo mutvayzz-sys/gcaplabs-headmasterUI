@@ -24,7 +24,25 @@ import {
   wsMappedEmitter,
   stubEmitter,
   httpRequest,
+  probeRemoteHealth,
+  RemoteContainerLocalOnlyRouteError,
+  submitResponseAndStream,
 } from '@/common/adapter/httpBridge';
+
+const sseResponse = (frames: string[]): Response =>
+  new Response(frames.map((frame) => `${frame}\n\n`).join(''), {
+    status: 200,
+    headers: { 'Content-Type': 'text/event-stream' },
+  });
+
+const streamCallbacks = () => ({
+  onResponseCreated: vi.fn(),
+  onChunk: vi.fn(),
+  onToolEvent: vi.fn(),
+  onReasoning: vi.fn(),
+  onDone: vi.fn(),
+  onError: vi.fn(),
+});
 
 describe('httpBridge', () => {
   beforeEach(() => {
@@ -398,6 +416,123 @@ describe('httpBridge', () => {
 
       expect(fetchSpy.mock.calls[0][1]?.body).toBe('{"key":"value"}');
       expect(fetchSpy.mock.calls[0][1]?.headers).toEqual({ 'Content-Type': 'application/json' });
+    });
+
+    it('short-circuits local-only /api routes in remote container mode without fetch or console.error', async () => {
+      (globalThis as { __cloudContainerEndpoint?: string }).__cloudContainerEndpoint = 'https://runtime.test';
+      const fetchSpy = vi.fn();
+      const debugSpy = vi.spyOn(console, 'debug').mockImplementation(() => {});
+      const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      vi.stubGlobal('fetch', fetchSpy);
+
+      await expect(httpRequest('GET', '/api/providers')).rejects.toBeInstanceOf(RemoteContainerLocalOnlyRouteError);
+
+      expect(fetchSpy).not.toHaveBeenCalled();
+      expect(errorSpy).not.toHaveBeenCalled();
+      expect(debugSpy).toHaveBeenCalledWith('[httpBridge] skipped local-only cloud route: GET /api/providers');
+      delete (globalThis as { __cloudContainerEndpoint?: string }).__cloudContainerEndpoint;
+    });
+  });
+
+  describe('submitResponseAndStream', () => {
+    beforeEach(() => {
+      (globalThis as { __cloudContainerEndpoint?: string }).__cloudContainerEndpoint = 'https://runtime.test';
+      (globalThis as { __apiServerKey?: string }).__apiServerKey = 'runtime-token';
+      (globalThis as { __hermesSessionKey?: string }).__hermesSessionKey = 'namespace-1';
+    });
+
+    afterEach(() => {
+      delete (globalThis as { __cloudContainerEndpoint?: string }).__cloudContainerEndpoint;
+      delete (globalThis as { __apiServerKey?: string }).__apiServerKey;
+      delete (globalThis as { __hermesSessionKey?: string }).__hermesSessionKey;
+    });
+
+    it('parses nested Agent37 Responses SSE events and completes without a false failure', async () => {
+      const callbacks = streamCallbacks();
+      const fetchSpy = vi.fn().mockResolvedValue(
+        sseResponse([
+          'event: response.created\ndata: {"type":"response.created","response":{"id":"resp_nested","status":"in_progress"}}',
+          'event: response.output_text.delta\ndata: {"type":"response.output_text.delta","delta":"hello"}',
+          'event: response.completed\ndata: {"type":"response.completed","response":{"id":"resp_nested","status":"completed","output":[{"type":"message","content":[{"type":"output_text","text":"hello"}]}],"usage":{"input_tokens":1,"output_tokens":1,"total_tokens":2}}}',
+        ])
+      );
+      vi.stubGlobal('fetch', fetchSpy);
+
+      const result = await submitResponseAndStream('hi', 'session-1', callbacks);
+
+      expect(result).toEqual({ responseId: 'resp_nested', sessionId: 'session-1' });
+      expect(callbacks.onResponseCreated).toHaveBeenCalledWith('resp_nested', 'session-1');
+      expect(callbacks.onChunk).toHaveBeenCalledWith('hello');
+      expect(callbacks.onDone).toHaveBeenCalledWith({ input_tokens: 1, output_tokens: 1, total_tokens: 2 }, 'hello');
+      expect(callbacks.onError).not.toHaveBeenCalled();
+      expect(JSON.parse(fetchSpy.mock.calls[0][1]?.body as string)).toMatchObject({
+        input: 'hi',
+        session_id: 'session-1',
+        conversation: 'session-1',
+        stream: true,
+      });
+      expect(fetchSpy.mock.calls[0][1]?.headers).toMatchObject({
+        Authorization: 'Bearer runtime-token',
+        'X-Hermes-Session-Key': 'namespace-1',
+      });
+    });
+
+    it('reattaches a dropped stream by response id without replaying the POST body', async () => {
+      const callbacks = streamCallbacks();
+      const fetchSpy = vi
+        .fn()
+        .mockResolvedValueOnce(
+          sseResponse([
+            'event: response.created\ndata: {"type":"response.created","response":{"id":"resp_dropped","status":"in_progress"}}',
+            'event: response.output_text.delta\ndata: {"type":"response.output_text.delta","delta":"partial"}',
+          ])
+        )
+        .mockResolvedValueOnce(
+          sseResponse([
+            'event: response.output_text.delta\ndata: {"type":"response.output_text.delta","delta":" done"}',
+            'event: response.completed\ndata: {"type":"response.completed","response":{"id":"resp_dropped","status":"completed","output_text":"partial done","usage":{"input_tokens":2,"output_tokens":3,"total_tokens":5}}}',
+          ])
+        );
+      vi.stubGlobal('fetch', fetchSpy);
+
+      const result = await submitResponseAndStream('hi', 'session-1', callbacks);
+
+      expect(result).toEqual({ responseId: 'resp_dropped', sessionId: 'session-1' });
+      expect(fetchSpy).toHaveBeenCalledTimes(2);
+      expect(fetchSpy.mock.calls[0][0]).toBe('https://runtime.test/v1/responses');
+      expect(fetchSpy.mock.calls[0][1]?.method).toBe('POST');
+      expect(fetchSpy.mock.calls[1][0]).toBe('https://runtime.test/v1/responses/resp_dropped/stream');
+      expect(fetchSpy.mock.calls[1][1]?.method).toBeUndefined();
+      expect(fetchSpy.mock.calls.filter((call) => call[1]?.method === 'POST')).toHaveLength(1);
+      expect(callbacks.onChunk).toHaveBeenCalledWith('partial');
+      expect(callbacks.onChunk).toHaveBeenCalledWith(' done');
+      expect(callbacks.onError).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('probeRemoteHealth', () => {
+    beforeEach(() => {
+      (globalThis as { __cloudContainerEndpoint?: string }).__cloudContainerEndpoint = 'https://runtime.test';
+      (globalThis as { __apiServerKey?: string }).__apiServerKey = 'runtime-token';
+      (globalThis as { __hermesSessionKey?: string }).__hermesSessionKey = 'namespace-1';
+    });
+
+    afterEach(() => {
+      delete (globalThis as { __cloudContainerEndpoint?: string }).__cloudContainerEndpoint;
+      delete (globalThis as { __apiServerKey?: string }).__apiServerKey;
+      delete (globalThis as { __hermesSessionKey?: string }).__hermesSessionKey;
+    });
+
+    it('does not send the memory session key on the health probe', async () => {
+      const fetchSpy = vi.fn().mockResolvedValue(new Response('{"ok":true}', { status: 200 }));
+      vi.stubGlobal('fetch', fetchSpy);
+
+      await expect(probeRemoteHealth()).resolves.toBe(true);
+
+      expect(fetchSpy).toHaveBeenCalledWith('https://runtime.test/v1/health', {
+        headers: { Authorization: 'Bearer runtime-token' },
+        signal: expect.any(AbortSignal),
+      });
     });
   });
 

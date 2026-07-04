@@ -1,4 +1,5 @@
 import { httpPut, httpRequest } from '@/common/adapter/httpBridge';
+import { isRemoteContainerMode } from '@/common/adapter/backendUrl';
 import { normalizeHermesList } from '@/common/adapter/hermesResponse';
 import { Message, Switch } from '@arco-design/web-react';
 import { Info, Puzzle, Search, Refresh } from '@icon-park/react';
@@ -59,6 +60,7 @@ function mapSkillRecord(skill: {
 }
 
 async function fetchAvailableSkills(): Promise<SkillInfo[]> {
+  if (isRemoteContainerMode()) return [];
   const raw = await httpRequest<unknown>('GET', '/api/skills');
   return normalizeHermesList<{
     name?: unknown;
@@ -115,6 +117,7 @@ interface SkillsHubSettingsProps {
 
 const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = true }) => {
   const { t } = useTranslation();
+  const remoteModeUnavailable = isRemoteContainerMode();
   const [searchParams, setSearchParams] = useSearchParams();
   const highlightName = searchParams.get('highlight');
   const [highlightedSkill, setHighlightedSkill] = useState<string | null>(null);
@@ -147,6 +150,15 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
   }, [mySkills, search_query, activeCategory]);
 
   const toggleSkill = useCallback(async (name: string, enabled: boolean) => {
+    if (remoteModeUnavailable) {
+      Message.info(
+        t('settings.skillsHub.remoteModeUnavailable', {
+          defaultValue:
+            'Skills are managed by the cloud workspace in this mode. Local skill toggles are available when using a local runtime.',
+        })
+      );
+      return;
+    }
     try {
       await httpPut<{ ok: boolean }, { name: string; enabled: boolean }>('/api/skills/toggle').invoke({
         name,
@@ -156,10 +168,15 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
     } catch (error) {
       Message.error(String(error));
     }
-  }, []);
+  }, [remoteModeUnavailable, t]);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
+    if (remoteModeUnavailable) {
+      setAvailableSkills([]);
+      setLoading(false);
+      return;
+    }
     try {
       const skills = await fetchAvailableSkills();
       setAvailableSkills(skills);
@@ -169,7 +186,7 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
     } finally {
       setLoading(false);
     }
-  }, [t]);
+  }, [remoteModeUnavailable, t]);
 
   useEffect(() => {
     void fetchData();
@@ -215,8 +232,11 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
                 className='outline-none border-none bg-transparent cursor-pointer p-6px text-t-tertiary hover:text-primary-6 transition-colors rd-full hover:bg-fill-2 ml-4px'
                 onClick={async () => {
                   await fetchData();
-                  Message.success(t('common.refreshSuccess', { defaultValue: 'Refreshed' }));
+                  if (!remoteModeUnavailable) {
+                    Message.success(t('common.refreshSuccess', { defaultValue: 'Refreshed' }));
+                  }
                 }}
+                disabled={remoteModeUnavailable}
                 title={t('common.refresh', { defaultValue: 'Refresh' })}
               >
                 <Refresh theme='outline' size={16} className={loading ? 'animate-spin' : ''} />
@@ -257,7 +277,14 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
             ))}
           </div>
 
-          {mySkills.length > 0 ? (
+          {remoteModeUnavailable ? (
+            <div className='text-center text-t-secondary text-13px py-40px bg-fill-1 rd-12px border border-b-base border-dashed relative z-10'>
+              {t('settings.skillsHub.remoteModeUnavailable', {
+                defaultValue:
+                  'Skills are managed by the cloud workspace in this mode. Local skill controls are available when using a local runtime.',
+              })}
+            </div>
+          ) : mySkills.length > 0 ? (
             <div className='w-full flex flex-col gap-6px relative z-10'>
               {filteredSkills.map((skill) => (
                 <div
@@ -304,6 +331,7 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
                     <Switch
                       size='small'
                       checked={skill.enabled !== false}
+                      disabled={remoteModeUnavailable}
                       onChange={(checked) => void toggleSkill(skill.name, checked)}
                     />
                   </div>

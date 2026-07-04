@@ -1,5 +1,165 @@
 # Master Log
 
+## 2026-07-05
+
+### Kanban review batch: desktop duplicate-send, remote-mode gates, Console CORS/OAuth, board closeout
+
+Owner shifted the artifact-derived Kanban workflow into explicit human-in-the-loop mode: workers
+block with `review-required`, operator asks, owner confirms, then operator moves the cards. Review
+queue and hold routing were applied first: iOS + manual desktop smoke were scheduled/on hold, while
+desktop duplicate-send, desktop remote-mode gating, Console OAuth/logout regression, and marketing
+screenshot truthiness stayed in review until accepted.
+
+**Desktop / `gcaplabs-headmasterUI`:**
+- Fixed the web-created/desktop-resumed duplicate-send bug by changing `submitResponseAndStream()`
+  to preserve Agent37 response/session ids from nested SSE envelopes and reattach dropped streams via
+  `GET /v1/responses/{responseId}/stream` instead of replaying the original `POST /v1/responses`.
+  Focused regression coverage proves only one POST is made across stream recovery.
+- Added cloud-mode guards for desktop-local `/api/*` surfaces so Agent37 remote mode stops fetching
+  unsupported Skills/MCP/providers/cron/assistant/local-dashboard endpoints from the Console host.
+  Unsupported panels now fail closed without noisy fetches instead of 404ing repeatedly.
+- Fixed a follow-up localhost dev CORS loop reported from the desktop console:
+  `X-Hermes-Session-Key` was being sent on `GET /api/v1/health`, but health is not scoped to a
+  conversation/memory namespace. `probeRemoteHealth()` now sends bearer auth only; a new unit test
+  locks that behavior.
+- Added/kept evidence files from the Kanban lanes: manual E2E smoke checklist,
+  `hermeshq-removal-audit.md`, focused cloud-mode/integration/sendbox tests, and the desktop UI
+  polish plan under `.hermes/plans/`.
+
+**Console / `gcaplabs-console`:**
+- Added explicit CORS support to `/api/v1/[...path]` for the desktop dev origins and custom runtime
+  headers: `Authorization`, `Content-Type`, `X-Hermes-Session-Key`, `X-Hermes-Session-Token`.
+  Route now handles `OPTIONS` and wraps proxied/error responses with CORS headers. This is needed
+  for `localhost:5173` desktop dev and will take effect on production after Git/Vercel auto-deploy.
+- Kept the reviewed logout/Gmail OAuth fixes: global authenticated logout control regression test
+  alignment and Composio OAuth popup/callback/cancel handling.
+- Accepted the final Console branding cleanup review: the only remaining `agent37` strings are
+  required legacy SQL identifiers in the forward migration that renames old columns/indexes; active
+  UI/source copy is neutralized.
+- Added launch/runtime docs: `LAUNCH_READINESS_CHECKLIST.md` and
+  `docs/runtime-provisioning-and-admin.md`.
+
+**Verification before commit/push:**
+- `gcaplabs-headmasterUI`: `bunx vitest run tests/unit/common-adapter/httpBridge.test.ts --reporter=dot`
+  → 32 passed; `bunx tsc --noEmit` → clean.
+- `gcaplabs-console`: `npm run typecheck` → clean; `npm run build` → clean Next production build.
+
+**Board movement:** review-required implementation cards were marked done after owner asked to push;
+iOS stays on hold for Mac/Xcode logs; manual desktop smoke stays on hold for a human login/approved
+saved-login session; docs board is complete; Console and desktop synthesis cards can continue from
+the pushed state.
+
+### gcaplabs-console: re-themed off the retired green/gold/parchment tokens
+
+Owner confirmed the old brand-token system should be actually retired in code, not just
+documented as superseded — asked specifically to re-theme `gcaplabs-console` now, in a follow-up
+to the logo-decision work below.
+
+**Implementation:** `src/app/layout.tsx` now loads Space Grotesk (display) and Inter (body) via
+`next/font/google` — previously neither was actually loaded, both were named in CSS and silently
+falling back to system fonts. `src/app/globals.css` got a full token replacement: light mode is
+white `#ffffff` background / `#0d0f14` ink / `#2563ff` blue primary / `#7c3aed` purple accent;
+dark mode is `#0d0f14` background / `#15181f` cards / same blue primary / lighter `#9b6bff`
+accent for contrast. Added two token groups the old system never had: `--gradient-brand` (a
+blue→purple→pink→orange CSS gradient for future CTA/progress-bar use) and
+`--pill-{priority,processing,connected,warning}` status-pill tint pairs — both sourced from
+owner-supplied UI reference mockups of the target Headmaster product direction (see below).
+`src/config/branding.ts`'s theme object updated to match. The old `gcap-brand-tokens.*` files
+under `gcaplabs-headmasterUI/docs/theming/` were left on disk (still valid history of what
+shipped before), just no longer current — not deleted.
+
+**Verification:** `npm run typecheck` and `npm run build` both clean. Actually rendered `/login`
+in a browser against a real production server to confirm the fonts and colors render (not just
+compile) — found the project's existing dev server (a separate, pre-existing session on port
+3001) had an unrelated stale/broken import error from before today; left that owner session
+alone rather than touching it, and verified instead via a scratch `next start` on port 3055,
+screenshotted, then shut that scratch server down. Screenshot confirmed: white background,
+Space Grotesk heading actually rendering, `#2563ff` blue primary button.
+
+**Explicitly out of scope for this pass:** no actual component (button, badge, sidebar,
+composer) uses the new gradient/pill tokens yet — this pass only reached CSS custom properties.
+Owner separately shared several detailed UI reference mockups of light/dark Headmaster Desktop
+chat screens (sidebar nav, gradient send button, pill status badges, blurred-glow hero behind
+"Hi, what's your plan for today?"). Clarified with the owner: those mockups are reference/
+direction for a future **Headmaster Desktop** UI pass specifically (the sidebar footer literally
+reads the desktop app's own version string), not a literal console redesign brief — the ask was
+to extract the colors/branding/artistic direction generally, which is now captured in the
+`gcap-brand-logo-decision` memory for whenever either a deeper console component pass or an
+actual desktop redesign is scoped.
+
+### Brand: logo decision confirmed with full spec sheets; docs-mintlify removed
+
+Owner supplied two finished logo spec sheets (not just raw marks): `gcap-labs/brand-logos/
+gcaplabs-logo-specsheet.png` and `headmaster-logo-specsheet.png`. These confirm and add exact
+hex values to the logo decision already recorded 2026-07-04 (memory `gcap-brand-logo-decision`):
+
+- **GCAP Labs (company mark):** folded/origami "G" glyph (angular blue/white/orange facets) on a
+  black rounded-square icon, "GCAP LABS" wordmark, tagline "Intelligence. Engineered." in a small
+  blue→purple→pink→orange gradient, Inter Medium/SemiBold.
+- **Headmaster (product mark):** hexagonal node/circuit glyph (6 corner nodes + center, connected,
+  blue→purple→pink gradient) on a black rounded-square app icon, "HEADMASTERUI" wordmark (UI
+  suffix gradient-styled), tagline "AI Interface," Space Grotesk Medium/SemiBold. Exact palette:
+  black `#0D0F14`, blue `#2563FF`, purple `#7C3AED`, pink `#FF2D8F`, orange `#FFB020`, grey
+  `#E5E7EB`. The sheet also specs a fuller product-UI direction on top of the logo: gradient
+  primary buttons, dark model/status cards, and colored status pills (pink=High Priority,
+  purple=Processing, blue=Connected, orange=Warning).
+
+This formally supersedes the green `#1a4d2e` / gold `#c9a96e` / parchment `#f4f1ea` token system
+in `gcaplabs-headmasterUI/docs/theming/gcap-brand-tokens.json`, despite that system already being
+applied in `gcaplabs-console` — it's dead now, not a fallback. Updated the `gcap-brand-logo-
+decision` memory and `mastertodo.md` with the confirmed hexes. Rebrand execution (app icon,
+README banner, theme-picker thumbnails, mascot, docs wordmark, `docs.json` theme, site logo/
+imagery) has not started yet — this was the blocking decision, now unblocked.
+
+Also removed `gcap-labs/docs-mintlify/` at the owner's request — confirmed stale/superseded
+duplicate of `gcaplabs-docs/` (dated 2026-06-23 vs. `gcaplabs-docs`'s 2026-07-04/05 content),
+working tree was clean before deletion (`git status` verified, nothing lost).
+
+### gcaplabs-headmasterUI + gcaplabs-console: "chats not loading" incident — root-caused + fixed live
+
+Owner reported 100+ dev-console errors in the desktop app and chat history not loading at all.
+Investigated live rather than from logs alone: connected to the running dev instance via Chrome
+DevTools Protocol (port 9230, the desktop's own CDP debug port), dumped `window.__agent37Provision`,
+and cross-checked against production with `vercel logs www.console.gcaplabs.com` and direct `curl`
+calls to both the console's proxy and the Agent37 instance host directly.
+
+**Root cause:** the account's Agent37 runtime instance (`gcl8ku74ch`) was in a `container_unreachable`
+state (per the Agent37 API's documented error codes: VM/compute up, agent process not answering its
+port — distinct from `container_unavailable`/stopped or `instance_suspended`/billing). Confirmed by
+calling `https://www.console.gcaplabs.com/api/v1/health` with the account's real bearer token (same
+path the desktop uses) and getting back a faithfully-proxied `502 {"error":"container_unreachable"}`
+— i.e. `gcaplabs-console`'s `/api/v1/[...path]` proxy route and `instanceFetch()` in
+`managed-runtime.ts` were working exactly as designed; the bug was purely in the instance itself, not
+in either repo's code.
+
+**Fix:** `POST https://api.agent37.com/v1/instances/gcl8ku74ch/restart` (explicit owner approval
+obtained before touching a live production instance). Verified immediately: instance's own
+`GET /v1/health` → `{"ok":true,"agent":"hermes","healthy":true}`; console's proxied
+`GET /api/v1/sessions/1440202f` → `200` with the conversation's history intact. No code changed —
+this was purely an infra/instance-health incident.
+
+**Side investigation — audited every other endpoint the desktop was also failing on** (`/api/agents`,
+`/api/skills`, `/api/providers`, `/api/mcp/servers`, `/api/model/options`, `/api/google/*`,
+`/api/assistants`, `/api/conversations/:id/*`, `/api/cron/jobs`, `/api/extensions/acp-adapters` — all
+404ing against `console.gcaplabs.com`). Traced each to its call site in the desktop renderer:
+`/api/providers`/`/api/model/options` turned out to be a dead fallback — providers already ship in
+the provision response itself (`useModelProviderList.ts` prefers `window.__agent37Provision.providers`,
+built by `groupModelsByProvider()` in the console's `provision/current/route.ts`) — so that one call
+is pure noise with zero functional impact. Everything else (Skills Hub, MCP servers, the local
+multi-agent/assistant roster, cron Scheduled Tasks, Google Auth models, ACP adapters, and the
+conversation artifacts/confirmations/mode/slash-command side panels) has **no cloud/remote-mode
+backend at all yet** — real, unbuilt feature gaps, not migration debt. Logged as an open item in
+`mastertodo.md` to gate these behind `isRemoteContainerMode()` so they stop producing console-error
+noise while remaining honestly "not yet available" instead of silently 404ing.
+
+**New bug filed, not yet fixed:** owner opened a conversation that had been created on the web
+console inside the desktop app, sent one message, and it was sent 5 times with a final "chat response
+failed" surfaced in the UI. Not reproduced under my own testing session (my test session
+`1440202f` had empty history and wasn't used to send a message). Filed in `mastertodo.md` with the
+suspected area (`submitResponseAndStream`'s reconnect/replay loop in `httpBridge.ts`) for whoever
+picks it up next — needs an actual repro with request-level logs, ideally on the exact
+web-created/desktop-resumed session shape.
+
 ## 2026-07-04
 
 ### gcaplabs-headmasterUI: upstream parity pass + sidecar/warning audit

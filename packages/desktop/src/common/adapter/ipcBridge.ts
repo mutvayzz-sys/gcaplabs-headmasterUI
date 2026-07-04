@@ -89,6 +89,7 @@ import {
   httpPost,
   httpPut,
   httpRequest,
+  isRemoteContainerLocalOnlyRouteError,
   callbackProvider,
   withResponseMap,
   wsEmitter,
@@ -126,6 +127,7 @@ import {
   rememberConversationRoute,
   resolveConversationRoute,
 } from './aioncoreBridge';
+import { isRemoteContainerMode } from './backendUrl';
 import {
   fromBackendAgent,
   fromBackendTeam,
@@ -154,6 +156,57 @@ async function dualConversationRequest<T>(
 
 const acpModeStateByConversation = new Map<string, { mode: string; initialized: boolean }>();
 const acpModelStateByConversation = new Map<string, { model_info: AcpModelInfo | null }>();
+
+type ProviderLike<Data, Params = undefined> = {
+  provider: (handler: (params: Params) => Promise<Data>) => void;
+  invoke: Params extends undefined ? () => Promise<Data> : (params: Params) => Promise<Data>;
+};
+
+function cloudFallback<Data, Params>(
+  invokeLocal: (params: Params) => Promise<Data>,
+  fallback: Data | ((params: Params) => Data | Promise<Data>)
+): ProviderLike<Data, Params> {
+  return {
+    provider: () => {},
+    invoke: (async (params?: Params) => {
+      try {
+        return await invokeLocal(params as Params);
+      } catch (error) {
+        if (!isRemoteContainerLocalOnlyRouteError(error)) throw error;
+        return typeof fallback === 'function'
+          ? await (fallback as (p: Params) => Data | Promise<Data>)(params as Params)
+          : fallback;
+      }
+    }) as ProviderLike<Data, Params>['invoke'],
+  };
+}
+
+function readProvisionedProvidersFromWindow(): IProvider[] {
+  if (typeof window === 'undefined') return [];
+  const provision = (window as Window & { __agent37Provision?: { providers?: Array<Record<string, unknown>> } })
+    .__agent37Provision;
+  const providers = provision?.providers;
+  if (!Array.isArray(providers)) return [];
+  return providers
+    .filter((provider) => provider && typeof provider.slug === 'string' && typeof provider.name === 'string')
+    .map(
+      (provider) =>
+        ({
+          id: provider.slug as string,
+          platform: (provider.runtime_provider as string) ?? (provider.slug as string),
+          name: provider.name as string,
+          base_url: (provider.base_url as string) ?? '',
+          api_key: '',
+          models: Array.isArray(provider.available_models) ? (provider.available_models as string[]) : [],
+          enabled: provider.enabled !== false,
+          managed_by_runtime: true,
+        }) as IProvider
+    );
+}
+
+function isCloudLocalOnlyError(error: unknown): boolean {
+  return isRemoteContainerLocalOnlyRouteError(error);
+}
 
 // ---------------------------------------------------------------------------
 // Shell — routed to POST /api/shell/*
@@ -188,6 +241,7 @@ interface HermesProfileInfo {
 }
 
 async function buildAssistantsFromHermes(): Promise<Assistant[]> {
+  if (isRemoteContainerMode()) return [];
   const result = await httpRequest<{ profiles?: HermesProfileInfo[] }>('GET', '/api/profiles').catch(
     (): { profiles: HermesProfileInfo[] } => ({ profiles: [] })
   );
@@ -275,6 +329,7 @@ async function listAssistants(): Promise<Assistant[]> {
 }
 
 async function getAssistantDetail(params: { id: string; locale?: string }): Promise<AssistantDetail | null> {
+  if (isRemoteContainerMode()) return null;
   try {
     const detail = await httpGet<AssistantDetail, { id: string; locale?: string }>(
       ({ id, locale }) =>
@@ -514,12 +569,20 @@ export const conversation = {
       );
     },
   },
-  getSlashCommands: httpGet<AcpSlashCommandApiItem[], { conversation_id: string }>(
-    (p) => `/api/conversations/${p.conversation_id}/slash-commands`
+  getSlashCommands: cloudFallback<AcpSlashCommandApiItem[], { conversation_id: string }>(
+    (p) =>
+      httpGet<AcpSlashCommandApiItem[], { conversation_id: string }>(
+        (params) => `/api/conversations/${params.conversation_id}/slash-commands`
+      ).invoke(p),
+    []
   ),
-  askSideQuestion: httpPost<ConversationSideQuestionResult, { conversation_id: string; question: string }>(
-    (p) => `/api/conversations/${p.conversation_id}/side-question`,
-    (p) => ({ question: p.question })
+  askSideQuestion: cloudFallback<ConversationSideQuestionResult, { conversation_id: string; question: string }>(
+    (p) =>
+      httpPost<ConversationSideQuestionResult, { conversation_id: string; question: string }>(
+        (params) => `/api/conversations/${params.conversation_id}/side-question`,
+        (params) => ({ question: params.question })
+      ).invoke(p),
+    { status: 'unsupported' }
   ),
   confirmMessage: {
     provider: () => {},
@@ -529,20 +592,29 @@ export const conversation = {
           (p) => `/api/conversations/${p.conversation_id}/confirmations/${encodeURIComponent(p.call_id)}/confirm`,
           (p) => ({ msg_id: p.msg_id, data: p.confirm_key, always_allow: p.always_allow ?? false })
         ).invoke(params);
-      } catch {
+      } catch (error) {
+        if (isCloudLocalOnlyError(error)) return;
         await confirmHermesPendingRequest(params);
       }
     },
   },
-  listArtifacts: httpGet<IConversationArtifact[], { conversation_id: string }>(
-    (p) => `/api/conversations/${p.conversation_id}/artifacts`
+  listArtifacts: cloudFallback<IConversationArtifact[], { conversation_id: string }>(
+    (p) =>
+      httpGet<IConversationArtifact[], { conversation_id: string }>(
+        (params) => `/api/conversations/${params.conversation_id}/artifacts`
+      ).invoke(p),
+    []
   ),
-  updateArtifact: httpPatch<
-    IConversationArtifact,
+  updateArtifact: cloudFallback<
+    IConversationArtifact | undefined,
     { conversation_id: string; artifact_id: string; status: IConversationArtifactStatus }
   >(
-    (p) => `/api/conversations/${p.conversation_id}/artifacts/${p.artifact_id}`,
-    (p) => ({ status: p.status })
+    (p) =>
+      httpPatch<IConversationArtifact, { conversation_id: string; artifact_id: string; status: IConversationArtifactStatus }>(
+        (params) => `/api/conversations/${params.conversation_id}/artifacts/${params.artifact_id}`,
+        (params) => ({ status: params.status })
+      ).invoke(p),
+    undefined
   ),
   responseStream: wsEmitter<IResponseMessage>('message.stream'),
   userCreated: wsEmitter<{
@@ -646,7 +718,8 @@ export const conversation = {
             (p) => `/api/conversations/${p.conversation_id}/confirmations/${encodeURIComponent(p.call_id)}/confirm`,
             (p) => ({ msg_id: p.msg_id, data: p.data, always_allow: p.always_allow ?? false })
           ).invoke(params);
-        } catch {
+        } catch (error) {
+          if (isCloudLocalOnlyError(error)) return;
           await confirmHermesPendingRequest(params);
         }
       },
@@ -658,7 +731,8 @@ export const conversation = {
           return await httpGet<IConfirmation<unknown>[], { conversation_id: string }>(
             (p) => `/api/conversations/${p.conversation_id}/confirmations`
           ).invoke(params);
-        } catch {
+        } catch (error) {
+          if (isCloudLocalOnlyError(error)) return [];
           return listHermesPendingRequests(params.conversation_id);
         }
       },
@@ -930,9 +1004,19 @@ export const fs = {
   deleteAssistantRule: httpDelete<boolean, { assistant_id: string }>(
     (p) => `/api/skills/assistant-rule/${p.assistant_id}`
   ),
-  listAvailableSkills: {
-    provider: () => {},
-    invoke: async () => {
+  listAvailableSkills: cloudFallback<
+    Array<{
+      name: string;
+      description: string;
+      category?: string;
+      enabled: boolean;
+      location: string;
+      is_custom: boolean;
+      source: 'builtin' | 'custom' | 'extension';
+    }>,
+    void
+  >(
+    async () => {
       const raw = await httpRequest<unknown>('GET', '/api/skills');
       const skills = normalizeHermesList<{
         name?: unknown;
@@ -969,10 +1053,10 @@ export const fs = {
         })
         .filter((skill) => skill.name);
     },
-  },
-  listBuiltinAutoSkills: {
-    provider: () => {},
-    invoke: async () => {
+    []
+  ),
+  listBuiltinAutoSkills: cloudFallback<Array<{ name: string; description: string; location: string }>, void>(
+    async () => {
       return invokeWithMissingRouteFallback(
         () =>
           httpGet<Array<{ name: string; description: string; location: string }>, void>(
@@ -989,7 +1073,8 @@ export const fs = {
         }
       );
     },
-  },
+    []
+  ),
   materializeSkillsForAgent: httpPost<
     { skills: Array<{ name: string; source_path: string }> },
     { conversation_id: string; skills: string[] }
@@ -1097,6 +1182,9 @@ export const googleAuth = {
   status: {
     provider: () => {},
     invoke: async (params: { proxy?: string } = {}): Promise<IBridgeResponse<{ account: string }>> => {
+      if (isRemoteContainerMode()) {
+        return { success: false, msg: 'Google Auth is not available in cloud mode yet.' };
+      }
       try {
         const sub = await httpGet<
           { isSubscriber: boolean; tier?: string; lastChecked: number; message?: string },
@@ -1115,7 +1203,11 @@ export const googleAuth = {
       } catch (error) {
         return {
           success: false,
-          msg: error instanceof Error ? error.message : 'Google Auth unavailable',
+          msg: isCloudLocalOnlyError(error)
+            ? 'Google Auth is not available in cloud mode yet.'
+            : error instanceof Error
+              ? error.message
+              : 'Google Auth unavailable',
         };
       }
     },
@@ -1127,10 +1219,16 @@ export const googleAuth = {
 // ---------------------------------------------------------------------------
 
 export const google = {
-  subscriptionStatus: httpGet<
+  subscriptionStatus: cloudFallback<
     { isSubscriber: boolean; tier?: string; lastChecked: number; message?: string },
     { proxy?: string }
-  >('/api/google/subscription-status'),
+  >(
+    (p) =>
+      httpGet<{ isSubscriber: boolean; tier?: string; lastChecked: number; message?: string }, { proxy?: string }>(
+        '/api/google/subscription-status'
+      ).invoke(p),
+    () => ({ isSubscriber: false, lastChecked: Date.now(), message: 'Google Auth is not available in cloud mode yet.' })
+  ),
 };
 
 // ---------------------------------------------------------------------------
@@ -1156,9 +1254,11 @@ export const bedrock = {
 // Mode (Provider management) — routed to /api/providers/*
 // ---------------------------------------------------------------------------
 
-// listProviders falls back to Hermes `/api/model/options` when upstream
-// `/api/providers` is empty or unavailable. Mutating provider routes use
-// upstream `/api/providers` directly.
+// listProviders uses Agent37 provision data in cloud mode and local Hermes
+// `/api/model/options` in local fallback/dev mode. The legacy `/api/providers`
+// list route is intentionally not fetched: cloud already sends the catalog in
+// the provision response, and local Hermes exposes provider inventory via
+// `/api/model/options`.
 interface HermesModelOptions {
   providers?: Array<{
     authenticated?: boolean;
@@ -1173,6 +1273,7 @@ interface HermesModelOptions {
 }
 
 async function buildProvidersFromHermes(): Promise<IProvider[]> {
+  if (isRemoteContainerMode()) return [];
   const result = await httpRequest<HermesModelOptions>('GET', '/api/model/options').catch(
     (): HermesModelOptions => ({ providers: [] })
   );
@@ -1206,17 +1307,8 @@ async function buildProvidersFromHermes(): Promise<IProvider[]> {
     );
 }
 
-const upstreamProvidersList = httpGet<IProvider[], void>('/api/providers');
-
 async function listProviders(): Promise<IProvider[]> {
-  try {
-    const upstream = await upstreamProvidersList.invoke();
-    if (Array.isArray(upstream) && upstream.length > 0) {
-      return upstream;
-    }
-  } catch {
-    // fall through
-  }
+  if (isRemoteContainerMode()) return readProvisionedProvidersFromWindow();
   return buildProvidersFromHermes();
 }
 
@@ -1269,6 +1361,8 @@ export const mode = {
 const remoteAvailableAgents = httpGet<AgentMetadata[], void>('/api/agents');
 
 async function loadAvailableAgents(): Promise<AgentMetadata[]> {
+  if (isRemoteContainerMode()) return [];
+
   let remoteAgents: AgentMetadata[] = [];
 
   if (isAioncoreAvailable()) {
@@ -1498,13 +1592,13 @@ export const acpConversation = {
 // ---------------------------------------------------------------------------
 
 export const mcpService = {
-  listServers: {
-    provider: () => {},
-    invoke: async () => {
+  listServers: cloudFallback<IMcpServer[], void>(
+    async () => {
       const result = await httpRequest<unknown>('GET', '/api/mcp/servers');
       return normalizeHermesList<IMcpServer>(result, 'servers');
     },
-  },
+    []
+  ),
   createServer: httpPost<
     IMcpServer,
     Pick<IMcpServer, 'name' | 'description' | 'transport' | 'original_json' | 'builtin'>
@@ -1532,9 +1626,14 @@ export const mcpService = {
     IMcpServer[],
     { servers: Array<Partial<IMcpServer> & Pick<IMcpServer, 'name' | 'transport'>> }
   >('/api/mcp/servers/import'),
-  getAgentMcpConfigs: {
-    provider: () => {},
-    invoke: async (params: Array<{ agent_type: string; backend?: string; name: string; cli_path?: string }>) => {
+  getAgentMcpConfigs: cloudFallback<
+    Array<{
+      source: string;
+      servers: Array<IMcpServer & { importable: boolean; import_skip_reason?: string }>;
+    }>,
+    Array<{ agent_type: string; backend?: string; name: string; cli_path?: string }>
+  >(
+    async (params) => {
       void params;
       return invokeWithMissingRouteFallback(
         () =>
@@ -1556,7 +1655,8 @@ export const mcpService = {
         }> => []
       );
     },
-  },
+    []
+  ),
   testMcpConnection: httpPost<
     {
       success: boolean;
@@ -1925,11 +2025,18 @@ export const webui = {
 // ---------------------------------------------------------------------------
 
 export const cron = {
-  listJobs: httpGet<ICronJob[], void>('/api/cron/jobs'),
-  listJobsByConversation: httpGet<ICronJob[], { conversation_id: string }>(
-    (p) => `/api/cron/jobs?conversation_id=${encodeURIComponent(p.conversation_id)}`
+  listJobs: cloudFallback<ICronJob[], void>(() => httpGet<ICronJob[], void>('/api/cron/jobs').invoke(), []),
+  listJobsByConversation: cloudFallback<ICronJob[], { conversation_id: string }>(
+    (p) =>
+      httpGet<ICronJob[], { conversation_id: string }>(
+        (params) => `/api/cron/jobs?conversation_id=${encodeURIComponent(params.conversation_id)}`
+      ).invoke(p),
+    []
   ),
-  getJob: httpGet<ICronJob | null, { job_id: string }>((p) => `/api/cron/jobs/${p.job_id}`),
+  getJob: cloudFallback<ICronJob | null, { job_id: string }>(
+    (p) => httpGet<ICronJob | null, { job_id: string }>((params) => `/api/cron/jobs/${params.job_id}`).invoke(p),
+    null
+  ),
   addJob: httpPost<ICronJob, ICreateCronJobParams>('/api/cron/jobs'),
   updateJob: httpPut<ICronJob, { job_id: string; updates: Partial<ICronJob> }>(
     (p) => `/api/cron/jobs/${p.job_id}`,
@@ -1951,9 +2058,13 @@ export const cron = {
     (p) => `/api/cron/jobs/${p.job_id}/skill`,
     (p) => ({ content: p.content })
   ),
-  hasSkill: withResponseMap(
-    httpGet<{ has_skill: boolean }, { job_id: string }>((p) => `/api/cron/jobs/${p.job_id}/skill`),
-    (data) => Boolean(data?.has_skill)
+  hasSkill: cloudFallback<boolean, { job_id: string }>(
+    (p) =>
+      withResponseMap(
+        httpGet<{ has_skill: boolean }, { job_id: string }>((params) => `/api/cron/jobs/${params.job_id}/skill`),
+        (data) => Boolean(data?.has_skill)
+      ).invoke(p),
+    false
   ),
   deleteSkill: httpDelete<void, { job_id: string }>((p) => `/api/cron/jobs/${p.job_id}/skill`),
   onJobCreated: wsEmitter<ICronJob>('cron.job-created'),
@@ -2336,14 +2447,14 @@ export const extensions = {
   getLoadedExtensions: httpGet<IExtensionInfo[], void>('/api/extensions'),
   getAssistants: httpGet<Record<string, unknown>[], void>('/api/extensions/assistants'),
   getAgents: httpGet<Record<string, unknown>[], void>('/api/extensions/agents'),
-  getAcpAdapters: {
-    provider: () => {},
-    invoke: () =>
+  getAcpAdapters: cloudFallback<Record<string, unknown>[], void>(
+    () =>
       invokeWithMissingRouteFallback(
         () => httpGet<Record<string, unknown>[], void>('/api/extensions/acp-adapters').invoke(),
         (): Record<string, unknown>[] => [] as Record<string, unknown>[]
       ),
-  },
+    []
+  ),
   getMcpServers: httpGet<Record<string, unknown>[], void>('/api/extensions/mcp-servers'),
   getSkills: httpGet<Array<{ name: string; description: string; location: string }>, void>('/api/extensions/skills'),
   getSettingsTabs: httpGet<IExtensionSettingsTab[], void>('/api/extensions/settings-tabs'),

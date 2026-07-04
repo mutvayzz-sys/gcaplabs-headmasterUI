@@ -16,7 +16,7 @@ const IntegrationsPage: React.FC = () => {
   const layout = useLayoutContext();
   const isMobile = layout?.isMobile ?? false;
   const { t } = useTranslation();
-  const { webhooks, loading, error, refresh } = useIntegrations();
+  const { webhooks, loading, error, remoteModeUnavailable, refresh } = useIntegrations();
 
   return (
     <div className={classNames('size-full flex flex-col', isMobile ? 'p-12px' : 'p-24px')}>
@@ -32,7 +32,7 @@ const IntegrationsPage: React.FC = () => {
           size='small'
           icon={<ArrowCounterClockwise size={16} />}
           onClick={refresh}
-          disabled={loading}
+          disabled={loading || remoteModeUnavailable}
         >
           {t('common.refresh', { defaultValue: 'Refresh' })}
         </Button>
@@ -59,6 +59,13 @@ const IntegrationsPage: React.FC = () => {
             <div className='flex justify-center py-40px'>
               <Spin size={24} />
             </div>
+          ) : remoteModeUnavailable ? (
+            <Empty
+              description={t('integrations.remoteModeUnavailable', {
+                defaultValue:
+                  'Integrations and webhooks are managed by the cloud workspace in this mode. Local integration controls are available when using a local runtime.',
+              })}
+            />
           ) : webhooks.length === 0 ? (
             <Empty description={t('integrations.noWebhooks', { defaultValue: 'No webhooks configured' })} />
           ) : (

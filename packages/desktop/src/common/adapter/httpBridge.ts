@@ -194,7 +194,10 @@ export async function probeRemoteHealth(): Promise<boolean> {
   if (!isRemoteContainerMode()) return false;
   try {
     const res = await fetch(`${getRuntimeV1BaseUrl()}/health`, {
-      headers: runtimeHeaders(),
+      // Health checks do not use the conversation/memory namespace. Keeping
+      // this auth-only avoids noisy CORS preflight failures against the
+      // Console BFF when the dev renderer runs from localhost.
+      headers: runtimeHeaders(false, { includeSessionKey: false }),
       signal: AbortSignal.timeout(5000),
     });
     return res.ok;
@@ -215,15 +218,21 @@ export function getBaseUrl(): string {
   return `http://${getBackendHost()}:${getBackendPort()}`;
 }
 
-function runtimeHeaders(json = false): Record<string, string> {
+function runtimeHeaders(
+  json = false,
+  options: { includeSessionKey?: boolean } = {}
+): Record<string, string> {
   const headers: Record<string, string> = {};
   if (json) headers['Content-Type'] = 'application/json';
   const bearer = getRuntimeBearerToken();
   if (bearer) headers.Authorization = `Bearer ${bearer}`;
+  const includeSessionKey = options.includeSessionKey ?? true;
+  const sessionKey = includeSessionKey ? getSessionKey() : '';
+  if (sessionKey) headers['X-Hermes-Session-Key'] = sessionKey;
   return headers;
 }
 
-type ResponseUsage = { input_tokens: number; output_tokens: number; cost_usd?: number | null };
+type ResponseUsage = { input_tokens: number; output_tokens: number; total_tokens?: number; cost_usd?: number | null };
 
 type ResponseStreamCallbacks = {
   onResponseCreated?: (responseId: string, sessionId: string) => void;
@@ -242,6 +251,37 @@ type ResponseStreamCallbacks = {
     env_var?: string;
     prompt?: string;
   }) => void;
+};
+
+const asRecord = (value: unknown): Record<string, unknown> | null =>
+  value && typeof value === 'object' ? (value as Record<string, unknown>) : null;
+
+const stringField = (record: Record<string, unknown> | null, key: string): string | null => {
+  const value = record?.[key];
+  return typeof value === 'string' ? value : null;
+};
+
+const responseEnvelope = (data: Record<string, unknown>): Record<string, unknown> | null => asRecord(data.response);
+
+const extractOutputText = (value: unknown): string => {
+  if (typeof value === 'string') return value;
+  if (!Array.isArray(value)) return '';
+  const parts: string[] = [];
+  for (const item of value) {
+    const itemRecord = asRecord(item);
+    const content = itemRecord?.content;
+    if (typeof content === 'string') {
+      parts.push(content);
+      continue;
+    }
+    if (!Array.isArray(content)) continue;
+    for (const part of content) {
+      const partRecord = asRecord(part);
+      const text = stringField(partRecord, 'text') ?? stringField(partRecord, 'content');
+      if (text) parts.push(text);
+    }
+  }
+  return parts.join('');
 };
 
 async function* parseSse(response: Response): AsyncGenerator<{ event: string; data: Record<string, unknown> }> {
@@ -276,23 +316,25 @@ async function* parseSse(response: Response): AsyncGenerator<{ event: string; da
 
 async function consumeResponseStream(
   response: Response,
-  callbacks: ResponseStreamCallbacks
+  callbacks: ResponseStreamCallbacks,
+  fallbackSessionId?: string
 ): Promise<{ sawTerminal: boolean; responseId: string | null; sessionId: string | null }> {
   let sawTerminal = false;
   let responseId: string | null = null;
-  let sessionId: string | null = null;
+  let sessionId: string | null = fallbackSessionId ?? null;
   for await (const { event, data } of parseSse(response)) {
+    const envelope = responseEnvelope(data);
     switch (event) {
       case 'response.created':
-        responseId = typeof data.id === 'string' ? data.id : responseId;
-        sessionId = typeof data.session_id === 'string' ? data.session_id : sessionId;
+        responseId = stringField(data, 'id') ?? stringField(envelope, 'id') ?? responseId;
+        sessionId = stringField(data, 'session_id') ?? stringField(envelope, 'session_id') ?? sessionId;
         if (responseId && sessionId) callbacks.onResponseCreated?.(responseId, sessionId);
         break;
       case 'response.reasoning.delta':
-        callbacks.onReasoning(typeof data.text === 'string' ? data.text : '');
+        callbacks.onReasoning(stringField(data, 'text') ?? stringField(data, 'delta') ?? '');
         break;
       case 'response.output_text.delta':
-        callbacks.onChunk(typeof data.text === 'string' ? data.text : '');
+        callbacks.onChunk(stringField(data, 'text') ?? stringField(data, 'delta') ?? '');
         break;
       case 'response.tool_call.started':
         callbacks.onToolEvent(
@@ -317,11 +359,18 @@ async function consumeResponseStream(
       // `cancelResponse` + a new `POST /v1/responses` turn.
       case 'response.completed':
         sawTerminal = true;
-        callbacks.onDone(data.usage as ResponseUsage | null | undefined, String(data.output_text ?? ''));
+        responseId = stringField(data, 'id') ?? stringField(envelope, 'id') ?? responseId;
+        sessionId = stringField(data, 'session_id') ?? stringField(envelope, 'session_id') ?? sessionId;
+        callbacks.onDone(
+          (data.usage ?? envelope?.usage) as ResponseUsage | null | undefined,
+          stringField(data, 'output_text') ?? stringField(envelope, 'output_text') ?? extractOutputText(envelope?.output)
+        );
         break;
       case 'response.failed': {
         sawTerminal = true;
-        const error = data.error && typeof data.error === 'object' ? (data.error as { message?: unknown }) : null;
+        responseId = stringField(data, 'id') ?? stringField(envelope, 'id') ?? responseId;
+        sessionId = stringField(data, 'session_id') ?? stringField(envelope, 'session_id') ?? sessionId;
+        const error = asRecord(data.error) ?? asRecord(envelope?.error);
         callbacks.onError(typeof error?.message === 'string' ? error.message : 'Response failed');
         break;
       }
@@ -351,6 +400,7 @@ export async function submitResponseAndStream(
       body: JSON.stringify({
         input,
         session_id: sessionId,
+        conversation: sessionId,
         stream: true,
         ...(files.length ? { files } : {}),
       }),
@@ -363,7 +413,7 @@ export async function submitResponseAndStream(
     return null;
   }
 
-  let outcome = await consumeResponseStream(response, callbacks);
+  let outcome = await consumeResponseStream(response, callbacks, sessionId);
   let responseId = outcome.responseId;
   let resolvedSessionId = outcome.sessionId ?? sessionId;
   let attempts = 0;
@@ -376,7 +426,7 @@ export async function submitResponseAndStream(
         signal,
       });
       if (!replay.ok || !replay.headers.get('content-type')?.includes('text/event-stream')) continue;
-      outcome = await consumeResponseStream(replay, callbacks);
+      outcome = await consumeResponseStream(replay, callbacks, resolvedSessionId);
       responseId = outcome.responseId ?? responseId;
       resolvedSessionId = outcome.sessionId ?? resolvedSessionId;
     } catch {
@@ -395,31 +445,7 @@ export async function cancelResponse(responseId: string): Promise<void> {
   }).catch(() => {});
 }
 
-/**
- * Submit a response to an interactive prompt (approval/clarify/sudo/secret)
- * on a running response in remote container mode.
- */
-/**
- * @deprecated Agent37 Cloud has no mid-turn `/v1/responses/{id}/interactive`
- * endpoint. The gateway's stream contract is purely response-style; human
- * input resumes the session by sending a new `POST /v1/responses` turn on
- * the same `session_id`. The Agent37 dialect's approval/clarify/sudo/secret
- * was a local-dashboard WS-RPC concern that does not map onto Agent37. See
- * `respondToPendingRequest` in `hermesChatAdapter.ts` for the Agent37-native
- * resume path: cancel the in-flight turn, then post a fresh `input` on the
- * session that carries the human's decision.
- *
- * Kept as a no-op so older call sites that still import it do not break the
- * build. New code MUST NOT call this — it will be removed in a later pass.
- */
-export async function submitRemoteInteractive(
-  _responseId: string,
-  _requestId: string,
-  _responseValue: string
-): Promise<void> {
-  // Intentionally empty: Agent37 has no mid-turn interactive endpoint. See
-  // the deprecation note above. Callers must use cancel + a new turn.
-}
+
 function getWsUrl(): string {
   if (isRemoteContainerMode()) {
     // Agent37 runtime has no /api/ws endpoint — remote mode uses /v1 REST only.
@@ -491,6 +517,25 @@ export class BackendHttpError extends Error {
   }
 }
 
+/**
+ * Thrown before fetch when cloud-container mode reaches for a desktop-local
+ * route. These endpoints belong to the local Hermes dashboard / Electron
+ * sidecar surface and are intentionally absent from Agent37 cloud containers.
+ * Short-circuiting here prevents noisy 404/405 console errors while callers
+ * can still fall back to empty/coming-soon UI.
+ */
+export class RemoteContainerLocalOnlyRouteError extends Error {
+  readonly method: string;
+  readonly path: string;
+
+  constructor(method: string, path: string) {
+    super(`Local-only desktop route is unavailable in cloud mode: ${method} ${path}`);
+    this.name = 'RemoteContainerLocalOnlyRouteError';
+    this.method = method;
+    this.path = path;
+  }
+}
+
 export function isBackendHttpError(error: unknown): error is BackendHttpError {
   // Prefer instanceof — fast path in production/bundled contexts.
   if (error instanceof BackendHttpError) return true;
@@ -512,6 +557,18 @@ export function isBackendHttpError(error: unknown): error is BackendHttpError {
   return false;
 }
 
+export function isRemoteContainerLocalOnlyRouteError(error: unknown): error is RemoteContainerLocalOnlyRouteError {
+  return (
+    error instanceof RemoteContainerLocalOnlyRouteError ||
+    Boolean(
+      error &&
+        typeof error === 'object' &&
+        'name' in error &&
+        (error as { name: unknown }).name === 'RemoteContainerLocalOnlyRouteError'
+    )
+  );
+}
+
 // ---------------------------------------------------------------------------
 // HTTP request helper
 // ---------------------------------------------------------------------------
@@ -527,6 +584,38 @@ export function isBackendHttpError(error: unknown): error is BackendHttpError {
 export type HttpRequestOptions = {
   silentStatuses?: number[];
 };
+
+const REMOTE_CONTAINER_LOCAL_ONLY_ROUTE_PREFIXES = [
+  '/api/agents',
+  '/api/assistants',
+  '/api/bedrock',
+  '/api/channel',
+  '/api/conversations',
+  '/api/cron',
+  '/api/extensions',
+  '/api/google',
+  '/api/hub',
+  '/api/mcp',
+  '/api/messages',
+  '/api/messaging',
+  '/api/model',
+  '/api/plugins',
+  '/api/profiles',
+  '/api/providers',
+  '/api/remote-agents',
+  '/api/skills',
+  '/api/tasks',
+  '/api/webhooks',
+  '/api/webui',
+] as const;
+
+function isRemoteContainerLocalOnlyRoute(path: string): boolean {
+  if (path === '/api/v1' || path.startsWith('/api/v1/')) return false;
+  const cleanPath = path.split('?')[0];
+  return REMOTE_CONTAINER_LOCAL_ONLY_ROUTE_PREFIXES.some(
+    (prefix) => cleanPath === prefix || cleanPath.startsWith(`${prefix}/`)
+  );
+}
 
 const SENSITIVE_LOG_KEY_PATTERN = /api[_-]?key|authorization|auth[_-]?token|access[_-]?token|refresh[_-]?token|secret/i;
 
@@ -552,6 +641,11 @@ export async function httpRequest<T>(
   body?: unknown,
   options?: HttpRequestOptions
 ): Promise<T> {
+  if (isRemoteContainerMode() && isRemoteContainerLocalOnlyRoute(path)) {
+    console.debug(`[httpBridge] skipped local-only cloud route: ${method} ${path}`);
+    throw new RemoteContainerLocalOnlyRouteError(method, path);
+  }
+
   // `/v1/...` paths assume the cloud container's API is mounted at the base URL's
   // root, which is true for a raw Agent37 instance host (https://{id}.agent37.app/v1/...)
   // but not for headmaster_remote mode, where the console proxies the same data
@@ -597,14 +691,15 @@ export async function httpRequest<T>(
     if (bearer) headers.Authorization = `Bearer ${bearer}`;
   } else if (!isWebUiBrowserMode()) {
     // Inject the Hermes session token for REST calls. Header name is
-    // `X-Hermes-Session-Token` (verified at hermes_cli/web_server.py:186 —
-    // NOT `Authorization: Bearer`). Skipped in the WebUI browser path where
+    // `X-Hermes-Session-Token` (verified at hermes_cli/web_server.py:186),
+    // not the HTTP Authorization header. Skipped in the WebUI browser path where
     // the same-origin reverse proxy already attaches the token.
     const token = getSessionToken();
     if (token) headers['X-Hermes-Session-Token'] = token;
     const sessionKey = getSessionKey();
     if (sessionKey) headers['X-Hermes-Session-Key'] = sessionKey;
   }
+
 
   console.debug(
     `[httpBridge] ${method} ${path}`,

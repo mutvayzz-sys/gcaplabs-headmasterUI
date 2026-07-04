@@ -233,6 +233,7 @@ const SendBox: React.FC<{
   const mobileUserFocusIntentUntilRef = useRef(0);
   const warmedConversationRef = useRef<string | undefined>(undefined);
   const warmupTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const sendInFlightRef = useRef(false);
   const latestInputRef = useLatestRef(input);
   const setInputRef = useLatestRef(setInput);
   const messageList = useMessageList();
@@ -1165,6 +1166,15 @@ const SendBox: React.FC<{
     if (!input.trim() && domSnippets.length === 0) {
       return;
     }
+    if (sendInFlightRef.current) {
+      console.info('[sendbox]', {
+        event: 'blocked-duplicate-submit',
+        allowSendWhileLoading,
+        isLoading,
+        loading,
+      });
+      return;
+    }
     console.info('[sendbox]', {
       event: 'submit',
       allowSendWhileLoading,
@@ -1173,6 +1183,7 @@ const SendBox: React.FC<{
       inputLength: input.length,
       domSnippetCount: domSnippets.length,
     });
+    sendInFlightRef.current = true;
     setIsLoading(true);
     historyDraftRef.current = null;
     setHistoryNavigationIndex(null);
@@ -1206,6 +1217,7 @@ const SendBox: React.FC<{
     onSend(finalMessage)
       .catch(() => {})
       .finally(() => {
+        sendInFlightRef.current = false;
         setIsLoading(false);
       });
   };

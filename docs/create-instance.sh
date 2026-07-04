@@ -3,10 +3,13 @@
 #
 # Usage: create-instance.sh <user-id> <container-id>
 #
-# This is a manual-ops wrapper. The production path is HermesHQ's
-# container_supervisor.py (backend/hermeshq/services/container_supervisor.py)
-# which calls Docker CLI with the same labels. Use this script for
-# debugging, manual recovery, or when the supervisor is unreachable.
+# LEGACY / RETIRED PATH. This script was the manual-ops wrapper for the
+# pre-Agent37 HermesHQ control plane. The production cloud path is now
+# Agent37 Cloud. The HermesHQ container_supervisor.py
+# (backend/hermeshq/services/container_supervisor.py) was the historical
+# supervisor that called Docker CLI with the same labels. Keep this script
+# only for reference, debugging old containers, or manual recovery of a
+# retired HermesHQ instance. Do not use it for new Headmaster provisioning.
 set -euo pipefail
 
 if [ $# -ne 2 ]; then
