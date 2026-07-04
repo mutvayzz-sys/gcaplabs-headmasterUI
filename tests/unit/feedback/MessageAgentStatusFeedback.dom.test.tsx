@@ -28,6 +28,10 @@ vi.mock('@/renderer/hooks/context/FeedbackContext', () => ({
   useFeedback: () => ({ openFeedback: openFeedbackMock }),
 }));
 
+vi.mock('@/renderer/pages/conversation/hooks/useConversationAgents', () => ({
+  useConversationAgents: () => ({ cliAgents: [], presetAssistants: [], isLoading: false, refresh: vi.fn() }),
+}));
+
 import MessageAgentStatus from '@/renderer/pages/conversation/Messages/components/MessageAgentStatus';
 import type { IMessageAgentStatus } from '@/common/chat/chatLib';
 

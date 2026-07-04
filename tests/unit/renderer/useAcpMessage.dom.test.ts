@@ -74,32 +74,35 @@ describe('useAcpMessage', () => {
 
     expect(responseStreamHandlerRef.current).toBeTypeOf('function');
 
-    responseStreamHandlerRef.current?.({
-      type: 'request_trace',
-      data: {
-        timestamp: now - 4200,
-        backend: 'claude',
-        model_id: 'model-1',
-      },
-      msg_id: 'msg-1',
-      conversation_id: 'conv-1',
-    });
+    await act(async () => {
+      responseStreamHandlerRef.current?.({
+        type: 'request_trace',
+        data: {
+          timestamp: now - 4200,
+          backend: 'claude',
+          model_id: 'model-1',
+        },
+        msg_id: 'msg-1',
+        conversation_id: 'conv-1',
+      });
 
-    responseStreamHandlerRef.current?.({
-      type: 'thinking',
-      data: {
-        content: 'alpha',
-        status: 'thinking',
-      },
-      msg_id: 'msg-1',
-      conversation_id: 'conv-1',
-    });
+      responseStreamHandlerRef.current?.({
+        type: 'thinking',
+        data: {
+          content: 'alpha',
+          status: 'thinking',
+        },
+        msg_id: 'msg-1',
+        conversation_id: 'conv-1',
+      });
 
-    responseStreamHandlerRef.current?.({
-      type: 'finish',
-      data: null,
-      msg_id: 'msg-1',
-      conversation_id: 'conv-1',
+      responseStreamHandlerRef.current?.({
+        type: 'finish',
+        data: null,
+        msg_id: 'msg-1',
+        conversation_id: 'conv-1',
+      });
+      await Promise.resolve();
     });
 
     expect(addOrUpdateMessageMock).toHaveBeenCalledWith(
@@ -120,23 +123,26 @@ describe('useAcpMessage', () => {
 
     renderHook(() => useAcpMessage('conv-1'));
 
-    responseStreamHandlerRef.current?.({
-      type: 'thinking',
-      data: {
-        content: 'alpha',
-        status: 'thinking',
-      },
-      msg_id: 'msg-1',
-      conversation_id: 'conv-1',
-      created_at: 1_000,
-    });
+    await act(async () => {
+      responseStreamHandlerRef.current?.({
+        type: 'thinking',
+        data: {
+          content: 'alpha',
+          status: 'thinking',
+        },
+        msg_id: 'msg-1',
+        conversation_id: 'conv-1',
+        created_at: 1_000,
+      });
 
-    responseStreamHandlerRef.current?.({
-      type: 'text',
-      data: 'beta',
-      msg_id: 'msg-1',
-      conversation_id: 'conv-1',
-      created_at: 4_200,
+      responseStreamHandlerRef.current?.({
+        type: 'text',
+        data: 'beta',
+        msg_id: 'msg-1',
+        conversation_id: 'conv-1',
+        created_at: 4_200,
+      });
+      await Promise.resolve();
     });
 
     expect(addOrUpdateMessageMock).toHaveBeenNthCalledWith(

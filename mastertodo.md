@@ -5,6 +5,48 @@ verification runs) has been moved to `masterlog.md` and is preserved in git hist
 now only tracks what's genuinely still open, plus a launch/verify checklist for whatever changed
 most recently. If you're looking for "why does X work this way," check `masterlog.md` first.
 
+## ✅ Done 2026-07-04 — Desktop upstream parity + sidecar/warning audit
+
+**Current status:** `gcaplabs-headmasterUI/main` has the upstream parity/performance pass committed
+and pushed, and the follow-up sidecar/warning audit is in progress in the working tree pending final
+commit. The app is buildable and the full unit/integration suite is green.
+
+**Sidecar root issue:** fixed beyond the original failing test.
+
+- `tests/unit/bootstrap/buildWithBuilder.test.ts` no longer accidentally exercises real GCAPCore
+  packaging/spawn while testing builder argument parsing.
+- `gcapcoreBinaryResolver.ts` now treats packaged production differently from dev staging:
+  packaged builds only resolve `bundled-gcapcore`, while dev staging can still accept the legacy
+  `bundled-aioncore` layout used by upstream artifact prep. This prevents stale legacy sidecars from
+  being selected in a packaged app if both directories happen to exist.
+- New resolver tests cover packaged-vs-dev behavior.
+
+**Verification so far:**
+
+- `bun run test` → 184 files passed, 1 skipped; 1356 tests passed, 3 skipped.
+- `bunx tsc --noEmit` → clean.
+- `CI=1 bunx electron-vite build --config packages/desktop/electron.vite.config.ts` → clean build;
+  only existing chunk-size warnings remain.
+- `bun run lint` → exits 0 after scoping lint to active desktop code paths (`packages tests scripts`)
+  rather than unrelated root folders. No special `hermeshq/` ignore is present.
+
+**Warnings cleaned:**
+
+- React `act(...)` warnings: 17 → 0.
+- Missing `react-i18next` test setup warnings: 3 → 0.
+- Virtualized session key warning: 1 → 0.
+- Feedback modal `NaN` CSS height warning: 1 → 0 by mocking Arco TextArea autosize in the content test.
+- Lint errors: 2 active desktop errors → 0.
+
+**Still open / warning debt:**
+
+1. React 19 `element.ref` warnings remain from Arco internals/tests (dependency compatibility noise,
+   not app logic).
+2. Node `DEP0040 punycode` warnings remain from dependencies.
+3. Lint still reports warning-level debt (`any` in tests, E2E polling `await` loops,
+   `preserve-caught-error`, minor shadow/unused import warnings). It does not block.
+4. Commit and push the current audit cleanup after final verification.
+
 ## ✅ Done 2026-07-04 — Console apex→www canonicalisation (fixes desktop 401 loop)
 
 **Symptom:** desktop logs show

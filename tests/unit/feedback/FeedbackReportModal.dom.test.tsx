@@ -15,13 +15,49 @@ import userEvent from '@testing-library/user-event';
 import { ConfigProvider } from '@arco-design/web-react';
 
 vi.mock('@arco-design/web-react', async (importOriginal) => {
+  const ReactRuntime = await import('react');
   const actual = await importOriginal<typeof import('@arco-design/web-react')>();
   return {
     ...actual,
+    Input: {
+      ...actual.Input,
+      TextArea: ({
+        value,
+        onChange,
+        placeholder,
+        maxLength,
+      }: {
+        value?: string;
+        onChange?: (value: string) => void;
+        placeholder?: string;
+        maxLength?: number;
+      }) =>
+        ReactRuntime.createElement('textarea', {
+          maxLength,
+          placeholder,
+          value,
+          onChange: (event: React.ChangeEvent<HTMLTextAreaElement>) => onChange?.(event.target.value),
+        }),
+    },
     Message: {
       ...actual.Message,
       success: vi.fn(),
     },
+    Upload: ({ fileList = [], limit }: { fileList?: Array<{ uid?: string; name?: string }>; limit?: number }) =>
+      ReactRuntime.createElement(
+        'div',
+        { className: 'arco-upload' },
+        fileList.map((item) =>
+          ReactRuntime.createElement(
+            'div',
+            { className: 'arco-upload-list-item', key: item.uid ?? item.name },
+            item.name
+          )
+        ),
+        !limit || fileList.length < limit
+          ? ReactRuntime.createElement('div', { className: 'arco-upload-trigger-picture' }, '+')
+          : null
+      ),
   };
 });
 

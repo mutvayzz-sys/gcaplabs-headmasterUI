@@ -334,7 +334,7 @@ const confirmationValueFromParams = (params: IConfirmMessageParams): string => {
 };
 
 const listPendingRequests = (conversationId: string): PendingInteractiveRequest[] =>
-  [...(pendingRequestsByConversation.get(conversationId)?.values() ?? [])].sort((a, b) =>
+  [...(pendingRequestsByConversation.get(conversationId)?.values() ?? [])].toSorted((a, b) =>
     a.requestId.localeCompare(b.requestId)
   );
 

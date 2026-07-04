@@ -2,6 +2,38 @@
 
 ## 2026-07-04
 
+### gcaplabs-headmasterUI: upstream parity pass + sidecar/warning audit
+
+Committed and pushed the upstream parity/performance pass to `main` as
+`63c0133 perf: complete upstream parity pass`, then fixed the pre-existing sidecar test failure and
+pushed `ff2ffde test: skip sidecar packaging in builder unit test`.
+
+**What shipped in the parity pass:** chat/session virtualization with `react-virtuoso`, stream update
+batching coverage, lazy Markdown/code rendering paths, command palette actions, backend feature gates
+for UI without runtime contracts, and docs/tests for upstream feature parity and backend contracts.
+
+**Sidecar diagnosis:** the immediate failure was in `tests/unit/bootstrap/buildWithBuilder.test.ts`.
+That unit test was meant to verify builder argument handling, but on Windows arm64 it still allowed
+the builder to reach the GCAPCore packaging/spawn path and touch a stale
+`resources/bundled-aioncore/win32-arm64/aioncore.exe`. The test now passes `--skip-gcapcore` so it
+stays hermetic. Follow-up root audit found a deeper resolver risk: packaged production builds could
+still fall back to legacy `bundled-aioncore` if present. The working tree now tightens
+`gcapcoreBinaryResolver.ts` so packaged builds only resolve `bundled-gcapcore`; dev staging remains
+compatible with legacy upstream layout. New resolver tests cover this split.
+
+**Warning cleanup performed in the working tree:** removed a bogus tracked `packages/desktop/src/main.ts`
+stub (real Electron main is `packages/desktop/src/index.ts`), fixed active lint errors, scoped `bun run
+lint` to active desktop code (`packages tests scripts`) instead of scanning unrelated root folders,
+cleared React `act(...)` warnings in cron/ACP/feedback tests, added local i18n mocks to tests that
+were missing them, fixed the virtualized session key warning by giving `ChatHistory` a stable
+`computeItemKey`, and removed the Feedback modal test's jsdom-only `NaN` height warning by mocking
+Arco TextArea autosize in that focused content test.
+
+**Verification after cleanup:** full `bun run test` is green (184 passed, 1 skipped; 1356 tests passed,
+3 skipped), `bunx tsc --noEmit` is green, `bun run lint` exits 0, and Electron/Vite build succeeds
+with only the existing chunk-size warnings. Remaining warnings are tracked in `mastertodo.md`: React
+19 `element.ref` dependency warnings, dependency `punycode` deprecations, and warning-level lint debt.
+
 ### gcaplabs-console: admin/org/security overhaul + DNS/perf fixes
 
 All in `mutvayzz-sys/gcaplabs-console`, all committed + pushed to `main`, each step verified with

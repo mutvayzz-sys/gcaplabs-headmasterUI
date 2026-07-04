@@ -13,11 +13,21 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('react-virtuoso', () => ({
-  Virtuoso: ({ data, itemContent, className }: { data: TChatConversation[]; itemContent: (index: number, item: TChatConversation) => React.ReactNode; className?: string }) => (
+  Virtuoso: ({
+    data,
+    itemContent,
+    className,
+    computeItemKey,
+  }: {
+    data: TChatConversation[];
+    itemContent: (index: number, item: TChatConversation) => React.ReactNode;
+    className?: string;
+    computeItemKey?: (index: number, item: TChatConversation) => React.Key;
+  }) => (
     <div data-testid='session-history-virtuoso' data-count={data.length} className={className}>
       {data.slice(0, 8).map((item, index) => (
-        <div data-testid='virtual-session-row' key={item.id}>
-          <React.Fragment key={item.id}>{itemContent(index, item)}</React.Fragment>
+        <div data-testid='virtual-session-row' key={computeItemKey?.(index, item) ?? item.id}>
+          {itemContent(index, item)}
         </div>
       ))}
     </div>

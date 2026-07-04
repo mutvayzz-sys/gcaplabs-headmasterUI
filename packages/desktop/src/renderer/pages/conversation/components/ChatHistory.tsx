@@ -311,9 +311,10 @@ const ChatHistory: React.FC<{ onSessionClick?: () => void; collapsed?: boolean }
             ref={virtuosoRef}
             className='size-full'
             data={historyRows}
+            computeItemKey={(_, row) => row.conversation.id}
             initialTopMostItemIndex={selectedIndex >= 0 ? selectedIndex : 0}
             itemContent={(_, row) => (
-              <div key={row.conversation.id}>
+              <div>
                 {row.timeline && (
                   <div className='chat-history__section px-12px py-8px text-13px text-t-secondary font-bold'>
                     {row.timeline}

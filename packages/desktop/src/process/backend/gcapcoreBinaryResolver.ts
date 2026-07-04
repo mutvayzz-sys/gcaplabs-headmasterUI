@@ -92,18 +92,16 @@ function bundledPath(runtimeKey: string, diagnostics: BackendBinaryResolveDiagno
   if (!resourcesPath) return null;
   diagnostics.resourcesPath = resourcesPath;
 
-  for (const baseDirName of ['bundled-gcapcore', 'bundled-aioncore']) {
-    for (const binaryName of [getBinaryName(), getBinaryName(LEGACY_BINARY_NAME)]) {
-      const bundledDir = join(resourcesPath, baseDirName);
-      const runtimeDir = join(bundledDir, runtimeKey);
-      const candidate = join(runtimeDir, binaryName);
-      diagnostics.checkedBundledPath = candidate;
-      diagnostics.bundledDirExists = existsSync(bundledDir);
-      diagnostics.runtimeDirExists = existsSync(runtimeDir);
-      diagnostics.resourcesDirEntries = listDirEntries(resourcesPath);
-      diagnostics.runtimeDirEntries = listDirEntries(runtimeDir);
-      if (existsSync(candidate)) return candidate;
-    }
+  const bundledDir = join(resourcesPath, 'bundled-gcapcore');
+  for (const binaryName of [getBinaryName(), getBinaryName(LEGACY_BINARY_NAME)]) {
+    const runtimeDir = join(bundledDir, runtimeKey);
+    const candidate = join(runtimeDir, binaryName);
+    diagnostics.checkedBundledPath = candidate;
+    diagnostics.bundledDirExists = existsSync(bundledDir);
+    diagnostics.runtimeDirExists = existsSync(runtimeDir);
+    diagnostics.resourcesDirEntries = listDirEntries(resourcesPath);
+    diagnostics.runtimeDirEntries = listDirEntries(runtimeDir);
+    if (existsSync(candidate)) return candidate;
   }
 
   return null;

@@ -21,6 +21,10 @@ vi.mock('mermaid', () => ({
   },
 }));
 
+vi.mock('react-i18next', () => ({
+  useTranslation: () => ({ t: (key: string) => key }),
+}));
+
 describe('MermaidBlock', () => {
   beforeEach(() => {
     initializeMock.mockReset();

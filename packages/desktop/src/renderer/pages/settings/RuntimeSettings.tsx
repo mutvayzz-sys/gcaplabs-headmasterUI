@@ -282,7 +282,7 @@ const RuntimeSettings: React.FC = () => {
         delete next[path];
         return next;
       }
-      next[path] = { ...(next[path] ?? {}), ...patch };
+      next[path] = { ...next[path], ...patch };
       if (!next[path].draft && !next[path].error) {
         delete next[path];
       }

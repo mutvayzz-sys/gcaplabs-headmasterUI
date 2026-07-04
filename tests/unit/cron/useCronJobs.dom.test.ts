@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { renderHook, waitFor } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import {
   useCronJobs,
   useAllCronJobs,
@@ -197,7 +197,9 @@ describe('useCronJobs', () => {
 
     await waitFor(() => expect(result.current.loading).toBe(false));
 
-    await result.current.pauseJob('job-1');
+    await act(async () => {
+      await result.current.pauseJob('job-1');
+    });
 
     expect(ipcBridge.cron.updateJob.invoke).toHaveBeenCalledWith({
       job_id: 'job-1',
@@ -238,7 +240,9 @@ describe('useCronJobs', () => {
 
     await waitFor(() => expect(result.current.loading).toBe(false));
 
-    await result.current.deleteJob('job-1');
+    await act(async () => {
+      await result.current.deleteJob('job-1');
+    });
 
     expect(ipcBridge.cron.removeJob.invoke).toHaveBeenCalledWith({ job_id: 'job-1' });
   });
@@ -280,7 +284,9 @@ describe('useCronJobs', () => {
     await waitFor(() => expect(result.current.loading).toBe(false));
 
     const newJob = mockJob({ id: 'job-new' });
-    onJobCreatedHandler!(newJob);
+    act(() => {
+      onJobCreatedHandler!(newJob);
+    });
 
     await waitFor(() => expect(result.current.jobs).toEqual([newJob]));
   });
@@ -300,7 +306,9 @@ describe('useCronJobs', () => {
 
     await waitFor(() => expect(result.current.jobs).toEqual([existingJob]));
 
-    onJobCreatedHandler!(existingJob);
+    act(() => {
+      onJobCreatedHandler!(existingJob);
+    });
 
     await waitFor(() => expect(result.current.jobs).toHaveLength(1));
   });
@@ -321,7 +329,9 @@ describe('useCronJobs', () => {
     await waitFor(() => expect(result.current.jobs).toEqual([job]));
 
     const updatedJob = mockJob({ enabled: false });
-    onJobUpdatedHandler!(updatedJob);
+    act(() => {
+      onJobUpdatedHandler!(updatedJob);
+    });
 
     await waitFor(() => expect(result.current.jobs).toEqual([updatedJob]));
   });
@@ -341,7 +351,9 @@ describe('useCronJobs', () => {
 
     await waitFor(() => expect(result.current.jobs).toEqual([job]));
 
-    onJobRemovedHandler!({ job_id: 'job-1' });
+    act(() => {
+      onJobRemovedHandler!({ job_id: 'job-1' });
+    });
 
     await waitFor(() => expect(result.current.jobs).toEqual([]));
   });
@@ -448,7 +460,9 @@ describe('useAllCronJobs', () => {
 
     await waitFor(() => expect(result.current.jobs).toEqual([job]));
 
-    await result.current.pauseJob('job-1');
+    await act(async () => {
+      await result.current.pauseJob('job-1');
+    });
 
     await waitFor(() => expect(result.current.jobs).toEqual([updatedJob]));
   });
@@ -465,7 +479,9 @@ describe('useAllCronJobs', () => {
 
     await waitFor(() => expect(result.current.jobs).toEqual([job]));
 
-    await result.current.deleteJob('job-1');
+    await act(async () => {
+      await result.current.deleteJob('job-1');
+    });
 
     await waitFor(() => expect(result.current.jobs).toEqual([]));
   });
@@ -556,7 +572,9 @@ describe('useCronJobsMap', () => {
       metadata: { conversation_id: 'conv-1' },
       state: { last_run_at_ms: 2000 },
     } as any);
-    onJobUpdatedHandler!(updatedJob);
+    act(() => {
+      onJobUpdatedHandler!(updatedJob);
+    });
 
     await waitFor(() => expect(result.current.hasUnread('conv-1')).toBe(true));
     expect(result.current.getJobStatus('conv-1')).toBe('unread');
@@ -581,14 +599,18 @@ describe('useCronJobsMap', () => {
 
     await waitFor(() => expect(result.current.loading).toBe(false));
 
-    result.current.setActiveConversation('conv-1');
+    act(() => {
+      result.current.setActiveConversation('conv-1');
+    });
 
     const updatedJob = mockJob({
       id: 'job-1',
       metadata: { conversation_id: 'conv-1' },
       state: { last_run_at_ms: 2000 },
     } as any);
-    onJobUpdatedHandler!(updatedJob);
+    act(() => {
+      onJobUpdatedHandler!(updatedJob);
+    });
 
     await waitFor(() => expect(result.current.hasUnread('conv-1')).toBe(false));
   });
@@ -606,13 +628,17 @@ describe('useCronJobsMap', () => {
 
     // Manually set unread
     localStorage.setItem('aionui_cron_unread', JSON.stringify(['conv-1']));
-    result.current.refetch();
+    act(() => {
+      result.current.refetch();
+    });
 
     await waitFor(() => {
       // refetch triggers full remount of state
     });
 
-    result.current.markAsRead('conv-1');
+    act(() => {
+      result.current.markAsRead('conv-1');
+    });
 
     await waitFor(() => expect(result.current.hasUnread('conv-1')).toBe(false));
   });
@@ -634,7 +660,9 @@ describe('useCronJobsMap', () => {
     });
 
     const newJob = mockJob({ id: 'job-new', metadata: { conversation_id: 'conv-1' } } as any);
-    onJobCreatedHandler!(newJob);
+    act(() => {
+      onJobCreatedHandler!(newJob);
+    });
 
     await waitFor(() => expect(emitter.emit).toHaveBeenCalledWith('chat.history.refresh'));
   });
@@ -693,7 +721,9 @@ describe('useCronJobConversations', () => {
 
     vi.mocked(ipcBridge.conversation.listByCronJob.invoke).mockClear();
 
-    onJobExecutedHandler!({ job_id: 'job-1' });
+    act(() => {
+      onJobExecutedHandler!({ job_id: 'job-1' });
+    });
 
     await waitFor(() =>
       expect(ipcBridge.conversation.listByCronJob.invoke).toHaveBeenCalledWith({ cron_job_id: 'job-1' })
@@ -718,7 +748,9 @@ describe('useCronJobConversations', () => {
 
     vi.mocked(ipcBridge.conversation.listByCronJob.invoke).mockClear();
 
-    onListChangedHandler!({ action: 'created' });
+    act(() => {
+      onListChangedHandler!({ action: 'created' });
+    });
 
     await waitFor(() =>
       expect(ipcBridge.conversation.listByCronJob.invoke).toHaveBeenCalledWith({ cron_job_id: 'job-1' })
@@ -745,7 +777,9 @@ describe('useCronJobConversations', () => {
 
     vi.mocked(ipcBridge.conversation.listByCronJob.invoke).mockClear();
 
-    emitterHandler!();
+    act(() => {
+      emitterHandler!();
+    });
 
     await waitFor(() =>
       expect(ipcBridge.conversation.listByCronJob.invoke).toHaveBeenCalledWith({ cron_job_id: 'job-1' })
