@@ -169,6 +169,7 @@
   },
   "patchedDependencies": {
     "7zip-bin@5.2.0": "patches/7zip-bin@5.2.0.patch",
+    "node-pty@1.1.0": "patches/node-pty@1.1.0.patch",
   },
   "overrides": {
     "@codemirror/language": "6.12.3",
