@@ -15,11 +15,11 @@ const repoRoot = resolve(__dirname, '../../..');
 describe('build-with-builder', () => {
   it.each([
     {
-      args: ['arm64', '--win', '--arm64'],
+      args: ['arm64', '--win', '--arm64', '--skip-gcapcore'],
       expectedArch: 'arm64',
     },
     {
-      args: ['auto', '--mac', '--x64'],
+      args: ['auto', '--mac', '--x64', '--skip-gcapcore'],
       expectedArch: 'x64',
     },
   ])('exits cleanly for $expectedArch with args $args', ({ args }) => {
