@@ -178,8 +178,12 @@ export async function provisionAgent37Desktop(
           error: 'Agent37 session expired — sign in again.',
         };
       }
-      const detail = (await readJson<{ error?: string }>(response))?.error;
-      return { success: false, status: response.status, error: detail || `Provision failed (HTTP ${response.status})` };
+      const detail = await readJson<unknown>(response);
+      return {
+        success: false,
+        status: response.status,
+        error: extractErrorMessage(detail, `Provision failed (HTTP ${response.status})`),
+      };
     }
     const payload = (await readJson<Record<string, unknown>>(response)) ?? {};
     const provision = mapProvisionResponse(payload);
@@ -464,11 +468,11 @@ async function runtimeActionRequest<T = unknown>(action: RuntimeAction): Promise
         clearAgent37Provision();
         return { success: false, status: response.status, error: 'Agent37 session expired — sign in again.' };
       }
-      const detail = (await readJson<{ error?: string }>(response))?.error;
+      const detail = await readJson<unknown>(response);
       return {
         success: false,
         status: response.status,
-        error: detail || `Runtime ${action} failed (HTTP ${response.status})`,
+        error: extractErrorMessage(detail, `Runtime ${action} failed (HTTP ${response.status})`),
       };
     }
     const data = (await readJson<T>(response)) ?? null;
@@ -525,11 +529,11 @@ export async function resizeManagedRuntime(input: ResizeInput): Promise<RuntimeL
         clearAgent37Provision();
         return { success: false, status: response.status, error: 'Agent37 session expired — sign in again.' };
       }
-      const detail = (await readJson<{ error?: string }>(response))?.error;
+      const detail = await readJson<unknown>(response);
       return {
         success: false,
         status: response.status,
-        error: detail || `Runtime resize failed (HTTP ${response.status})`,
+        error: extractErrorMessage(detail, `Runtime resize failed (HTTP ${response.status})`),
       };
     }
     return { success: true };
