@@ -45,6 +45,21 @@ export interface ElectronBridgeAPI {
     status?: number;
     error?: string;
   }>;
+  // Auth: run in the main process to avoid renderer-context CORS. The
+  // console's auth is plain Supabase email+password — no username, no MFA.
+  login?: (request: { email: string; password: string }) => Promise<{
+    success: boolean;
+    status?: number;
+    error?: string;
+  }>;
+  register?: (request: { email: string; password: string }) => Promise<{
+    success: boolean;
+    status?: number;
+    error?: string;
+    confirmationRequired?: boolean;
+  }>;
+  refreshAgent37Token?: () => Promise<{ success: boolean; status?: number; error?: string }>;
+  logoutAgent37?: () => Promise<{ success: boolean }>;
 
   saveCredentials?: (creds: { username: string; password: string }) => Promise<{ success: boolean; error?: string }>;
   loadCredentials?: () => Promise<{ success: boolean; credentials: { username: string; password: string } | null }>;

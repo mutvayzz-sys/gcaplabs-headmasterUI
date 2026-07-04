@@ -23,8 +23,10 @@
 
 import {
   clearAgent37Provision,
+  clearAgent37Token,
   getAgent37Config,
   setAgent37Provision,
+  setAgent37Token,
   type Agent37ProvisionSnapshot,
 } from '../connection/connectionConfig';
 import { getRendererPlatform } from '../utils/rendererPlatform';
@@ -80,6 +82,17 @@ async function readJson<T>(response: Response): Promise<T | null> {
   } catch {
     return null;
   }
+}
+
+// Console error bodies are `{ error: { code, message } }` (see ApiError/handleError in
+// src/lib/http.ts on the console side) — never a bare string, so the extraction has to unwrap it.
+function extractErrorMessage(payload: unknown, fallback: string): string {
+  const err = (payload as { error?: unknown } | null)?.error;
+  if (typeof err === 'string') return err;
+  if (err && typeof err === 'object' && typeof (err as { message?: unknown }).message === 'string') {
+    return (err as { message: string }).message;
+  }
+  return fallback;
 }
 
 function mapProvisionResponse(payload: Record<string, unknown>): Agent37ProvisionSnapshot | null {
@@ -230,6 +243,119 @@ export async function provisionViaAuthMe(
     const reason = err instanceof Error ? err.message : 'Identity check failed';
     return { success: false, error: reason };
   }
+}
+
+// --- Auth (login/register/refresh/logout) ---
+//
+// Runs in the main process rather than the renderer: the renderer loads from
+// file:// (packaged) or http://localhost:5173 (dev), and a direct fetch to
+// console.gcaplabs.com from there is cross-origin and subject to CORS, which
+// the console does not allow. A Node fetch from here has no such restriction.
+// The console's own auth is Supabase email+password — there is no username
+// concept and no MFA, so neither is modeled here.
+
+export interface Agent37LoginRequest {
+  email: string;
+  password: string;
+}
+
+export interface Agent37RegisterRequest {
+  email: string;
+  password: string;
+}
+
+export interface Agent37AuthResult {
+  success: boolean;
+  status?: number;
+  error?: string;
+  // Only set by register: the console has email confirmation disabled by default, so this
+  // should never be true in practice, but is surfaced in case that project setting changes.
+  confirmationRequired?: boolean;
+}
+
+export async function loginAgent37Desktop(request: Agent37LoginRequest): Promise<Agent37AuthResult> {
+  const baseUrl = resolveBaseUrl();
+  try {
+    const response = await fetch(`${baseUrl}/api/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: request.email, password: request.password }),
+    });
+    const payload = await readJson<{ access_token?: string }>(response);
+    if (!response.ok || !payload?.access_token) {
+      return {
+        success: false,
+        status: response.status,
+        error: extractErrorMessage(payload, `Login failed (HTTP ${response.status})`),
+      };
+    }
+    setAgent37Token(payload.access_token);
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : 'Network error contacting Agent37.' };
+  }
+}
+
+export async function registerAgent37Desktop(request: Agent37RegisterRequest): Promise<Agent37AuthResult> {
+  const baseUrl = resolveBaseUrl();
+  try {
+    const response = await fetch(`${baseUrl}/api/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: request.email, password: request.password }),
+    });
+    const payload = await readJson<{ access_token?: string; confirmation_required?: boolean }>(response);
+    if (!response.ok) {
+      return {
+        success: false,
+        status: response.status,
+        error: extractErrorMessage(payload, `Registration failed (HTTP ${response.status})`),
+      };
+    }
+    if (payload?.confirmation_required) {
+      return { success: true, confirmationRequired: true };
+    }
+    if (!payload?.access_token) {
+      return { success: false, error: 'Registration succeeded but no session was returned.' };
+    }
+    setAgent37Token(payload.access_token);
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : 'Network error contacting Agent37.' };
+  }
+}
+
+export async function refreshAgent37TokenDesktop(): Promise<Agent37AuthResult> {
+  const config = getAgent37Config();
+  if (!config.token) return { success: false, error: 'Agent37 session is not configured.' };
+  const baseUrl = resolveBaseUrl();
+  try {
+    const response = await fetch(`${baseUrl}/api/auth/refresh`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${config.token}` },
+    });
+    const payload = await readJson<{ access_token?: string }>(response);
+    if (!response.ok || !payload?.access_token) {
+      if (response.status === 401 || response.status === 403) clearAgent37Provision();
+      return {
+        success: false,
+        status: response.status,
+        error: extractErrorMessage(payload, 'Session refresh failed'),
+      };
+    }
+    setAgent37Token(payload.access_token);
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : 'Network error refreshing session.' };
+  }
+}
+
+export function logoutAgent37Desktop(): Agent37AuthResult {
+  // Desktop only ever holds a bearer access token (no refresh token to revoke server-side), so
+  // logout is purely local: drop the stored token/provision and let the renderer redirect.
+  clearAgent37Token();
+  clearAgent37Provision();
+  return { success: true };
 }
 
 export async function validateAgent37RuntimeAccess(

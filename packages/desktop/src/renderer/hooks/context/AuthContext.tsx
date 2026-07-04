@@ -25,7 +25,6 @@ type LoginErrorCode =
   | 'serverError'
   | 'networkError'
   | 'csrfError'
-  | 'mfaRequired'
   | 'unknown';
 
 interface LoginResult {
@@ -33,8 +32,6 @@ interface LoginResult {
   message?: string;
   code?: LoginErrorCode;
   shouldClearCache?: boolean;
-  mfaRequired?: boolean;
-  mfaChallengeToken?: string;
 }
 
 interface DesktopAgent37User {
@@ -72,9 +69,8 @@ interface DesktopAgent37Config {
 
 
 interface RegisterParams {
-  username: string;
+  email: string;
   password: string;
-  email?: string;
 }
 
 interface RegisterResult {
@@ -89,7 +85,6 @@ interface AuthContextValue {
   login: (params: LoginParams) => Promise<LoginResult>;
   loginWithOAuthToken: (token: string) => Promise<LoginResult>;
   register: (params: RegisterParams) => Promise<RegisterResult>;
-  verifyMfa: (params: { mfaChallengeToken: string; code: string; remember?: boolean }) => Promise<LoginResult>;
   logout: () => Promise<void>;
   refresh: () => Promise<void>;
   clearAuthCache: () => void;
@@ -116,20 +111,6 @@ const CONSOLE_URL = (
     | undefined) ??
   'https://www.console.gcaplabs.com'
 ).replace(/\/$/, '');
-
-async function refreshAgent37Token(serverUrl: string, token: string): Promise<string | null> {
-  try {
-    const response = await fetch(`${serverUrl}/api/auth/refresh`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    if (!response.ok) return null;
-    const data = (await response.json()) as { access_token: string };
-    return data.access_token || null;
-  } catch {
-    return null;
-  }
-}
 
 // Clear expired auth cache including cookies and localStorage
 // 清除过期的认证缓存，包括 Cookie 和 localStorage
@@ -304,11 +285,9 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
           return;
         }
 
-        // Try to refresh the token first so sessions stay alive silently
-        const freshToken = await refreshAgent37Token(serverUrl, token);
-        if (freshToken) {
-          await window.electronAPI?.setAgent37Token?.(freshToken);
-        }
+        // Try to refresh the token first so sessions stay alive silently. The IPC handler
+        // already persists a fresh token internally on success (see loginAgent37Desktop et al.).
+        await window.electronAPI?.refreshAgent37Token?.();
 
         if (!config?.url && serverUrl) {
           await window.electronAPI?.setAgent37Url?.(serverUrl);
@@ -368,44 +347,20 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
       }
 
       try {
-        const response = await fetch(`${serverUrl}/api/auth/login`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username, password }),
-        });
-
-        const data = (await response.json()) as {
-          access_token?: string;
-          mfa_required?: boolean;
-          mfa_challenge_token?: string;
-          detail?: string;
-        };
-
-        if (!response.ok) {
-          let code: LoginErrorCode = 'unknown';
-          const message = data?.detail ?? 'Login failed';
-          if (response.status === 401) code = 'invalidCredentials';
-          else if (response.status === 429) code = 'tooManyAttempts';
-          else if (response.status >= 500) code = 'serverError';
-          return { success: false, message, code };
-        }
-
-        if (data.mfa_required) {
-          return {
-            success: false,
-            mfaRequired: true,
-            mfaChallengeToken: data.mfa_challenge_token,
-            message: 'Enter your MFA code.',
-            code: 'mfaRequired',
-          };
-        }
-
-        if (!data.access_token) {
-          return { success: false, message: 'Unexpected server response.', code: 'serverError' };
-        }
-
+        // Persist the server URL before logging in — loginAgent37Desktop (main process) resolves
+        // the base URL from stored config, not from an argument.
         await window.electronAPI?.setAgent37Url?.(serverUrl);
-        await window.electronAPI?.setAgent37Token?.(data.access_token);
+        // The UI field is still labeled "username", but the console only has email+password
+        // accounts — whatever the user typed here is sent straight through as the email.
+        const result = await window.electronAPI?.login?.({ email: username, password });
+
+        if (!result?.success) {
+          let code: LoginErrorCode = 'unknown';
+          if (result?.status === 401) code = 'invalidCredentials';
+          else if (result?.status === 429) code = 'tooManyAttempts';
+          else if (result?.status && result.status >= 500) code = 'serverError';
+          return { success: false, message: result?.error ?? 'Login failed', code };
+        }
 
         const provisionResult = await provisionDesktopSession();
         if ('error' in provisionResult) {
@@ -528,83 +483,29 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
     }
   }, []);
 
-  const register = useCallback(async ({ username, password, email }: RegisterParams): Promise<RegisterResult> => {
+  const register = useCallback(async ({ email, password }: RegisterParams): Promise<RegisterResult> => {
+    if (!isDesktopRuntime) {
+      return { success: false, message: 'Registration is only available in the desktop app.' };
+    }
     const config = (await window.electronAPI?.getAgent37Config?.()) as DesktopAgent37Config | undefined;
     const serverUrl = resolveDesktopServerUrl(config?.url);
     if (!serverUrl) return { success: false, message: 'Server not configured. Please contact your administrator.' };
-    try {
-      const response = await fetch(`${serverUrl}/api/auth/register`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password, email }),
-      });
-      const data = (await response.json()) as { message?: string; detail?: string };
-      if (!response.ok) return { success: false, message: data?.detail ?? 'Registration failed.' };
-      return { success: true, message: data.message ?? 'Account created. Awaiting admin approval.' };
-    } catch {
-      return { success: false, message: 'Could not reach server. Check your connection.' };
+    await window.electronAPI?.setAgent37Url?.(serverUrl);
+    const result = await window.electronAPI?.register?.({ email, password });
+    if (!result?.success) {
+      return { success: false, message: result?.error ?? 'Registration failed.' };
     }
+    if (result.confirmationRequired) {
+      return { success: true, message: 'Check your email to confirm your account, then sign in.' };
+    }
+    return { success: true, message: 'Account created.' };
   }, []);
-
-  const verifyMfa = useCallback(
-    async (params: { mfaChallengeToken: string; code: string; remember?: boolean }): Promise<LoginResult> => {
-      if (isDesktopRuntime) {
-        const config = (await window.electronAPI?.getAgent37Config?.()) as DesktopAgent37Config | undefined;
-        const serverUrl = resolveDesktopServerUrl(config?.url);
-        if (!serverUrl) {
-          return { success: false, message: 'Server not configured.', code: 'serverError' };
-        }
-        try {
-          const response = await fetch(`${serverUrl}/api/auth/verify-mfa`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              mfa_challenge_token: params.mfaChallengeToken,
-              code: params.code,
-            }),
-          });
-          const data = (await response.json()) as { access_token?: string; detail?: string };
-          if (!response.ok || !data.access_token) {
-            return { success: false, message: data?.detail ?? 'Invalid MFA code', code: 'invalidCredentials' };
-          }
-          await window.electronAPI?.setAgent37Token?.(data.access_token);
-          if (params.remember) {
-            await window.electronAPI?.setAgent37Url?.(serverUrl);
-          }
-          const provisionResult = await provisionDesktopSession();
-          if ('error' in provisionResult) {
-            return { success: false, message: provisionResult.error, code: 'serverError' };
-          }
-          const { provision } = provisionResult;
-          setUser(provisionUserToAuthUser(provision.user));
-          setStatus('authenticated');
-          await applyProvisionGlobals(provision);
-          setReady(true);
-          return { success: true };
-        } catch {
-          return { success: false, message: 'MFA verification failed.', code: 'serverError' };
-        }
-      }
-      return { success: false, message: 'MFA not supported in this mode.', code: 'serverError' };
-    },
-    []
-  );
 
   const logout = useCallback(async () => {
     if (isDesktopRuntime) {
-      const config = await window.electronAPI?.getAgent37Config?.();
-      if (config?.url && config?.token) {
-        try {
-          await fetch(`${config.url}/api/auth/logout`, {
-            method: 'POST',
-            headers: { Authorization: `Bearer ${config.token}` },
-          });
-        } catch {
-          // ignore network errors on logout
-        }
-      }
-      await window.electronAPI?.clearAgent37Token?.();
-      await window.electronAPI?.clearAgent37Provision?.();
+      // No server round-trip: the desktop only ever holds a bearer access token (no refresh
+      // token to revoke), so logoutAgent37Desktop just drops the local token/provision.
+      await window.electronAPI?.logoutAgent37?.();
       setUser(null);
       setStatus('unauthenticated');
       clearAuthCache();
@@ -636,12 +537,11 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
       login,
       loginWithOAuthToken,
       register,
-      verifyMfa,
       logout,
       refresh,
       clearAuthCache,
     }),
-    [login, loginWithOAuthToken, register, verifyMfa, logout, ready, refresh, status, user]
+    [login, loginWithOAuthToken, register, logout, ready, refresh, status, user]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -65,6 +65,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('agent37:provision', request),
   validateAgent37Runtime: (request: { runtime_id: string; requested_capability: string }) =>
     ipcRenderer.invoke('agent37:validate-runtime', request),
+  // Auth: run in the main process to avoid renderer-context CORS (the
+  // renderer loads from file:// or http://localhost:5173, both cross-origin
+  // from console.gcaplabs.com). No MFA: the console's auth is plain Supabase
+  // email+password with no MFA concept.
+  login: (request: { email: string; password: string }) => ipcRenderer.invoke('agent37:login', request),
+  register: (request: { email: string; password: string }) => ipcRenderer.invoke('agent37:register', request),
+  refreshAgent37Token: () => ipcRenderer.invoke('agent37:refresh-token'),
+  logoutAgent37: () => ipcRenderer.invoke('agent37:logout'),
   // Managed-runtime lifecycle (proxied to console /api/chat/runtime/*). The
   // renderer never talks to the console directly; everything routes through
   // these IPC channels. The console is the source of truth for the singleton
