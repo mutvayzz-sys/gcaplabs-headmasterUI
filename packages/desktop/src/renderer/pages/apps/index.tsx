@@ -183,9 +183,13 @@ const AppsPage: React.FC = () => {
                 )}
               >
                 <div className='flex min-w-0 items-center gap-8px'>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={toolkitLogoUrl(conn.toolkit.slug)} alt='' className='size-20px shrink-0 rounded-4px' />
-                  <span className='min-w-0 truncate font-medium text-t-primary'>{conn.toolkit.slug}</span>
+                  {conn.toolkitSlug ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={toolkitLogoUrl(conn.toolkitSlug)} alt='' className='size-20px shrink-0 rounded-4px' />
+                  ) : null}
+                  <span className='min-w-0 truncate font-medium text-t-primary'>
+                    {conn.toolkitName || conn.toolkitSlug || conn.id}
+                  </span>
                   <Badge status={isActive(conn) ? 'success' : 'default'} text={conn.status.toLowerCase()} />
                 </div>
                 <Button

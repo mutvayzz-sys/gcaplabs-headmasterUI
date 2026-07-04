@@ -138,8 +138,8 @@ export function useComposioApps(): UseComposioAppsReturn {
 
         const conns = await refreshConnections();
         const conn = conns.find((c) => c.id === popupResult.data!.connectedAccountId);
-        if (conn) {
-          await window.electronAPI?.registerComposioMcp?.(conn.toolkit.slug);
+        if (conn?.toolkitSlug) {
+          await window.electronAPI?.registerComposioMcp?.(conn.toolkitSlug);
         }
       } catch (e) {
         setError((e as Error).message);
@@ -165,7 +165,12 @@ export function useComposioApps(): UseComposioAppsReturn {
     }
   }, []);
 
-  const connectedSlugs = new Set(connections.filter(isActive).map((c) => c.toolkit.slug));
+  const connectedSlugs = new Set(
+    connections
+      .filter(isActive)
+      .map((c) => c.toolkitSlug)
+      .filter((slug): slug is string => Boolean(slug))
+  );
 
   return {
     toolkits,

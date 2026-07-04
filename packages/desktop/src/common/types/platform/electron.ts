@@ -22,8 +22,9 @@ export interface ComposioToolkit {
 
 export interface ComposioConnection {
   id: string;
-  toolkit: { slug: string };
   status: string;
+  toolkitSlug?: string | null;
+  toolkitName?: string | null;
 }
 
 export interface ElectronBridgeAPI {
