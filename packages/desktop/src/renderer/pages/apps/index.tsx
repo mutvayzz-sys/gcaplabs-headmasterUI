@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button, Input, Badge } from '@arco-design/web-react';
 import { Plugs, MagnifyingGlass, PlugsConnected, Spinner } from '@phosphor-icons/react';
@@ -24,6 +24,9 @@ const AppsPage: React.FC = () => {
     connections,
     connectedSlugs,
     loadingToolkits,
+    loadingMore,
+    hasMore,
+    loadMore,
     loadingConnections,
     connecting,
     disconnecting,
@@ -35,6 +38,22 @@ const AppsPage: React.FC = () => {
   } = useComposioApps();
 
   const activeConnections = connections.filter(isActive);
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
+
+  // Infinite scroll: load the next page once the sentinel below the grid is visible.
+  useEffect(() => {
+    if (tab !== 'browse') return;
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) loadMore();
+      },
+      { rootMargin: '200px' }
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [tab, loadMore]);
 
   return (
     <div className={classNames('size-full flex flex-col', isMobile ? 'p-12px' : 'p-24px')}>
@@ -95,47 +114,54 @@ const AppsPage: React.FC = () => {
                   : t('apps.noneFound', { defaultValue: 'No apps found.' })}
               </div>
             ) : (
-              <div className='grid grid-cols-2 sm:grid-cols-3 gap-12px'>
-                {toolkits.map((toolkit) => {
-                  const connected = connectedSlugs.has(toolkit.slug);
-                  return (
-                    <div key={toolkit.slug} className='flex flex-col gap-8px rounded-8px border border-line-1 p-12px'>
-                      <div className='flex items-center gap-8px'>
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          src={toolkitLogoUrl(toolkit.slug)}
-                          alt=''
-                          className='size-24px shrink-0 rounded-4px'
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).style.visibility = 'hidden';
-                          }}
-                        />
-                        <span className='min-w-0 truncate text-13px font-medium text-t-primary'>{toolkit.name}</span>
+              <>
+                <div className='grid grid-cols-2 sm:grid-cols-3 gap-12px'>
+                  {toolkits.map((toolkit) => {
+                    const connected = connectedSlugs.has(toolkit.slug);
+                    return (
+                      <div key={toolkit.slug} className='flex flex-col gap-8px rounded-8px border border-line-1 p-12px'>
+                        <div className='flex items-center gap-8px'>
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={toolkit.logo || toolkitLogoUrl(toolkit.slug)}
+                            alt=''
+                            className='size-24px shrink-0 rounded-4px'
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).style.visibility = 'hidden';
+                            }}
+                          />
+                          <span className='min-w-0 truncate text-13px font-medium text-t-primary'>{toolkit.name}</span>
+                        </div>
+                        {toolkit.description ? (
+                          <p className='line-clamp-2 text-12px text-t-secondary'>{toolkit.description}</p>
+                        ) : null}
+                        <Button
+                          size='small'
+                          type={connected ? 'secondary' : 'primary'}
+                          disabled={connected || connecting === toolkit.slug}
+                          onClick={() => void connect(toolkit.slug)}
+                          icon={
+                            connecting === toolkit.slug ? (
+                              <Spinner size={14} className='animate-spin' />
+                            ) : connected ? undefined : (
+                              <Plugs size={14} />
+                            )
+                          }
+                        >
+                          {connected
+                            ? t('apps.connected', { defaultValue: 'Connected' })
+                            : t('apps.connect', { defaultValue: 'Connect' })}
+                        </Button>
                       </div>
-                      {toolkit.meta?.description ? (
-                        <p className='line-clamp-2 text-12px text-t-secondary'>{toolkit.meta.description}</p>
-                      ) : null}
-                      <Button
-                        size='small'
-                        type={connected ? 'secondary' : 'primary'}
-                        disabled={connected || connecting === toolkit.slug}
-                        onClick={() => void connect(toolkit.slug)}
-                        icon={
-                          connecting === toolkit.slug ? (
-                            <Spinner size={14} className='animate-spin' />
-                          ) : connected ? undefined : (
-                            <Plugs size={14} />
-                          )
-                        }
-                      >
-                        {connected
-                          ? t('apps.connected', { defaultValue: 'Connected' })
-                          : t('apps.connect', { defaultValue: 'Connect' })}
-                      </Button>
-                    </div>
-                  );
-                })}
-              </div>
+                    );
+                  })}
+                </div>
+                {hasMore ? (
+                  <div ref={sentinelRef} className='flex justify-center py-8px'>
+                    {loadingMore ? <Spinner size={16} className='animate-spin text-t-secondary' /> : null}
+                  </div>
+                ) : null}
+              </>
             )}
           </div>
         ) : loadingConnections ? (

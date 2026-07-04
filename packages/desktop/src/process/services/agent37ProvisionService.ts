@@ -552,9 +552,11 @@ export async function resizeManagedRuntime(input: ResizeInput): Promise<RuntimeL
 export interface ComposioToolkit {
   slug: string;
   name: string;
-  auth_schemes: string[];
-  composio_managed_auth_schemes: string[];
-  meta?: { logo?: string; description?: string };
+  description: string | null;
+  logo: string | null;
+  enabled: boolean;
+  isNoAuth: boolean;
+  authSchemes: string[];
 }
 
 export interface ComposioConnection {
@@ -599,10 +601,11 @@ async function composioRequest<T>(method: string, path: string, body?: unknown):
 }
 
 export function listComposioToolkits(
-  params: { search?: string }
+  params: { search?: string; cursor?: string }
 ): Promise<ComposioResult<{ toolkits: ComposioToolkit[]; nextCursor: string | null }>> {
   const qs = new URLSearchParams();
   if (params.search) qs.set('search', params.search);
+  if (params.cursor) qs.set('cursor', params.cursor);
   const query = qs.toString();
   return composioRequest('GET', `/api/chat/integrations/toolkits${query ? `?${query}` : ''}`);
 }

@@ -25,6 +25,9 @@ interface UseComposioAppsReturn {
   connections: ComposioConnection[];
   connectedSlugs: Set<string>;
   loadingToolkits: boolean;
+  loadingMore: boolean;
+  hasMore: boolean;
+  loadMore: () => void;
   loadingConnections: boolean;
   connecting: string | null;
   disconnecting: string | null;
@@ -40,6 +43,7 @@ export function useComposioApps(): UseComposioAppsReturn {
   const [toolkits, setToolkits] = useState<ComposioToolkit[]>([]);
   const [connections, setConnections] = useState<ComposioConnection[]>([]);
   const [loadingToolkits, setLoadingToolkits] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [loadingConnections, setLoadingConnections] = useState(true);
   const [connecting, setConnecting] = useState<string | null>(null);
   const [disconnecting, setDisconnecting] = useState<string | null>(null);
@@ -47,6 +51,10 @@ export function useComposioApps(): UseComposioAppsReturn {
   const [search, setSearch] = useState('');
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const requestSeq = useRef(0);
+  // Not state: a page load shouldn't itself trigger a re-render/re-fetch, only reads at the
+  // moment loadMore() is called need the latest cursor.
+  const cursorRef = useRef<string | null>(null);
+  const [hasMore, setHasMore] = useState(false);
 
   const refreshConnections = useCallback(async (): Promise<ComposioConnection[]> => {
     const result = await window.electronAPI?.listComposioConnections?.();
@@ -63,7 +71,23 @@ export function useComposioApps(): UseComposioAppsReturn {
       .finally(() => setLoadingConnections(false));
   }, [refreshConnections]);
 
-  // Reset and refetch whenever the search query changes.
+  const fetchPage = useCallback((query: string, cursor: string | null, seq: number) => {
+    return window.electronAPI
+      ?.listComposioToolkits?.({ search: query || undefined, cursor: cursor ?? undefined })
+      .then((result) => {
+        if (seq !== requestSeq.current) return; // a newer search superseded this request
+        if (!result?.success) {
+          setError(result?.error ?? 'Failed to load apps');
+          return;
+        }
+        const page = result.data?.toolkits ?? [];
+        setToolkits((prev) => (cursor ? [...prev, ...page] : page));
+        cursorRef.current = result.data?.nextCursor ?? null;
+        setHasMore(Boolean(cursorRef.current));
+      });
+  }, []);
+
+  // Reset and refetch from page one whenever the search query changes.
   useEffect(() => {
     const query = search.trim();
     if (query.length > 0 && query.length < MIN_SEARCH) return;
@@ -72,16 +96,8 @@ export function useComposioApps(): UseComposioAppsReturn {
     debounceRef.current = setTimeout(() => {
       setLoadingToolkits(true);
       setError(null);
-      window.electronAPI
-        ?.listComposioToolkits?.({ search: query || undefined })
-        .then((result) => {
-          if (seq !== requestSeq.current) return;
-          if (!result?.success) {
-            setError(result?.error ?? 'Failed to load apps');
-            return;
-          }
-          setToolkits(result.data?.toolkits ?? []);
-        })
+      cursorRef.current = null;
+      fetchPage(query, null, seq)
         .catch((e: Error) => {
           if (seq === requestSeq.current) setError(e.message);
         })
@@ -92,7 +108,18 @@ export function useComposioApps(): UseComposioAppsReturn {
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
-  }, [search]);
+  }, [search, fetchPage]);
+
+  const loadMore = useCallback(() => {
+    if (!cursorRef.current || loadingMore || loadingToolkits) return;
+    const seq = requestSeq.current;
+    setLoadingMore(true);
+    fetchPage(search.trim(), cursorRef.current, seq)
+      .catch((e: Error) => {
+        if (seq === requestSeq.current) setError(e.message);
+      })
+      .finally(() => setLoadingMore(false));
+  }, [fetchPage, loadingMore, loadingToolkits, search]);
 
   const connect = useCallback(
     async (slug: string) => {
@@ -145,6 +172,9 @@ export function useComposioApps(): UseComposioAppsReturn {
     connections,
     connectedSlugs,
     loadingToolkits,
+    loadingMore,
+    hasMore,
+    loadMore,
     loadingConnections,
     connecting,
     disconnecting,

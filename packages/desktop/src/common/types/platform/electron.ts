@@ -13,9 +13,11 @@ export interface WebUIStatus {
 export interface ComposioToolkit {
   slug: string;
   name: string;
-  auth_schemes: string[];
-  composio_managed_auth_schemes: string[];
-  meta?: { logo?: string; description?: string };
+  description: string | null;
+  logo: string | null;
+  enabled: boolean;
+  isNoAuth: boolean;
+  authSchemes: string[];
 }
 
 export interface ComposioConnection {
@@ -76,7 +78,7 @@ export interface ElectronBridgeAPI {
   logoutAgent37?: () => Promise<{ success: boolean }>;
 
   // Composio integrations, proxied to console /api/chat/integrations/*.
-  listComposioToolkits?: (params: { search?: string }) => Promise<{
+  listComposioToolkits?: (params: { search?: string; cursor?: string }) => Promise<{
     success: boolean;
     status?: number;
     error?: string;

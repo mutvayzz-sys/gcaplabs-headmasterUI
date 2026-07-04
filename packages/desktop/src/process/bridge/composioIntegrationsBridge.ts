@@ -64,7 +64,7 @@ async function runComposioOAuthPopup(redirectUrl: string): Promise<ComposioResul
 }
 
 export function initComposioIntegrationsBridge(): void {
-  ipcMain.handle('agent37:integrations:toolkits', (_event, params: { search?: string }) =>
+  ipcMain.handle('agent37:integrations:toolkits', (_event, params: { search?: string; cursor?: string }) =>
     listComposioToolkits(params ?? {})
   );
   ipcMain.handle('agent37:integrations:connections', () => listComposioConnections());

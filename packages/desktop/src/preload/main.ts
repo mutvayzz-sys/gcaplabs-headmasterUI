@@ -87,7 +87,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // Composio integrations, proxied to console /api/chat/integrations/* (same reasoning as the
   // auth channels above — Node fetch in the main process, not a CORS-restricted renderer fetch).
-  listComposioToolkits: (params: { search?: string }) => ipcRenderer.invoke('agent37:integrations:toolkits', params),
+  listComposioToolkits: (params: { search?: string; cursor?: string }) =>
+    ipcRenderer.invoke('agent37:integrations:toolkits', params),
   listComposioConnections: () => ipcRenderer.invoke('agent37:integrations:connections'),
   connectComposioToolkit: (toolkit: string) => ipcRenderer.invoke('agent37:integrations:connect', toolkit),
   registerComposioMcp: (toolkit: string) => ipcRenderer.invoke('agent37:integrations:register-mcp', toolkit),
