@@ -115,38 +115,38 @@ const AppsPage: React.FC = () => {
               </div>
             ) : (
               <>
-                <div className='grid grid-cols-2 sm:grid-cols-3 gap-12px'>
+                <div className='grid grid-cols-[repeat(auto-fill,minmax(140px,1fr))] gap-8px'>
                   {toolkits.map((toolkit) => {
                     const connected = connectedSlugs.has(toolkit.slug);
                     return (
-                      <div key={toolkit.slug} className='flex flex-col gap-8px rounded-8px border border-line-1 p-12px'>
-                        <div className='flex-1 flex flex-col gap-8px'>
-                          <div className='flex items-center gap-8px'>
+                      <div key={toolkit.slug} className='flex flex-col gap-6px rounded-8px border border-line-1 p-8px'>
+                        <div className='flex-1 flex flex-col gap-4px'>
+                          <div className='flex items-center gap-6px'>
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img
                               src={toolkit.logo || toolkitLogoUrl(toolkit.slug)}
                               alt=''
-                              className='size-24px shrink-0 rounded-4px'
+                              className='size-18px shrink-0 rounded-4px'
                               onError={(e) => {
                                 (e.target as HTMLImageElement).style.visibility = 'hidden';
                               }}
                             />
-                            <span className='min-w-0 truncate text-13px font-medium text-t-primary'>{toolkit.name}</span>
+                            <span className='min-w-0 truncate text-12px font-medium text-t-primary'>{toolkit.name}</span>
                           </div>
                           {toolkit.description ? (
-                            <p className='line-clamp-2 text-12px text-t-secondary'>{toolkit.description}</p>
+                            <p className='line-clamp-2 text-11px text-t-secondary'>{toolkit.description}</p>
                           ) : null}
                         </div>
                         <Button
-                          size='small'
+                          size='mini'
                           type={connected ? 'secondary' : 'primary'}
                           disabled={connected || connecting === toolkit.slug}
                           onClick={() => void connect(toolkit.slug)}
                           icon={
                             connecting === toolkit.slug ? (
-                              <Spinner size={14} className='animate-spin' />
+                              <Spinner size={12} className='animate-spin' />
                             ) : connected ? undefined : (
-                              <Plugs size={14} />
+                              <Plugs size={12} />
                             )
                           }
                         >
