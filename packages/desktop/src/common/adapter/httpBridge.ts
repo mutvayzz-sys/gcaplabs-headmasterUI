@@ -63,14 +63,23 @@ declare global {
  * resolves, so any main-process caller (e.g. the one-shot assistant
  * migration hook) hits the correct port.
  *
- * The fallback (`DEFAULT_LOCAL_DASHBOARD_PORT`, 9119 — see
- * `hermes_cli/subcommands/dashboard.py:26`) is only honored when no port
- * has been published. In production Electron paths the port is always
- * published before the first HTTP call goes out, so the fallback only
- * fires in the vitest node environment or before the dashboard is up.
+ * The `DEFAULT_LOCAL_DASHBOARD_PORT` (9119) fallback is the upstream Hermes
+ * CLI's own hardcoded default (`hermes_cli/subcommands/dashboard.py:26`) —
+ * it is NOT reserved for our Headmaster-managed instance. Our own dashboard
+ * binds an OS-assigned port; 9119 could just as easily belong to a
+ * completely unrelated Hermes install on the machine (the user's own, or
+ * another user's on a shared machine). Substituting it as a live guess in
+ * the renderer would mean sending session-token'd requests to a stranger's
+ * process — one that can execute real local actions. So the fallback is
+ * only honored in the Node/vitest environment (`typeof window ===
+ * 'undefined'`), where nothing is actually listening and it merely satisfies
+ * type expectations. The renderer always gets the real published port, or 0.
  */
 function getBackendPort(): number {
-  return resolveBackendPort(DEFAULT_LOCAL_DASHBOARD_PORT);
+  if (typeof window === 'undefined') {
+    return resolveBackendPort(DEFAULT_LOCAL_DASHBOARD_PORT);
+  }
+  return resolveBackendPort();
 }
 
 function getApiServerKey(): string | null {
@@ -555,9 +564,13 @@ export async function httpRequest<T>(
   // against the 9119 fallback. WebUI and remote-container modes bypass
   // this (same-origin or cloud endpoint). Node test env has no `window`
   // so this guard never fires in unit tests.
+  //
+  // Must check resolveBackendPort() (no fallback) here, NOT getBackendPort()
+  // — the latter substitutes DEFAULT_LOCAL_DASHBOARD_PORT (9119) whenever
+  // the real port is unpublished, so `getBackendPort() <= 0` can never be
+  // true and this guard would never fire.
   if (typeof window !== 'undefined' && !isWebUiBrowserMode() && !isRemoteContainerMode()) {
-    const port = getBackendPort();
-    if (port <= 0) {
+    if (resolveBackendPort() <= 0) {
       throw new Error('Backend not ready (port=0)');
     }
   }
@@ -980,9 +993,9 @@ function connectWs(): void {
 
   // Guard: don't attempt WS connection when backend port is 0 (dashboard
   // not ready). Prevents reconnect storm against the 9119 fallback.
+  // Same resolveBackendPort() vs getBackendPort() distinction as httpRequest above.
   if (typeof window !== 'undefined' && !isWebUiBrowserMode()) {
-    const port = getBackendPort();
-    if (port <= 0) {
+    if (resolveBackendPort() <= 0) {
       console.debug('[ensureWs] skipped: backend port is 0 (dashboard not ready)');
       return;
     }
