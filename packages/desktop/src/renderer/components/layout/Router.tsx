@@ -31,6 +31,7 @@ const AgentsPage = React.lazy(() => import('@renderer/pages/agents'));
 const KanbanPage = React.lazy(() => import('@renderer/pages/kanban'));
 const BrowserPage = React.lazy(() => import('@renderer/pages/browser'));
 const AssetsPage = React.lazy(() => import('@renderer/pages/assets'));
+const AppsPage = React.lazy(() => import('@renderer/pages/apps'));
 
 export const SETTINGS_PRIMARY_ROUTES = {
   tools: '/settings/tools',
@@ -148,6 +149,7 @@ const PanelRoute: React.FC<{ layout: React.ReactElement }> = ({ layout }) => {
           <Route path='/kanban' element={withRouteFallback(KanbanPage)} />
           <Route path='/browser' element={withRouteFallback(BrowserPage)} />
           <Route path='/assets' element={withRouteFallback(AssetsPage)} />
+          <Route path='/apps' element={withRouteFallback(AppsPage)} />
           {/* Aliases */}
           <Route path='/automations' element={<Navigate to='/scheduled' replace />} />
           <Route path='/council' element={<Navigate to='/team/default' replace />} />

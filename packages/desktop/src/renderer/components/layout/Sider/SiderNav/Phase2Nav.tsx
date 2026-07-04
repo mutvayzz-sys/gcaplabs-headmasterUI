@@ -6,7 +6,7 @@
 
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { ChatCircle, Brain, Clock, Users, Kanban, GearSix, Package } from '@phosphor-icons/react';
+import { ChatCircle, Brain, Clock, Users, Kanban, GearSix, Package, Plugs } from '@phosphor-icons/react';
 import type { Icon } from '@phosphor-icons/react';
 import type { SiderTooltipProps } from '@renderer/utils/ui/siderTooltip';
 import { useCapabilities } from '@renderer/hooks/system/useCapabilities';
@@ -34,6 +34,7 @@ const NAV_ITEMS: NavItem[] = [
   { path: '/scheduled', icon: Clock, labelKey: 'sidebar.automations', defaultLabel: 'Automations', requiredCapability: 'cowork' },
   { path: '/kanban', icon: Kanban, labelKey: 'sidebar.kanban', defaultLabel: 'Kanban', requiredCapability: 'cowork' },
   { path: '/assets', icon: Package, labelKey: 'sidebar.deliverables', defaultLabel: 'Deliverables', requiredCapability: 'local_files' },
+  { path: '/apps', icon: Plugs, labelKey: 'sidebar.apps', defaultLabel: 'Apps', requiredCapability: 'integrations' },
   { path: '/settings/model', icon: GearSix, labelKey: 'sidebar.settings', defaultLabel: 'Settings', requiredCapability: 'runtime_settings' },
 ];
 

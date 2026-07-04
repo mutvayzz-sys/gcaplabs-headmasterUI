@@ -14,6 +14,7 @@ const ALL_CAPABILITIES = [
   'model_selection',
   'runtime_settings',
   'admin_audit',
+  'integrations',
 ] as const;
 
 export type DesktopCapability = (typeof ALL_CAPABILITIES)[number];

@@ -543,6 +543,88 @@ export async function resizeManagedRuntime(input: ResizeInput): Promise<RuntimeL
   }
 }
 
+// --- Composio integrations (proxied through the console's /api/chat/integrations/* BFF) ---
+//
+// The console's own ComposioApps.tsx (browser, same-origin, cookie auth) is the reference
+// implementation for these same routes. Here we go through the console's BFF the same way the
+// rest of this file does — bearer token, main-process fetch to avoid renderer-context CORS.
+
+export interface ComposioToolkit {
+  slug: string;
+  name: string;
+  auth_schemes: string[];
+  composio_managed_auth_schemes: string[];
+  meta?: { logo?: string; description?: string };
+}
+
+export interface ComposioConnection {
+  id: string;
+  toolkit: { slug: string };
+  status: string;
+}
+
+export interface ComposioResult<T = unknown> {
+  success: boolean;
+  status?: number;
+  error?: string;
+  data?: T;
+}
+
+async function composioRequest<T>(method: string, path: string, body?: unknown): Promise<ComposioResult<T>> {
+  const config = getAgent37Config();
+  if (!config.token) return { success: false, error: 'Agent37 session is not configured.' };
+  const baseUrl = resolveBaseUrl();
+  try {
+    const response = await fetch(`${baseUrl}${path}`, {
+      method,
+      headers: {
+        Authorization: `Bearer ${config.token}`,
+        ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}),
+      },
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+    });
+    const payload = await readJson<T>(response);
+    if (!response.ok) {
+      if (response.status === 401 || response.status === 403) clearAgent37Provision();
+      return {
+        success: false,
+        status: response.status,
+        error: extractErrorMessage(payload, `Request failed (HTTP ${response.status})`),
+      };
+    }
+    return { success: true, data: payload ?? undefined };
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : 'Network error contacting Agent37.' };
+  }
+}
+
+export function listComposioToolkits(
+  params: { search?: string }
+): Promise<ComposioResult<{ toolkits: ComposioToolkit[]; nextCursor: string | null }>> {
+  const qs = new URLSearchParams();
+  if (params.search) qs.set('search', params.search);
+  const query = qs.toString();
+  return composioRequest('GET', `/api/chat/integrations/toolkits${query ? `?${query}` : ''}`);
+}
+
+export function listComposioConnections(): Promise<ComposioResult<{ connections: ComposioConnection[] }>> {
+  return composioRequest('GET', '/api/chat/integrations/connections');
+}
+
+export function connectComposioToolkit(
+  toolkit: string
+): Promise<ComposioResult<{ redirectUrl: string; connectedAccountId?: string }>> {
+  return composioRequest('POST', '/api/chat/integrations/connect', { toolkit });
+}
+
+export function registerComposioMcp(toolkit: string): Promise<ComposioResult<{ ok: boolean }>> {
+  return composioRequest('POST', '/api/chat/integrations/register-mcp', { toolkit });
+}
+
+export function disconnectComposioConnection(connectionId: string): Promise<ComposioResult<{ ok: boolean }>> {
+  return composioRequest('DELETE', `/api/chat/integrations/connections/${encodeURIComponent(connectionId)}`);
+}
+
 async function getManagedRuntimeImpl(): Promise<RuntimeLifecycleResult<ManagedRuntime>> {
   const config = getAgent37Config();
   if (!config.token) {

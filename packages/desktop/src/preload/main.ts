@@ -85,6 +85,19 @@ contextBridge.exposeInMainWorld('electronAPI', {
   resizeAgent37Runtime: (input: { cpu?: number; memory?: number; disk?: number }) =>
     ipcRenderer.invoke('agent37:runtime:resize', input),
 
+  // Composio integrations, proxied to console /api/chat/integrations/* (same reasoning as the
+  // auth channels above — Node fetch in the main process, not a CORS-restricted renderer fetch).
+  listComposioToolkits: (params: { search?: string }) => ipcRenderer.invoke('agent37:integrations:toolkits', params),
+  listComposioConnections: () => ipcRenderer.invoke('agent37:integrations:connections'),
+  connectComposioToolkit: (toolkit: string) => ipcRenderer.invoke('agent37:integrations:connect', toolkit),
+  registerComposioMcp: (toolkit: string) => ipcRenderer.invoke('agent37:integrations:register-mcp', toolkit),
+  disconnectComposioConnection: (connectionId: string) =>
+    ipcRenderer.invoke('agent37:integrations:disconnect', connectionId),
+  // Opens a real BrowserWindow for the Composio OAuth flow and resolves once its navigation
+  // carries a connected_account_id — see composioIntegrationsBridge.ts for why this can't reuse
+  // the browser-side window.opener.postMessage pattern the web console uses.
+  runComposioOAuthPopup: (redirectUrl: string) => ipcRenderer.invoke('agent37:integrations:oauth-popup', redirectUrl),
+
   saveCredentials: (creds: { username: string; password: string }) => ipcRenderer.invoke('credentials:save', creds),
   loadCredentials: () => ipcRenderer.invoke('credentials:load'),
   clearCredentials: () => ipcRenderer.invoke('credentials:clear'),

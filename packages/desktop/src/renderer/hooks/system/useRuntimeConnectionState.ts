@@ -24,11 +24,37 @@ const safeReason = (error: unknown): string => {
     .slice(0, 240);
 };
 
+// A single slow/timed-out health check (cold container, brief network blip) shouldn't flip an
+// already-connected runtime to "Reconnecting…" and flash the banner — only report the drop once
+// this many consecutive checks have failed.
+const CONSECUTIVE_FAILURES_BEFORE_RECONNECTING = 2;
+
 export function useRuntimeConnectionState(): RuntimeConnectionSnapshot {
   const dashboard = useDashboardStatus();
   const [state, setState] = useState<RuntimeConnectionState>('starting');
   const [reason, setReason] = useState<string>();
   const connectedRef = useRef(false);
+  const consecutiveFailuresRef = useRef(0);
+
+  const reportSuccess = useCallback(() => {
+    consecutiveFailuresRef.current = 0;
+    connectedRef.current = true;
+    setState('connected');
+    setReason(undefined);
+  }, []);
+
+  // Swallows the first failure after a successful connection (state stays 'connected', no
+  // banner) so a single slow check doesn't flicker; only reports once failures accumulate.
+  const reportFailure = useCallback((message: string) => {
+    const wasConnected = connectedRef.current;
+    consecutiveFailuresRef.current += 1;
+    if (wasConnected && consecutiveFailuresRef.current < CONSECUTIVE_FAILURES_BEFORE_RECONNECTING) {
+      return;
+    }
+    connectedRef.current = false;
+    setState(wasConnected ? 'reconnecting' : 'failed');
+    setReason(message);
+  }, []);
 
   const probe = useCallback(async () => {
     // Remote container mode: probe /v1/health directly (no WS available).
@@ -40,14 +66,9 @@ export function useRuntimeConnectionState(): RuntimeConnectionSnapshot {
     ) {
       const healthy = await probeRemoteHealth();
       if (healthy) {
-        connectedRef.current = true;
-        setState('connected');
-        setReason(undefined);
+        reportSuccess();
       } else {
-        const wasConnected = connectedRef.current;
-        connectedRef.current = false;
-        setState(wasConnected ? 'reconnecting' : 'failed');
-        setReason('Runtime health check failed');
+        reportFailure('Runtime health check failed');
       }
       return;
     }
@@ -56,6 +77,7 @@ export function useRuntimeConnectionState(): RuntimeConnectionSnapshot {
     const port = window.__backendPort;
     if (!port) {
       connectedRef.current = false;
+      consecutiveFailuresRef.current = 0;
       setState(dashboard.status === 'failed' || dashboard.status === 'not-installed' ? 'failed' : 'starting');
       setReason(dashboard.lastError || undefined);
       return;
@@ -68,16 +90,11 @@ export function useRuntimeConnectionState(): RuntimeConnectionSnapshot {
       } catch {
         // Optional status endpoint; RPC success is authoritative.
       }
-      connectedRef.current = true;
-      setState('connected');
-      setReason(undefined);
+      reportSuccess();
     } catch (error) {
-      const wasConnected = connectedRef.current;
-      connectedRef.current = false;
-      setState(wasConnected ? 'reconnecting' : 'failed');
-      setReason(safeReason(error));
+      reportFailure(safeReason(error));
     }
-  }, [dashboard.lastError, dashboard.status]);
+  }, [dashboard.lastError, dashboard.status, reportFailure, reportSuccess]);
 
   useEffect(() => {
     void probe();

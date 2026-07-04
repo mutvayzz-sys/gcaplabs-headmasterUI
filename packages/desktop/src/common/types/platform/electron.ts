@@ -10,6 +10,20 @@ export interface WebUIStatus {
   initialPassword?: string;
 }
 
+export interface ComposioToolkit {
+  slug: string;
+  name: string;
+  auth_schemes: string[];
+  composio_managed_auth_schemes: string[];
+  meta?: { logo?: string; description?: string };
+}
+
+export interface ComposioConnection {
+  id: string;
+  toolkit: { slug: string };
+  status: string;
+}
+
 export interface ElectronBridgeAPI {
   emit: (name: string, data: unknown) => Promise<unknown> | void;
   on: (callback: (event: { value: string }) => void) => void;
@@ -60,6 +74,33 @@ export interface ElectronBridgeAPI {
   }>;
   refreshAgent37Token?: () => Promise<{ success: boolean; status?: number; error?: string }>;
   logoutAgent37?: () => Promise<{ success: boolean }>;
+
+  // Composio integrations, proxied to console /api/chat/integrations/*.
+  listComposioToolkits?: (params: { search?: string }) => Promise<{
+    success: boolean;
+    status?: number;
+    error?: string;
+    data?: { toolkits: ComposioToolkit[]; nextCursor: string | null };
+  }>;
+  listComposioConnections?: () => Promise<{
+    success: boolean;
+    status?: number;
+    error?: string;
+    data?: { connections: ComposioConnection[] };
+  }>;
+  connectComposioToolkit?: (toolkit: string) => Promise<{
+    success: boolean;
+    status?: number;
+    error?: string;
+    data?: { redirectUrl: string; connectedAccountId?: string };
+  }>;
+  registerComposioMcp?: (toolkit: string) => Promise<{ success: boolean; status?: number; error?: string }>;
+  disconnectComposioConnection?: (connectionId: string) => Promise<{ success: boolean; status?: number; error?: string }>;
+  runComposioOAuthPopup?: (redirectUrl: string) => Promise<{
+    success: boolean;
+    error?: string;
+    data?: { connectedAccountId: string };
+  }>;
 
   saveCredentials?: (creds: { username: string; password: string }) => Promise<{ success: boolean; error?: string }>;
   loadCredentials?: () => Promise<{ success: boolean; credentials: { username: string; password: string } | null }>;
