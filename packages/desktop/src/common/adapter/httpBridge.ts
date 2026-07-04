@@ -552,7 +552,14 @@ export async function httpRequest<T>(
   body?: unknown,
   options?: HttpRequestOptions
 ): Promise<T> {
-  let url = `${getBaseUrl()}${path}`;
+  // `/v1/...` paths assume the cloud container's API is mounted at the base URL's
+  // root, which is true for a raw Agent37 instance host (https://{id}.agent37.app/v1/...)
+  // but not for headmaster_remote mode, where the console proxies the same data
+  // plane at /api/v1/... instead. Route `/v1` through the api_base_path the
+  // provision response actually reported (see getRuntimeV1BaseUrl) so both shapes
+  // resolve correctly; every other path is untouched.
+  const isV1Path = path === '/v1' || path.startsWith('/v1/');
+  let url = isV1Path ? `${getRuntimeV1BaseUrl()}${path.slice('/v1'.length)}` : `${getBaseUrl()}${path}`;
   const profile = getActiveProfile();
   if (profile && !path.includes('?profile=')) {
     const separator = url.includes('?') ? '&' : '?';
