@@ -5,8 +5,38 @@
  */
 
 import type { IProvider, TProviderWithModel } from '@/common/config/storage';
-import { useModelProviderList } from '@/renderer/hooks/agent/useModelProviderList';
+import { configService } from '@/common/config/configService';
+import { readProvisionedDefaultModel, useModelProviderList } from '@/renderer/hooks/agent/useModelProviderList';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+
+// Sessions created before model tracking existed (or where the backend simply didn't record one)
+// come back with an empty use_model — see hermesSessionAdapter.ts's modelFromAgent37. Rather than
+// leave the composer stuck on "no model selected" for those, fall back the same way a brand-new
+// conversation does: the provisioned admin default, then the user's saved preference, then
+// whatever model happens to be first in the list.
+function resolveDefaultModel(providers: IProvider[]): TProviderWithModel | undefined {
+  if (!providers.length) return undefined;
+
+  const provisionedDefault = readProvisionedDefaultModel();
+  if (provisionedDefault?.model) {
+    const provider = providers.find((p) => p.id === provisionedDefault.provider);
+    const models = provider?.models || [];
+    const use_model = models.includes(provisionedDefault.model) ? provisionedDefault.model : models[0];
+    if (provider && use_model) return { ...provider, use_model } as TProviderWithModel;
+  }
+
+  const saved = configService.get('aionrs.defaultModel');
+  if (saved && typeof saved === 'object' && 'id' in saved) {
+    const provider = providers.find((p) => p.id === saved.id);
+    if (provider?.models?.includes(saved.use_model)) {
+      return { ...provider, use_model: saved.use_model } as TProviderWithModel;
+    }
+  }
+
+  const first = providers[0];
+  const use_model = first?.models?.[0];
+  return first && use_model ? ({ ...first, use_model } as TProviderWithModel) : undefined;
+}
 
 export type AionrsModelSelection = {
   current_model?: TProviderWithModel;
@@ -27,10 +57,6 @@ export const useAionrsModelSelection = ({
 }: UseAionrsModelSelectionOptions): AionrsModelSelection => {
   const [current_model, setCurrentModel] = useState<TProviderWithModel | undefined>(initialModel);
 
-  useEffect(() => {
-    setCurrentModel(initialModel);
-  }, [initialModel?.id, initialModel?.use_model]);
-
   const { providers: allProviders, getAvailableModels, formatModelLabel } = useModelProviderList();
 
   // Adonis Core does not support Google Auth — filter it out
@@ -38,6 +64,17 @@ export const useAionrsModelSelection = ({
     () => allProviders.filter((p) => !p.platform?.toLowerCase().includes('gemini-with-google-auth')),
     [allProviders]
   );
+
+  useEffect(() => {
+    if (initialModel?.use_model) {
+      setCurrentModel(initialModel);
+      return;
+    }
+    // No model recorded for this conversation (older session, or the backend never reported
+    // one) — wait for the provider list so resolveDefaultModel has something to pick from.
+    if (!providers.length) return;
+    setCurrentModel(resolveDefaultModel(providers));
+  }, [initialModel?.id, initialModel?.use_model, providers]);
 
   const handleSelectModel = useCallback(
     async (provider: IProvider, modelName: string) => {
