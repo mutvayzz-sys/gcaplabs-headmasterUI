@@ -13,6 +13,7 @@ import AionScrollArea from '@/renderer/components/base/AionScrollArea';
 import ChannelDiscordLogo from '@/renderer/assets/channel-logos/discord.svg';
 import ChannelSlackLogo from '@/renderer/assets/channel-logos/slack.svg';
 import ChannelTelegramLogo from '@/renderer/assets/channel-logos/telegram.svg';
+import { BACKEND_GATED_FEATURES } from '@/renderer/utils/backendFeatureGates';
 import { isElectronDesktop } from '@/renderer/utils/platform';
 import { Button, Form, Input, Message, Switch, Tabs, Tooltip } from '@arco-design/web-react';
 import { CheckOne, Communication, Copy, Earth, EditTwo, Refresh } from '@icon-park/react';
@@ -56,6 +57,7 @@ const QRCodeSVGLazy = React.lazy(async () => {
 
 const DESKTOP_WEBUI_ENABLED_KEY = 'webui.desktop.enabled';
 const DESKTOP_WEBUI_ALLOW_REMOTE_KEY = 'webui.desktop.allowRemote';
+const REMOTE_ACCESS_GATE = BACKEND_GATED_FEATURES.webui_remote_access;
 
 /**
  * WebUI 设置内容组件
@@ -288,6 +290,11 @@ const WebuiModalContent: React.FC<{ webuiOnly?: boolean }> = ({ webuiOnly = fals
   // 处理允许远程访问切换 / Handle allow remote toggle
   // 需要重启服务器才能更改绑定地址 / Need to restart server to change binding address
   const handleAllowRemoteChange = async (checked: boolean) => {
+    if (!REMOTE_ACCESS_GATE.active) {
+      Message.info(REMOTE_ACCESS_GATE.reason);
+      return;
+    }
+
     // 保存原始值用于回滚 / Save original value for rollback
     const previousAllowRemote = allowRemotePreference;
     setAllowRemotePreference(checked);
@@ -608,6 +615,14 @@ const WebuiModalContent: React.FC<{ webuiOnly?: boolean }> = ({ webuiOnly = fals
             <Earth theme='outline' size='16' className='mt-1px text-[rgb(var(--primary-6))]' />
             <div className='text-12px text-t-secondary leading-relaxed'>{t('settings.webui.featureRemoteDesc')}</div>
           </div>
+          {!REMOTE_ACCESS_GATE.active && (
+            <div
+              data-testid='webui-remote-access-gated-notice'
+              className='mb-8px rd-10px border border-warning-3 bg-warning-1 px-10px py-8px text-12px text-warning-7 leading-relaxed'
+            >
+              {REMOTE_ACCESS_GATE.label} is disabled until the backend contract is implemented. {REMOTE_ACCESS_GATE.reason}
+            </div>
+          )}
 
           {/* 启用 WebUI / Enable WebUI */}
           <PreferenceRow
@@ -661,7 +676,12 @@ const WebuiModalContent: React.FC<{ webuiOnly?: boolean }> = ({ webuiOnly = fals
               </span>
             }
           >
-            <Switch checked={allowRemotePreference} onChange={handleAllowRemoteChange} />
+            <Switch
+              data-testid='webui-remote-access-switch'
+              checked={allowRemotePreference}
+              disabled={!REMOTE_ACCESS_GATE.active}
+              onChange={handleAllowRemoteChange}
+            />
           </PreferenceRow>
         </div>
 
@@ -716,7 +736,7 @@ const WebuiModalContent: React.FC<{ webuiOnly?: boolean }> = ({ webuiOnly = fals
           </div>
 
           {/* 二维码登录（仅服务器运行且允许远程访问时显示）/ QR Code Login (only when server running and remote access allowed) */}
-          {status?.running && status.allowRemote && (
+          {REMOTE_ACCESS_GATE.active && status?.running && status.allowRemote && (
             <>
               <div className='border-t border-line my-12px' />
               <div className='text-14px font-500 mb-4px text-t-primary'>{t('settings.webui.qrLogin')}</div>

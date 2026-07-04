@@ -7,14 +7,14 @@
 import type { IProvider, TProviderWithModel } from '@/common/config/storage';
 import { configService } from '@/common/config/configService';
 import { readProvisionedDefaultModel, useModelProviderList } from '@/renderer/hooks/agent/useModelProviderList';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 // Sessions created before model tracking existed (or where the backend simply didn't record one)
 // come back with an empty use_model — see hermesSessionAdapter.ts's modelFromAgent37. Rather than
 // leave the composer stuck on "no model selected" for those, fall back the same way a brand-new
 // conversation does: the provisioned admin default, then the user's saved preference, then
 // whatever model happens to be first in the list.
-function resolveDefaultModel(providers: IProvider[]): TProviderWithModel | undefined {
+export function resolveDefaultModel(providers: IProvider[]): TProviderWithModel | undefined {
   if (!providers.length) return undefined;
 
   const provisionedDefault = readProvisionedDefaultModel();
@@ -49,13 +49,16 @@ export type AionrsModelSelection = {
 export type UseAionrsModelSelectionOptions = {
   initialModel: TProviderWithModel | undefined;
   onSelectModel: (provider: IProvider, modelName: string) => Promise<boolean>;
+  onResolveMissingModel?: (provider: TProviderWithModel, modelName: string) => Promise<boolean>;
 };
 
 export const useAionrsModelSelection = ({
   initialModel,
   onSelectModel,
+  onResolveMissingModel,
 }: UseAionrsModelSelectionOptions): AionrsModelSelection => {
   const [current_model, setCurrentModel] = useState<TProviderWithModel | undefined>(initialModel);
+  const resolvedModelKeyRef = useRef('');
 
   const { providers: allProviders, getAvailableModels, formatModelLabel } = useModelProviderList();
 
@@ -73,8 +76,16 @@ export const useAionrsModelSelection = ({
     // No model recorded for this conversation (older session, or the backend never reported
     // one) — wait for the provider list so resolveDefaultModel has something to pick from.
     if (!providers.length) return;
-    setCurrentModel(resolveDefaultModel(providers));
-  }, [initialModel?.id, initialModel?.use_model, providers]);
+    const resolved = resolveDefaultModel(providers);
+    setCurrentModel(resolved);
+    if (resolved?.use_model) {
+      const key = `${resolved.id}:${resolved.use_model}`;
+      if (resolvedModelKeyRef.current !== key) {
+        resolvedModelKeyRef.current = key;
+        void onResolveMissingModel?.(resolved, resolved.use_model);
+      }
+    }
+  }, [initialModel?.id, initialModel?.use_model, onResolveMissingModel, providers]);
 
   const handleSelectModel = useCallback(
     async (provider: IProvider, modelName: string) => {

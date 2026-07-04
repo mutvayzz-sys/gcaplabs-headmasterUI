@@ -7,6 +7,7 @@
 import { ipcBridge } from '@/common';
 import type { TChatConversation } from '@/common/config/storage';
 import { addEventListener } from '@/renderer/utils/emitter';
+import { loadAllUserConversations } from '@/renderer/utils/chat/pagedConversationData';
 import { useCallback, useEffect, useSyncExternalStore } from 'react';
 
 /**
@@ -135,11 +136,9 @@ const subscribeConversationListSync = (listener: () => void) => {
 const getConversationListSyncSnapshot = (): ConversationListSyncSnapshot => snapshotState;
 
 const refreshConversations = () => {
-  void ipcBridge.database.getUserConversations
-    .invoke({ limit: 10000 })
-    .then((result) => {
-      const items = result?.items;
-      if (items && Array.isArray(items)) {
+  void loadAllUserConversations()
+    .then((items) => {
+      if (Array.isArray(items)) {
         const filteredData = items.filter((conv) => {
           // Legacy rows from the pre-provider-probe health check flow are hidden
           // from normal history. New health checks must not create conversations.

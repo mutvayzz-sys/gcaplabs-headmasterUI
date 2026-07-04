@@ -14,6 +14,7 @@ import { useAddOrUpdateMessage } from '@/renderer/pages/conversation/Messages/ho
 import { logStreamTerminalObserved } from '@/renderer/pages/conversation/runtime/useConversationRuntimeView';
 import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
 import { isConversationProcessing } from '@/renderer/pages/conversation/utils/conversationRuntime';
+import { markChatLatency } from '@/renderer/utils/chat/latencyMarks';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { processLocalCronResponse } from './localCronCommands';
 
@@ -46,6 +47,7 @@ export const useAionrsMessage = (
   const activeMsgIdRef = useRef<string | null>(null);
   const messageBufferRef = useRef(new Map<string, string>());
   const processedCronMsgIdsRef = useRef(new Set<string>());
+  const firstTokenMarkedTurnRef = useRef<string | null>(null);
 
   // Use refs to avoid useEffect re-subscription when these states change
   const hasActiveToolsRef = useRef(hasActiveTools);
@@ -222,6 +224,11 @@ export const useAionrsMessage = (
         if (chunk) {
           const previous = messageBufferRef.current.get(message.msg_id) ?? '';
           messageBufferRef.current.set(message.msg_id, previous + chunk);
+          const turnKey = message.turn_id || message.msg_id;
+          if (firstTokenMarkedTurnRef.current !== turnKey) {
+            firstTokenMarkedTurnRef.current = turnKey;
+            markChatLatency('first_token', conversation_id);
+          }
         }
       }
 
@@ -242,6 +249,7 @@ export const useAionrsMessage = (
         case 'finish':
           {
             logStreamTerminalObserved(conversation_id, message.turn_id, 'aionrs', message.type);
+            markChatLatency('final_response', conversation_id);
             // aionrs stream_end carries usage in data field
             const usageData = message.data as TokenUsage | undefined;
             if (usageData && typeof usageData === 'object' && 'input_tokens' in usageData) {
@@ -333,6 +341,7 @@ export const useAionrsMessage = (
         default: {
           if (message.type === 'error') {
             logStreamTerminalObserved(conversation_id, message.turn_id, 'aionrs', message.type);
+            markChatLatency('final_response', conversation_id);
             setStreamRunning(false);
             streamRunningRef.current = false;
             setWaitingResponse(false);
@@ -368,6 +377,7 @@ export const useAionrsMessage = (
     setThought({ subject: '', description: '' });
     setTokenUsage(null);
     hasContentInTurnRef.current = false;
+    firstTokenMarkedTurnRef.current = null;
     setHasHydratedRunningState(false);
 
     // Check actual conversation status from backend before resetting all running states

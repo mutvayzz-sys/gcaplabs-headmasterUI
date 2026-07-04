@@ -13,17 +13,20 @@ import { addEventListener, emitter } from '@/renderer/utils/emitter';
 import { blockMobileInputFocus, blurActiveElement } from '@/renderer/utils/ui/focus';
 import { cleanupSiderTooltips, getSiderTooltipProps } from '@/renderer/utils/ui/siderTooltip';
 import { getActivityTime, createTimelineGrouper } from '@/renderer/utils/chat/timeline';
+import { markChatLatency } from '@/renderer/utils/chat/latencyMarks';
+import { loadAllUserConversations } from '@/renderer/utils/chat/pagedConversationData';
 import { Empty, Popconfirm, Input, Tooltip } from '@arco-design/web-react';
 import { DeleteOne, MessageOne, EditOne } from '@icon-park/react';
 import classNames from 'classnames';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
+import { Virtuoso, type VirtuosoHandle } from 'react-virtuoso';
 
-const useTimeline = () => {
-  const { t } = useTranslation();
-  return createTimelineGrouper(t);
+type ChatHistoryRow = {
+  conversation: TChatConversation;
+  timeline: string;
 };
 
 const useScrollIntoView = (id: string) => {
@@ -75,6 +78,7 @@ const ChatHistory: React.FC<{ onSessionClick?: () => void; collapsed?: boolean }
   const navigate = useNavigate();
   const { getJobStatus, markAsRead } = useCronJobsMap();
   const siderTooltipProps = getSiderTooltipProps(collapsed && !isMobile);
+  const virtuosoRef = useRef<VirtuosoHandle>(null);
 
   useScrollIntoView(id);
 
@@ -86,6 +90,7 @@ const ChatHistory: React.FC<{ onSessionClick?: () => void; collapsed?: boolean }
   }, [id, markAsRead]);
 
   const handleSelect = (conversation: TChatConversation) => {
+    markChatLatency('history_click', conversation.id);
     cleanupSiderTooltips();
     blockMobileInputFocus();
     blurActiveElement();
@@ -105,16 +110,9 @@ const ChatHistory: React.FC<{ onSessionClick?: () => void; collapsed?: boolean }
   useEffect(() => {
     const refresh = () => {
       // Get conversations from database instead of file storage
-      ipcBridge.database.getUserConversations
-        .invoke({ limit: 10000 })
-        .then((result) => {
-          const items = result?.items;
-          if (items && Array.isArray(items) && items.length > 0) {
-            const sortedHistory = items.toSorted((a, b) => getActivityTime(b) - getActivityTime(a));
-            setChatHistory(sortedHistory);
-          } else {
-            setChatHistory([]);
-          }
+      loadAllUserConversations()
+        .then((items) => {
+          setChatHistory(items.length > 0 ? items.toSorted((a, b) => getActivityTime(b) - getActivityTime(a)) : []);
         })
         .catch((error) => {
           console.error('[ChatHistory] Failed to load conversations from database:', error);
@@ -182,7 +180,20 @@ const ChatHistory: React.FC<{ onSessionClick?: () => void; collapsed?: boolean }
     }
   };
 
-  const formatTimeline = useTimeline();
+  const historyRows = useMemo<ChatHistoryRow[]>(() => {
+    const formatTimeline = createTimelineGrouper(t);
+    return chatHistory.map((conversation) => ({
+      conversation,
+      timeline: formatTimeline(conversation),
+    }));
+  }, [chatHistory, t]);
+
+  const selectedIndex = useMemo(() => historyRows.findIndex((row) => row.conversation.id === id), [historyRows, id]);
+
+  useEffect(() => {
+    if (selectedIndex < 0) return;
+    virtuosoRef.current?.scrollToIndex({ index: selectedIndex, align: 'center', behavior: 'auto' });
+  }, [selectedIndex]);
 
   const renderConversation = (conversation: TChatConversation) => {
     const isSelected = id === conversation.id;
@@ -296,19 +307,22 @@ const ChatHistory: React.FC<{ onSessionClick?: () => void; collapsed?: boolean }
         {!chatHistory.length ? (
           <Empty className='chat-history__placeholder' description={t('conversation.history.noHistory')} />
         ) : (
-          chatHistory.map((item) => {
-            const timeline = formatTimeline(item);
-            return (
-              <React.Fragment key={item.id}>
-                {timeline && (
+          <Virtuoso
+            ref={virtuosoRef}
+            className='size-full'
+            data={historyRows}
+            initialTopMostItemIndex={selectedIndex >= 0 ? selectedIndex : 0}
+            itemContent={(_, row) => (
+              <div key={row.conversation.id}>
+                {row.timeline && (
                   <div className='chat-history__section px-12px py-8px text-13px text-t-secondary font-bold'>
-                    {timeline}
+                    {row.timeline}
                   </div>
                 )}
-                {renderConversation(item)}
-              </React.Fragment>
-            );
-          })
+                {renderConversation(row.conversation)}
+              </div>
+            )}
+          />
         )}
       </div>
     </FlexFullContainer>

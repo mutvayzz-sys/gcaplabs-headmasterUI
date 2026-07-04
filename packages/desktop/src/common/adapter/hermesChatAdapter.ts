@@ -882,6 +882,7 @@ export async function sendHermesMessage(params: {
   conversation_id: string;
   input: string;
   files?: string[];
+  loading_id?: string;
 }): Promise<ISendMessageResult> {
   const useResponsesApi = supportsResponsesApi();
   if (!useResponsesApi) ensureSubscribed();
@@ -895,7 +896,7 @@ export async function sendHermesMessage(params: {
   } else {
     rememberSession(params.conversation_id, params.conversation_id);
   }
-  const userMsgId = uuid();
+  const userMsgId = params.loading_id || uuid();
   const assistantMsgId = uuid();
   const turnId = uuid();
   const turn: ActiveTurn = {

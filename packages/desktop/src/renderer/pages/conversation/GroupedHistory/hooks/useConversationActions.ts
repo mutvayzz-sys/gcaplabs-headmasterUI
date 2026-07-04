@@ -7,6 +7,7 @@
 import { ipcBridge } from '@/common';
 import type { TChatConversation } from '@/common/config/storage';
 import { refreshConversationCache } from '@/renderer/pages/conversation/utils/conversationCache';
+import { markChatLatency } from '@/renderer/utils/chat/latencyMarks';
 import { emitter } from '@/renderer/utils/emitter';
 import { blockMobileInputFocus, blurActiveElement } from '@/renderer/utils/ui/focus';
 import { Message, Modal } from '@arco-design/web-react';
@@ -61,6 +62,7 @@ export const useConversationActions = ({
       blockMobileInputFocus();
       blurActiveElement();
 
+      markChatLatency('history_click', conversation.id);
       markAsRead(conversation.id);
 
       void navigate(`/conversation/${conversation.id}`);

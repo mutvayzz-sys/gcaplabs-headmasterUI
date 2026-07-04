@@ -6,6 +6,7 @@
 
 import { ipcBridge } from '@/common';
 import type { IConversationMcpStatus } from '@/common/config/storage';
+import { uuid } from '@/common/utils';
 import AgentModeSelector from '@/renderer/components/agent/AgentModeSelector';
 import CommandQueuePanel from '@/renderer/components/chat/CommandQueuePanel';
 import MobileActionSheet, {
@@ -34,6 +35,7 @@ import {
 } from '@/renderer/pages/conversation/platforms/useConversationCommandQueue';
 import type { TeamSendBoxRuntime } from '@/renderer/pages/team/components/teamSendRuntime';
 import { useConversationRuntimeView } from '@/renderer/pages/conversation/runtime/useConversationRuntimeView';
+import { useAddOrUpdateMessage } from '@/renderer/pages/conversation/Messages/hooks';
 import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
 import { getConversationRuntimeWorkspaceErrorMessage } from '@/renderer/pages/conversation/utils/conversationCreateError';
 import { warmupConversation } from '@/renderer/pages/conversation/utils/warmupConversation';
@@ -43,10 +45,11 @@ import { iconColors } from '@/renderer/styles/colors';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
 import { mergeFileSelectionItems } from '@/renderer/utils/file/fileSelection';
 import { buildDisplayMessage, collectSelectedFiles } from '@/renderer/utils/file/messageFiles';
+import { markChatLatency } from '@/renderer/utils/chat/latencyMarks';
 import { mergeWithCapabilities, type AgentModeOption } from '@/renderer/utils/model/agentModes';
 import { Message, Tag } from '@arco-design/web-react';
 import { Brain, MagicHat, Shield } from '@icon-park/react';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAionrsMessage } from './useAionrsMessage';
 import type { AionrsModelSelection } from './useAionrsModelSelection';
@@ -133,6 +136,7 @@ const AionrsSendBox: React.FC<{
     },
   });
   const runtimeView = useConversationRuntimeView(conversation_id);
+  const addOrUpdateMessage = useAddOrUpdateMessage();
 
   const { atPath, uploadFile, setAtPath, setUploadFile, content, setContent } = useSendBoxDraft(conversation_id);
 
@@ -183,6 +187,14 @@ const AionrsSendBox: React.FC<{
     isProcessing: runtimeView.isProcessing,
   };
   const isBusy = isCancelling || commandQueueRuntimeGate.isProcessing || !commandQueueRuntimeGate.canSendMessage;
+  const composerEnabledMarkedRef = useRef('');
+
+  useEffect(() => {
+    if (!current_model?.use_model || isBusy) return;
+    if (composerEnabledMarkedRef.current === conversation_id) return;
+    composerEnabledMarkedRef.current = conversation_id;
+    markChatLatency('composer_enabled', conversation_id);
+  }, [conversation_id, current_model?.use_model, isBusy]);
 
   const setContentRef = useLatestRef(setContent);
   const contentRef = useLatestRef(content);
@@ -215,6 +227,7 @@ const AionrsSendBox: React.FC<{
       }
 
       const displayMessage = buildDisplayMessage(input, files, workspacePath);
+      const loadingId = uuid();
       try {
         void checkAndUpdateTitle(conversation_id, input);
         if (teamSendMessage) {
@@ -228,12 +241,29 @@ const AionrsSendBox: React.FC<{
 
         runtimeView.markSendStarted();
         setWaitingResponse(true);
+        addOrUpdateMessage(
+          {
+            id: loadingId,
+            msg_id: loadingId,
+            conversation_id,
+            type: 'text',
+            position: 'right',
+            status: 'finish',
+            created_at: Date.now(),
+            content: {
+              content: displayMessage,
+            },
+          },
+          true
+        );
         const res = await ipcBridge.conversation.sendMessage.invoke({
           input: displayMessage,
           conversation_id,
           files,
+          loading_id: loadingId,
         });
         setActiveMsgId(res.msg_id);
+        markChatLatency('request_accepted', conversation_id);
         runtimeView.markSendAccepted(res.turn_id, res.runtime, res.msg_id);
         emitter.emit('chat.history.refresh');
         if (files.length > 0) {
@@ -252,6 +282,7 @@ const AionrsSendBox: React.FC<{
       checkAndUpdateTitle,
       conversation_id,
       current_model?.use_model,
+      addOrUpdateMessage,
       runtimeView,
       setActiveMsgId,
       setWaitingResponse,
@@ -312,6 +343,7 @@ const AionrsSendBox: React.FC<{
   }, [conversation_id, current_model?.use_model, executeCommand]);
 
   const onSendHandler = async (message: string) => {
+    markChatLatency('send_click', conversation_id);
     const filesToSend = collectSelectedFiles(uploadFile, atPath);
     clearFiles();
     emitter.emit('aionrs.selected.file.clear');

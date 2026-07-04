@@ -14,7 +14,7 @@ import { usePresetAssistantInfo, resolveAssistantConfigId } from '@/renderer/hoo
 import { iconColors } from '@/renderer/styles/colors';
 import { Button, Dropdown, Menu, Message, Tooltip, Typography } from '@arco-design/web-react';
 import { History } from '@icon-park/react';
-import React, { useCallback, useMemo, useRef } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import useSWR from 'swr';
@@ -33,6 +33,8 @@ import { useAionrsModelSelection } from '../platforms/aionrs/useAionrsModelSelec
 import { useConversationRuntimeView } from '../runtime/useConversationRuntimeView';
 import { isLegacyReadOnlyConversationType } from '../utils/conversationRuntime';
 import LegacyReadOnlyConversation from '../platforms/legacy/LegacyReadOnlyConversation';
+import { markChatLatency } from '@/renderer/utils/chat/latencyMarks';
+import ChatPerfDebugPanel from './ChatPerfDebugPanel';
 // import SkillRuleGenerator from './components/SkillRuleGenerator'; // Temporarily hidden
 
 /** Check whether a specific skill is mounted on the conversation. */
@@ -77,10 +79,20 @@ const AionrsConversationPanel: React.FC<{ conversation: AionrsConversation; slid
     },
     [conversation.id, persistGlobalPreference, runtimeView]
   );
+  const onResolveMissingModel = useCallback(
+    async (_provider: TProviderWithModel, modelName: string) => {
+      const selected = { ..._provider, use_model: modelName } as TProviderWithModel;
+      const ok = await ipcBridge.conversation.update.invoke({ id: conversation.id, updates: { model: selected } });
+      if (ok && persistGlobalPreference) void saveAionrsDefaultModel(_provider.id, modelName);
+      return Boolean(ok);
+    },
+    [conversation.id, persistGlobalPreference]
+  );
 
   const modelSelection = useAionrsModelSelection({
     initialModel: conversation.model,
     onSelectModel,
+    onResolveMissingModel,
   });
   const workspaceEnabled = Boolean(conversation.extra?.workspace);
   const { info: presetAssistantInfo } = usePresetAssistantInfo(conversation);
@@ -113,6 +125,7 @@ const AionrsConversationPanel: React.FC<{ conversation: AionrsConversation; slid
 
   return (
     <ChatLayout {...chatLayoutProps} conversation_id={conversation.id}>
+      <ChatPerfDebugPanel />
       <AionrsChat
         conversation_id={conversation.id}
         workspace={conversation.extra.workspace}
@@ -152,6 +165,11 @@ const ChatConversation: React.FC<{
 
   const conversationAgentName = (conversation?.extra as { agent_name?: string } | undefined)?.agent_name;
   const assistantDisplayName = presetAssistantInfo?.name || conversationAgentName;
+
+  useEffect(() => {
+    if (!conversation?.id) return;
+    markChatLatency('conversation_paint', conversation.id);
+  }, [conversation?.id]);
 
   const conversationNode = useMemo(() => {
     if (!conversation || isAionrsConversation) return null;
@@ -273,6 +291,7 @@ const ChatConversation: React.FC<{
       }
       conversation_id={conversation?.id}
     >
+      <ChatPerfDebugPanel />
       {conversationNode}
     </ChatLayout>
   );

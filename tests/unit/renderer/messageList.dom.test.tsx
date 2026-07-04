@@ -30,6 +30,31 @@ vi.mock('@arco-design/web-react', () => ({
   },
 }));
 
+vi.mock('react-virtuoso', () => ({
+  Virtuoso: ({
+    data,
+    itemContent,
+    components,
+  }: {
+    data: unknown[];
+    itemContent: (index: number, item: unknown) => React.ReactNode;
+    components?: { Header?: React.ComponentType; Footer?: React.ComponentType; List?: React.ComponentType<PropsWithChildren> };
+  }) => {
+    const List = components?.List ?? (({ children }: PropsWithChildren) => <div>{children}</div>);
+    return (
+      <div data-testid='message-list-scroller'>
+        {components?.Header ? <components.Header /> : null}
+        <List>
+          {data.map((item, index) => (
+            <React.Fragment key={(item as { id?: string }).id ?? index}>{itemContent(index, item)}</React.Fragment>
+          ))}
+        </List>
+        {components?.Footer ? <components.Footer /> : null}
+      </div>
+    );
+  },
+}));
+
 vi.mock('@/renderer/hooks/context/ConversationContext', () => ({
   useConversationContextSafe: () => null,
 }));

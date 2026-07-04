@@ -7,10 +7,8 @@
 import { Message } from '@arco-design/web-react';
 import { Copy, Down, Up } from '@icon-park/react';
 import katex from 'katex';
-import React, { useRef, useState } from 'react';
+import React, { Suspense, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import SyntaxHighlighter from 'react-syntax-highlighter';
-import { vs, vs2015 } from 'react-syntax-highlighter/dist/esm/styles/hljs';
 import { copyText } from '@/renderer/utils/ui/clipboard';
 import MermaidBlock from './MermaidBlock';
 import { formatCode, getDiffLineStyle } from './markdownUtils';
@@ -21,6 +19,25 @@ const CODE_LINE_HEIGHT = 20;
 // SyntaxHighlighter pre padding: 0.5em top + 0.5em bottom ≈ 13px each side
 const CODE_PADDING_VERTICAL = 13;
 const COLLAPSED_HEIGHT = PREVIEW_LINES * CODE_LINE_HEIGHT + CODE_PADDING_VERTICAL;
+
+type LazySyntaxHighlighterProps = Record<string, unknown> & {
+  currentTheme: 'light' | 'dark';
+};
+
+const LazySyntaxHighlighter = React.lazy(async () => {
+  const [highlighterModule, styleModule] = await Promise.all([
+    import('react-syntax-highlighter'),
+    import('react-syntax-highlighter/dist/esm/styles/hljs'),
+  ]);
+  const SyntaxHighlighter = highlighterModule.default as React.ComponentType<Record<string, unknown>>;
+  const { vs, vs2015 } = styleModule as { vs: unknown; vs2015: unknown };
+
+  return {
+    default: ({ currentTheme, ...props }: LazySyntaxHighlighterProps) => (
+      <SyntaxHighlighter {...props} style={currentTheme === 'dark' ? vs2015 : vs} />
+    ),
+  };
+});
 
 type CodeBlockProps = {
   children: string;
@@ -93,7 +110,6 @@ function CodeBlock(props: CodeBlockProps) {
   const formattedContent = formatCode(children);
   const totalLines = formattedContent.split('\n').length;
   const canCollapse = totalLines > PREVIEW_LINES;
-  const codeTheme = currentTheme === 'dark' ? vs2015 : vs;
   const diffLines = isDiff ? formattedContent.split('\n') : [];
   const isDark = currentTheme === 'dark';
 
@@ -185,39 +201,47 @@ function CodeBlock(props: CodeBlockProps) {
             overflowX: 'visible',
           }}
         >
-          <SyntaxHighlighter
-            children={formattedContent}
-            language={language}
-            style={codeTheme}
-            PreTag='div'
-            wrapLines={isDiff}
-            lineProps={
-              isDiff
-                ? (lineNumber: number) => ({
-                    style: {
-                      display: 'block',
-                      ...getDiffLineStyle(diffLines[lineNumber - 1] || '', isDark),
-                    },
-                  })
-                : undefined
+          <Suspense
+            fallback={
+              <pre style={{ margin: 0, padding: '0 12px 8px', overflowX: 'auto' }}>
+                <code>{formattedContent}</code>
+              </pre>
             }
-            customStyle={{
-              margin: 0,
-              padding: '0 12px 8px',
-              borderRadius: 0,
-              border: 'none',
-              background: 'transparent',
-              color: 'var(--text-primary)',
-              overflowX: 'auto',
-              maxWidth: '100%',
-            }}
-            codeTagProps={{
-              style: {
-                color: 'var(--text-primary)',
+          >
+            <LazySyntaxHighlighter
+              currentTheme={currentTheme}
+              children={formattedContent}
+              language={language}
+              PreTag='div'
+              wrapLines={isDiff}
+              lineProps={
+                isDiff
+                  ? (lineNumber: number) => ({
+                      style: {
+                        display: 'block',
+                        ...getDiffLineStyle(diffLines[lineNumber - 1] || '', isDark),
+                      },
+                    })
+                  : undefined
+              }
+              customStyle={{
+                margin: 0,
+                padding: '0 12px 8px',
+                borderRadius: 0,
+                border: 'none',
                 background: 'transparent',
-              },
-            }}
-          />
+                color: 'var(--text-primary)',
+                overflowX: 'auto',
+                maxWidth: '100%',
+              }}
+              codeTagProps={{
+                style: {
+                  color: 'var(--text-primary)',
+                  background: 'transparent',
+                },
+              }}
+            />
+          </Suspense>
         </div>
 
         {/* Footer */}

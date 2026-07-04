@@ -15,6 +15,8 @@ import {
 } from '@/common/chat/chatLib';
 import { useCallback, useEffect, useRef } from 'react';
 import { createContext } from '@renderer/utils/ui/createContext';
+import { markChatLatency } from '@/renderer/utils/chat/latencyMarks';
+import { loadAllConversationMessages } from '@/renderer/utils/chat/pagedConversationData';
 
 const [useMessageList, MessageListProvider, useUpdateMessageList] = createContext([] as TMessage[]);
 const [useMessageListLoading, MessageListLoadingProvider, useUpdateMessageListLoading] = createContext(false);
@@ -22,6 +24,7 @@ const [useMessageListLoading, MessageListLoadingProvider, useUpdateMessageListLo
 const [useChatKey, ChatKeyProvider] = createContext('');
 
 const beforeUpdateMessageListStack: Array<(list: TMessage[]) => TMessage[]> = [];
+export const MESSAGE_STREAM_FLUSH_INTERVAL_MS = 33;
 
 // 消息索引缓存类型定义
 // Message index cache type definitions
@@ -360,6 +363,9 @@ export const useAddOrUpdateMessage = () => {
           if (msg.type === 'permission' && msg.content?.call_id) {
             index.permission_call_idIndex.set(msg.content.call_id, newIdx);
           }
+          if (msg.type === 'text' && msg.position === 'right') {
+            markChatLatency('user_bubble_render', msg.conversation_id);
+          }
           newList = newList.concat(msg);
         } else {
           // 使用索引优化的消息合并
@@ -374,7 +380,9 @@ export const useAddOrUpdateMessage = () => {
       return newList;
     });
 
-    rafRef.current = setTimeout(flush);
+    if (pendingRef.current.length > 0) {
+      rafRef.current = setTimeout(flush, MESSAGE_STREAM_FLUSH_INTERVAL_MS);
+    }
   }, []);
 
   useEffect(() => {
@@ -392,7 +400,7 @@ export const useAddOrUpdateMessage = () => {
       }
       pendingRef.current.push({ message, add });
       if (rafRef.current === null) {
-        rafRef.current = setTimeout(flush);
+        rafRef.current = setTimeout(flush, add ? 0 : MESSAGE_STREAM_FLUSH_INTERVAL_MS);
       }
     },
     [flush]
@@ -606,13 +614,12 @@ export const useMessageLstCache = (key: string) => {
   const update = useUpdateMessageList();
   const setLoading = useUpdateMessageListLoading();
   const loadMessages = useCallback(async (): Promise<TMessage[]> => {
-    const result = await ipcBridge.database.getConversationMessages.invoke({
-      conversation_id: key,
-      page: 0,
-      page_size: 10000,
-      content_mode: 'compact',
-    });
-    const messages = result?.items?.map(normalizeDbMessage);
+    const messages = (
+      await loadAllConversationMessages({
+        conversation_id: key,
+        content_mode: 'compact',
+      })
+    ).map(normalizeDbMessage);
     if (messages && Array.isArray(messages)) {
       update((currentList) => {
         if (!currentList.length) return messages;
@@ -678,6 +685,7 @@ export const useMessageLstCache = (key: string) => {
 
       update((list) => {
         const index = getOrBuildIndex(list);
+        markChatLatency('user_bubble_render', payload.conversation_id);
         return composeMessageWithIndex(
           {
             id: payload.msg_id,

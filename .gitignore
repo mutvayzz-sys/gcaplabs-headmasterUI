@@ -204,3 +204,4 @@ $null
 
 # Windows shortcuts (created by Explorer / NuGet / user; not source)
 *.lnk
+upstream/

@@ -14,6 +14,7 @@ import {
   resolveExportBaseDirectory,
 } from '@/renderer/utils/chat/conversationExport';
 import { copyText } from '@/renderer/utils/ui/clipboard';
+import { loadAllConversationMessages } from '@/renderer/utils/chat/pagedConversationData';
 import React, {
   useCallback,
   useMemo,
@@ -117,15 +118,7 @@ export function useConversationExport(options: UseConversationExportOptions): Us
       return null;
     }
 
-    const messages =
-      messagesRef.current ??
-      (
-        await ipcBridge.database.getConversationMessages.invoke({
-          conversation_id: conversation_id,
-          page: 0,
-          page_size: 10000,
-        })
-      ).items;
+    const messages = messagesRef.current ?? (await loadAllConversationMessages({ conversation_id }));
     messagesRef.current = messages;
     const transcript = buildConversationExportText(conversation, messages, transcriptLabels);
     transcriptRef.current = transcript;
@@ -158,14 +151,10 @@ export function useConversationExport(options: UseConversationExportOptions): Us
       }
 
       baseDirectoryRef.current = resolveExportBaseDirectory(workspace, desktopPath);
-      const messagesResult = await ipcBridge.database.getConversationMessages.invoke({
-        conversation_id: conversation_id,
-        page: 0,
-        page_size: 10000,
-      });
-      messagesRef.current = messagesResult.items;
+      const messages = await loadAllConversationMessages({ conversation_id });
+      messagesRef.current = messages;
       setFilename(
-        buildDefaultExportFileName(conversation.id, getDefaultExportFileNameSource(conversation, messagesResult.items))
+        buildDefaultExportFileName(conversation.id, getDefaultExportFileNameSource(conversation, messages))
       );
       setActiveIndex(0);
       setStep('menu');

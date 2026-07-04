@@ -6,6 +6,12 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { getHermesConversationMessages, listHermesConversations } from '@/common/adapter/hermesSessionAdapter';
+import {
+  collectCursorPaginatedItems,
+  collectPagePaginatedItems,
+  MESSAGE_HISTORY_PAGE_SIZE,
+  SESSION_HISTORY_PAGE_SIZE,
+} from '@/renderer/utils/chat/pagedConversationData';
 
 export interface SessionItem {
   id: string;
@@ -115,8 +121,8 @@ export function useActivity(): UseActivityReturn {
     setLoading(true);
     setError(null);
     try {
-      const data = await listHermesConversations({ limit: 500 });
-      let next = data.items
+      const items = await collectCursorPaginatedItems(listHermesConversations, SESSION_HISTORY_PAGE_SIZE);
+      let next = items
         .map((item) => normalizeSession(item as unknown as Record<string, unknown>))
         .filter((s) => s.id);
       if (filterStatus) next = next.filter((s) => s.status === filterStatus);
@@ -135,9 +141,18 @@ export function useActivity(): UseActivityReturn {
   const fetchMessages = useCallback(async (sessionId: string) => {
     setMessagesLoading(true);
     try {
-      const data = await getHermesConversationMessages({ conversation_id: sessionId, content_mode: 'full' });
+      const items = await collectPagePaginatedItems(
+        (pageParams) =>
+          getHermesConversationMessages({
+            conversation_id: sessionId,
+            content_mode: 'full',
+            page: pageParams.page,
+            page_size: pageParams.page_size,
+          }),
+        MESSAGE_HISTORY_PAGE_SIZE
+      );
       setMessages(
-        data.items.map((message, index) =>
+        items.map((message, index) =>
           normalizeMessage(
             {
               id: message.id,

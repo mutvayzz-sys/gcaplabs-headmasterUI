@@ -15,9 +15,10 @@ import MessageAcpPermission from '@renderer/pages/conversation/Messages/acp/Mess
 import MessagePermission from './components/MessagePermission';
 import MessageAcpToolCall from '@renderer/pages/conversation/Messages/acp/MessageAcpToolCall';
 import classNames from 'classnames';
-import React, { createContext, useEffect, useMemo, useRef, useState } from 'react';
+import React, { createContext, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation } from 'react-router-dom';
+import { Virtuoso, type VirtuosoHandle } from 'react-virtuoso';
 import { uuid } from '@renderer/utils/common';
 import './messages.css';
 import HOC from '@renderer/utils/ui/HOC';
@@ -94,6 +95,16 @@ const highlightStyle: React.CSSProperties = {
   backgroundColor: 'var(--color-aou-1)',
   boxShadow: '0 0 0 1px var(--color-aou-6-brand) inset',
   borderRadius: '12px',
+};
+
+const setForwardedRef = <T,>(ref: React.ForwardedRef<T>, value: T | null): void => {
+  if (typeof ref === 'function') {
+    ref(value);
+    return;
+  }
+  if (ref) {
+    ref.current = value;
+  }
 };
 
 const getUnhandledMessageType = (_message: never): string => 'unknown';
@@ -243,9 +254,49 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
   const targetMessageId = locationState.targetMessageId;
   const [highlightedMessageId, setHighlightedMessageId] = useState<string | undefined>();
   const handledTargetKeyRef = useRef<string>('');
+  const virtuosoRef = useRef<VirtuosoHandle>(null);
+  const processedListCacheRef = useRef<{
+    source: TMessage[];
+    artifacts: IConversationArtifact[];
+    value: IProcessedItem[];
+  } | null>(null);
 
   // Pre-process message list to group tool outputs into summary cards
   const processedList = useMemo(() => {
+    const cached = processedListCacheRef.current;
+    if (cached && cached.artifacts === artifacts && cached.source.length === list.length && list.length > 0) {
+      let changedIndex = -1;
+      for (let index = 0; index < list.length; index++) {
+        if (cached.source[index] !== list[index]) {
+          if (changedIndex !== -1) {
+            changedIndex = -2;
+            break;
+          }
+          changedIndex = index;
+        }
+      }
+
+      if (changedIndex === list.length - 1) {
+        const previousTail = cached.source[changedIndex];
+        const nextTail = list[changedIndex];
+        if (
+          previousTail.id === nextTail.id &&
+          previousTail.type === nextTail.type &&
+          (nextTail.type === 'text' || nextTail.type === 'thinking')
+        ) {
+          const processedTailIndex = cached.value.findIndex((item) =>
+            getProcessedItemSourceMessageIds(item).includes(previousTail.id)
+          );
+          if (processedTailIndex >= 0) {
+            const value = cached.value.slice();
+            value[processedTailIndex] = nextTail;
+            processedListCacheRef.current = { source: list, artifacts, value };
+            return value;
+          }
+        }
+      }
+    }
+
     const result: Array<IMessageVO> = [];
     let diffsChanges: FileChangeInfo[] = [];
     let diffsSourceMessageIds: string[] = [];
@@ -340,9 +391,11 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
         created_at: artifact.created_at,
       }));
 
-    return [...result, ...visibleArtifacts].toSorted(
+    const value = [...result, ...visibleArtifacts].toSorted(
       (a, b) => getProcessedItemCreatedAt(a) - getProcessedItemCreatedAt(b)
     );
+    processedListCacheRef.current = { source: list, artifacts, value };
+    return value;
   }, [artifacts, list]);
 
   // An AI reply can be split into several messages (thinking / multiple text /
@@ -395,6 +448,65 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
     itemCount: processedList.length,
   });
 
+  const scrollVirtualItemIntoView = useCallback(
+    (index: number, align: ScrollLogicalPosition | undefined, behavior: ScrollBehavior | undefined) => {
+      const virtuosoAlign = align === 'center' ? 'center' : align === 'end' ? 'end' : 'start';
+      const virtuosoBehavior = behavior === 'smooth' ? 'smooth' : 'auto';
+      virtuosoRef.current?.scrollToIndex({
+        index,
+        align: virtuosoAlign,
+        behavior: virtuosoBehavior,
+      });
+    },
+    []
+  );
+
+  const virtuosoComponents = useMemo(
+    () => ({
+      Scroller: React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>((props, ref) => (
+        <div
+          {...props}
+          ref={(node) => {
+            handleScrollerRef(node);
+            setForwardedRef(ref, node);
+          }}
+          data-testid='message-list-scroller'
+          className={classNames(
+            'flex-1 h-full overflow-y-auto pb-10px box-border -mx-20px px-20px',
+            props.className
+          )}
+          style={{ ...props.style, overflowAnchor: 'none' }}
+          onPointerDown={(event) => {
+            handlePointerDown();
+            props.onPointerDown?.(event);
+          }}
+          onScroll={(event) => {
+            handleScroll(event);
+            props.onScroll?.(event);
+          }}
+          onWheel={(event) => {
+            handleWheel(event);
+            props.onWheel?.(event);
+          }}
+        />
+      )),
+      List: React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>((props, ref) => (
+        <div
+          {...props}
+          ref={(node) => {
+            handleContentRef(node);
+            setForwardedRef(ref, node);
+          }}
+          data-testid='message-list-content'
+          style={{ ...props.style, overflowAnchor: 'none' }}
+        />
+      )),
+      Header: () => <div className='h-10px' />,
+      Footer: () => <div className='h-20px' />,
+    }),
+    [handleContentRef, handlePointerDown, handleScrollerRef, handleScroll, handleWheel]
+  );
+
   useEffect(() => {
     if (!targetMessageId || processedList.length === 0) {
       return;
@@ -415,6 +527,7 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
     hideScrollButton();
 
     requestAnimationFrame(() => {
+      scrollVirtualItemIntoView(targetIndex, 'center', 'smooth');
       const targetElement = document.getElementById(`message-${getProcessedItemAnchorId(processedList[targetIndex])}`);
       scrollElementIntoView(targetElement, {
         behavior: 'smooth',
@@ -427,7 +540,7 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
     }, 2400);
 
     return () => window.clearTimeout(timer);
-  }, [hideScrollButton, location.key, processedList, scrollElementIntoView, targetMessageId]);
+  }, [hideScrollButton, location.key, processedList, scrollElementIntoView, scrollVirtualItemIntoView, targetMessageId]);
 
   useEffect(() => {
     const handleMessageJump = (event: Event) => {
@@ -453,6 +566,7 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
 
       hideScrollButton();
       requestAnimationFrame(() => {
+        scrollVirtualItemIntoView(targetIndex, detail.align || 'start', detail.behavior || 'smooth');
         const targetElement = document.getElementById(
           `message-${getProcessedItemAnchorId(processedList[targetIndex])}`
         );
@@ -467,7 +581,7 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
     return () => {
       window.removeEventListener(CHAT_MESSAGE_JUMP_EVENT, handleMessageJump);
     };
-  }, [conversationContext?.conversation_id, hideScrollButton, processedList, scrollElementIntoView]);
+  }, [conversationContext?.conversation_id, hideScrollButton, processedList, scrollElementIntoView, scrollVirtualItemIntoView]);
 
   // Click scroll button
   const handleScrollButtonClick = () => {
@@ -529,25 +643,16 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
       {/* Use PreviewGroup to wrap all messages for cross-message image preview */}
       <Image.PreviewGroup actionsLayout={['zoomIn', 'zoomOut', 'originalSize', 'rotateLeft', 'rotateRight']}>
         <ImagePreviewContext.Provider value={{ inPreviewGroup: true }}>
-          <div
-            ref={handleScrollerRef}
-            data-testid='message-list-scroller'
-            // Break out of the parent's 20px horizontal padding so the scrollbar hugs the
-            // window edge, while re-applying that padding inside to keep message content inset.
-            className='flex-1 h-full overflow-y-auto pb-10px box-border -mx-20px px-20px'
-            style={{ overflowAnchor: 'none' }}
-            onPointerDown={handlePointerDown}
-            onScroll={handleScroll}
-            onWheel={handleWheel}
-          >
-            <div ref={handleContentRef} data-testid='message-list-content' style={{ overflowAnchor: 'none' }}>
-              <div className='h-10px' />
-              {processedList.map((item, index) => (
-                <React.Fragment key={getProcessedItemAnchorId(item) || index}>{renderItem(index, item)}</React.Fragment>
-              ))}
-              <div className='h-20px' />
-            </div>
-          </div>
+          <Virtuoso
+            ref={virtuosoRef}
+            data={processedList}
+            className='h-full'
+            components={virtuosoComponents}
+            computeItemKey={(index, item) => getProcessedItemAnchorId(item) || index}
+            initialTopMostItemIndex={processedList.length > 0 ? processedList.length - 1 : 0}
+            followOutput={showScrollButton ? false : 'auto'}
+            itemContent={renderItem}
+          />
         </ImagePreviewContext.Provider>
       </Image.PreviewGroup>
 

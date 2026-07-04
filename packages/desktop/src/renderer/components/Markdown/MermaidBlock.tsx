@@ -4,14 +4,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import mermaid from 'mermaid';
-import SyntaxHighlighter from 'react-syntax-highlighter';
-import { vs, vs2015 } from 'react-syntax-highlighter/dist/esm/styles/hljs';
-
 import { copyText } from '@/renderer/utils/ui/clipboard';
 import { Message } from '@arco-design/web-react';
 import { Copy } from '@icon-park/react';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { Suspense, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 type MermaidBlockProps = {
@@ -21,8 +17,35 @@ type MermaidBlockProps = {
 };
 
 let initializedTheme: 'light' | 'dark' | null = null;
-const ensureMermaidInitialized = (theme: 'light' | 'dark') => {
-  if (initializedTheme === theme) return;
+let mermaidLoader: Promise<typeof import('mermaid').default> | null = null;
+
+type LazySyntaxHighlighterProps = Record<string, unknown> & {
+  currentTheme: 'light' | 'dark';
+};
+
+const LazySyntaxHighlighter = React.lazy(async () => {
+  const [highlighterModule, styleModule] = await Promise.all([
+    import('react-syntax-highlighter'),
+    import('react-syntax-highlighter/dist/esm/styles/hljs'),
+  ]);
+  const SyntaxHighlighter = highlighterModule.default as React.ComponentType<Record<string, unknown>>;
+  const { vs, vs2015 } = styleModule as { vs: unknown; vs2015: unknown };
+
+  return {
+    default: ({ currentTheme, ...props }: LazySyntaxHighlighterProps) => (
+      <SyntaxHighlighter {...props} style={currentTheme === 'dark' ? vs2015 : vs} />
+    ),
+  };
+});
+
+const loadMermaid = () => {
+  mermaidLoader ??= import('mermaid').then((module) => module.default);
+  return mermaidLoader;
+};
+
+const ensureMermaidInitialized = async (theme: 'light' | 'dark') => {
+  const mermaid = await loadMermaid();
+  if (initializedTheme === theme) return mermaid;
   mermaid.initialize({
     startOnLoad: false,
     securityLevel: 'strict',
@@ -31,6 +54,7 @@ const ensureMermaidInitialized = (theme: 'light' | 'dark') => {
     fontFamily: 'inherit',
   });
   initializedTheme = theme;
+  return mermaid;
 };
 
 const withResponsiveSvg = (svg: string): string => {
@@ -96,7 +120,7 @@ function MermaidBlock({ code, style, showOpenInPanelButton = true }: MermaidBloc
 
     const renderDiagram = async () => {
       try {
-        ensureMermaidInitialized(currentTheme);
+        const mermaid = await ensureMermaidInitialized(currentTheme);
 
         const { svg: renderedSvg } = await mermaid.render(`${blockIdRef.current}-${Date.now()}`, source);
 
@@ -121,7 +145,6 @@ function MermaidBlock({ code, style, showOpenInPanelButton = true }: MermaidBloc
     };
   }, [debouncedCode, currentTheme]);
 
-  const codeTheme = currentTheme === 'dark' ? vs2015 : vs;
   const shouldShowLoading = isRendering && preferredViewModeRef.current !== 'source';
   const summary = code
     .split(/\r?\n/)
@@ -268,22 +291,30 @@ function MermaidBlock({ code, style, showOpenInPanelButton = true }: MermaidBloc
             <span>{t('preview.loading')}</span>
           </div>
         ) : (
-          <SyntaxHighlighter
-            children={code}
-            language='mermaid'
-            style={codeTheme}
-            PreTag='div'
-            customStyle={{
-              margin: 0,
-              borderRadius: 0,
-              border: 'none',
-              background: 'transparent',
-              color: 'var(--text-primary)',
-              overflowX: 'auto',
-              maxWidth: '100%',
-            }}
-            codeTagProps={{ style: { color: 'var(--text-primary)' } }}
-          />
+          <Suspense
+            fallback={
+              <pre style={{ margin: 0, padding: '12px', overflowX: 'auto' }}>
+                <code>{code}</code>
+              </pre>
+            }
+          >
+            <LazySyntaxHighlighter
+              currentTheme={currentTheme}
+              children={code}
+              language='mermaid'
+              PreTag='div'
+              customStyle={{
+                margin: 0,
+                borderRadius: 0,
+                border: 'none',
+                background: 'transparent',
+                color: 'var(--text-primary)',
+                overflowX: 'auto',
+                maxWidth: '100%',
+              }}
+              codeTagProps={{ style: { color: 'var(--text-primary)' } }}
+            />
+          </Suspense>
         )}
       </div>
     </div>

@@ -35,7 +35,10 @@ export function readProvisionedProviders(): IProvider[] {
   const provision = (window as Window & { __agent37Provision?: { providers?: Array<Record<string, unknown>> } })
     .__agent37Provision;
 
-  return provision.providers
+  const providers = provision?.providers;
+  if (!Array.isArray(providers)) return [];
+
+  return providers
     .filter((p) => p && typeof p.slug === 'string' && typeof p.name === 'string')
     .map(
       (p) =>
@@ -65,6 +68,10 @@ export function readProvisionedDefaultModel(): {
   const provision = (window as Window & {
     __agent37Provision?: { default_model?: string | null; default_provider?: string | null; default_base_url?: string | null };
   }).__agent37Provision;
+
+  if (!provision?.default_model) {
+    return null;
+  }
 
   return {
     model: provision.default_model,
@@ -114,9 +121,7 @@ export const useModelProviderList = (): ModelProviderListResult => {
   useEffect(() => {
     const handler = () => setProvisionedProviders(readProvisionedProviders());
     window.addEventListener('agent37:provision-updated', handler);
-    window.addEventListener('agent37:provision-updated', handler);
     return () => {
-      window.removeEventListener('agent37:provision-updated', handler);
       window.removeEventListener('agent37:provision-updated', handler);
     };
   }, []);

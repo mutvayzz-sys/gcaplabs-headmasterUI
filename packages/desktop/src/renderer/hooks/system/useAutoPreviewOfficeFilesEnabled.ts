@@ -1,5 +1,6 @@
 import type { IResponseMessage } from '@/common/adapter/ipcBridge';
 import { useConfig } from '@/renderer/hooks/config/useConfig';
+import { isBackendFeatureActive } from '@/renderer/utils/backendFeatureGates';
 
 const OFFICE_AUTO_PREVIEW_TRIGGER_TYPES = new Set(['tool_group', 'tool_call', 'acp_tool_call']);
 
@@ -14,5 +15,5 @@ export const findNewOfficeFiles = (currentFiles: string[], knownFiles: Set<strin
  */
 export const useAutoPreviewOfficeFilesEnabled = (): boolean => {
   const [enabled] = useConfig('system.autoPreviewOfficeFiles');
-  return enabled ?? true;
+  return isBackendFeatureActive('office_conversion') && (enabled ?? true);
 };

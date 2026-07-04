@@ -92,6 +92,9 @@ type PaginatedResult<T> = {
   has_more: boolean;
 };
 
+const MERGED_CONVERSATION_SOURCE_PAGE_SIZE = 200;
+const MAX_PAGED_FETCH_ITERATIONS = 500;
+
 const sessionProfiles = new Map<string, string>();
 const locallyOpenSessions = new Set<string>();
 const localConversations = new Map<string, TChatConversation>();
@@ -177,31 +180,50 @@ function mergeConversationPages(
   };
 }
 
+async function collectPaginatedConversations(
+  fetchPage: (params: { cursor?: string; limit?: number }) => Promise<PaginatedResult<TChatConversation>>
+): Promise<PaginatedResult<TChatConversation>> {
+  const items: TChatConversation[] = [];
+  let cursor = '0';
+  let total = 0;
+
+  for (let guard = 0; guard < MAX_PAGED_FETCH_ITERATIONS; guard += 1) {
+    const page = await fetchPage({ cursor, limit: MERGED_CONVERSATION_SOURCE_PAGE_SIZE });
+    const pageItems = Array.isArray(page.items) ? page.items : [];
+    items.push(...pageItems);
+    total = page.total || items.length;
+
+    if (!page.has_more || pageItems.length === 0 || items.length >= total) {
+      break;
+    }
+
+    cursor = String((Number.parseInt(cursor, 10) || 0) + pageItems.length);
+  }
+
+  return {
+    items,
+    total: total || items.length,
+    has_more: false,
+  };
+}
+
 export async function listUserConversations(params: {
   cursor?: string;
   limit?: number;
 }): Promise<PaginatedResult<TChatConversation>> {
   const limit = params.limit ?? 100;
   const visibleOffset = Number.parseInt(params.cursor || '0', 10) || 0;
-  const agent37 = await listHermesConversations({ cursor: '0', limit: 500 });
   if (!isAioncoreAvailable()) {
-    const visible = agent37.items.slice(visibleOffset, visibleOffset + limit);
-    return {
-      items: visible,
-      total: agent37.total,
-      has_more: visibleOffset + visible.length < agent37.total,
-    };
+    return listHermesConversations({ cursor: params.cursor, limit });
   }
   try {
-    const aioncore = await listAioncoreConversations({ limit: 500 });
+    const [agent37, aioncore] = await Promise.all([
+      collectPaginatedConversations(listHermesConversations),
+      collectPaginatedConversations(listAioncoreConversations),
+    ]);
     return mergeConversationPages(agent37, aioncore, limit, visibleOffset);
   } catch {
-    const visible = agent37.items.slice(visibleOffset, visibleOffset + limit);
-    return {
-      items: visible,
-      total: agent37.total,
-      has_more: visibleOffset + visible.length < agent37.total,
-    };
+    return listHermesConversations({ cursor: params.cursor, limit });
   }
 }
 

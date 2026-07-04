@@ -14,6 +14,9 @@ import ChannelTelegramLogo from '@/renderer/assets/channel-logos/telegram.svg';
 import WebuiModalContent from '@/renderer/components/settings/SettingsModal/contents/WebuiModalContent';
 import SettingsPageWrapper from './components/SettingsPageWrapper';
 import { type PlatformConfig, useIntegrations } from '@/renderer/pages/integrations/useIntegrations';
+import { BACKEND_GATED_FEATURES } from '@/renderer/utils/backendFeatureGates';
+
+const CHANNELS_GATE = BACKEND_GATED_FEATURES.channels;
 
 const CHANNEL_LOGOS: Record<string, string> = {
   telegram: ChannelTelegramLogo,
@@ -23,9 +26,10 @@ const CHANNEL_LOGOS: Record<string, string> = {
 
 const PlatformRow: React.FC<{
   platform: PlatformConfig;
+  backendGated: boolean;
   onToggle: (enabled: boolean) => void;
   onSaveEnv: (env: Record<string, string>) => Promise<void>;
-}> = ({ platform, onToggle, onSaveEnv }) => {
+}> = ({ platform, backendGated, onToggle, onSaveEnv }) => {
   const { t } = useTranslation();
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
@@ -71,7 +75,15 @@ const PlatformRow: React.FC<{
                 ? t('integrations.connected', { defaultValue: 'Connected' })
                 : t('integrations.disconnected', { defaultValue: 'Disconnected' })}
             </Tag>
-            <Switch size='small' checked={platform.enabled} onChange={onToggle} />
+            <Switch
+              data-testid={`channel-toggle-${platform.id}`}
+              aria-disabled={backendGated}
+              size='small'
+              checked={platform.enabled}
+              disabled={backendGated}
+              onChange={backendGated ? undefined : onToggle}
+              className={backendGated ? 'opacity-45 pointer-events-none' : undefined}
+            />
           </div>
         </div>
       }
@@ -88,11 +100,12 @@ const PlatformRow: React.FC<{
               value={drafts[field.key] ?? ''}
               onChange={(value) => setDrafts((prev) => ({ ...prev, [field.key]: value }))}
               placeholder={field.is_set ? field.redacted_value || '••••••' : field.prompt || field.key}
+              disabled={backendGated}
             />
           </div>
         ))}
         {hasDrafts && (
-          <Button type='primary' size='small' loading={saving} onClick={() => void handleSave()}>
+          <Button type='primary' size='small' loading={saving} disabled={backendGated} onClick={() => void handleSave()}>
             {t('common.save', { defaultValue: 'Save' })}
           </Button>
         )}
@@ -128,6 +141,14 @@ const ChannelsSettingsPage: React.FC<{ withWrapper?: boolean }> = ({ withWrapper
         </div>
 
         {error && <div className='text-13px text-danger-6 mb-12px'>{error}</div>}
+        {!CHANNELS_GATE.active && (
+          <div
+            data-testid='channels-backend-gated-notice'
+            className='mb-12px rd-10px border border-warning-3 bg-warning-1 px-10px py-8px text-12px text-warning-7 leading-relaxed'
+          >
+            {CHANNELS_GATE.label} are disabled until the backend contract is implemented. {CHANNELS_GATE.reason}
+          </div>
+        )}
         {loading && platforms.length === 0 ? (
           <div className='flex justify-center py-36px'>
             <Spin size={24} />
@@ -144,6 +165,7 @@ const ChannelsSettingsPage: React.FC<{ withWrapper?: boolean }> = ({ withWrapper
               <PlatformRow
                 key={platform.id}
                 platform={platform}
+                backendGated={!CHANNELS_GATE.active}
                 onToggle={(enabled) => void updatePlatform(platform.id, { enabled })}
                 onSaveEnv={(env) => savePlatformEnv(platform.id, env)}
               />

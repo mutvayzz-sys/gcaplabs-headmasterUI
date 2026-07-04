@@ -1,6 +1,7 @@
 import React, { Suspense } from 'react';
 import { HashRouter, Navigate, Route, Routes, useSearchParams } from 'react-router-dom';
 import AppLoader from '@renderer/components/layout/AppLoader';
+import CommandPalette from '@renderer/components/layout/CommandPalette';
 import { useAuth } from '@renderer/hooks/context/AuthContext';
 import { TEAM_MODE_ENABLED } from '@/common/config/constants';
 const Conversation = React.lazy(() => import('@renderer/pages/conversation'));
@@ -82,7 +83,12 @@ const ProtectedLayout: React.FC<{ layout: React.ReactElement }> = ({ layout }) =
     return <Navigate to='/login' replace />;
   }
 
-  return React.cloneElement(layout);
+  return (
+    <>
+      {React.cloneElement(layout)}
+      <CommandPalette />
+    </>
+  );
 };
 
 const PanelRoute: React.FC<{ layout: React.ReactElement }> = ({ layout }) => {
