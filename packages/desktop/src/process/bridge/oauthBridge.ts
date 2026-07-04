@@ -14,9 +14,10 @@ export function initOAuthBridge(): void {
     'oauth:trigger-login',
     async (event, provider: string): Promise<{ success: boolean; token?: string; error?: string }> => {
       const config = getAgent37Config();
-      const baseUrl = (config?.url ?? 'https://console.gcaplabs.com')
+      const baseUrl = (config?.url ?? 'https://www.console.gcaplabs.com')
         .replace(/\/$/, '')
-        .replace('://agent37.gcaplabs.com', '://console.gcaplabs.com');
+        .replace('://agent37.gcaplabs.com', '://www.console.gcaplabs.com')
+        .replace(/^(https?:\/\/)console\.gcaplabs\.com(\/|$)/, '$1www.console.gcaplabs.com$2');
       const loginUrl = `${baseUrl}/api/auth/oidc/login?provider=${encodeURIComponent(provider)}&desktop=true`;
 
       return new Promise((resolve) => {

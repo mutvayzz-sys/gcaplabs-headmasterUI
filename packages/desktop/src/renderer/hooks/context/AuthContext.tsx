@@ -104,7 +104,9 @@ const isDesktopRuntime = typeof window !== 'undefined' && Boolean(window.electro
 // Build-time Console URL. The canonical env var is `VITE_CONSOLE_URL`;
 // `VITE_AGENT37_URL` is still read for one release as a transition shim.
 // The console provisions Agent37 Cloud runtimes (no longer a Agent37
-// control plane).
+// control plane). Live host is `www.console.gcaplabs.com` — the bare apex
+// 308s to it and the cross-host follow-up breaks POST bodies and bearer
+// headers under Electron's Node fetch.
 const CONSOLE_URL = (
   ((import.meta as ImportMeta & { env?: Record<string, string | undefined> }).env?.VITE_CONSOLE_URL as
     | string
@@ -112,7 +114,7 @@ const CONSOLE_URL = (
   ((import.meta as ImportMeta & { env?: Record<string, string | undefined> }).env?.VITE_AGENT37_URL as
     | string
     | undefined) ??
-  'https://console.gcaplabs.com'
+  'https://www.console.gcaplabs.com'
 ).replace(/\/$/, '');
 
 async function refreshAgent37Token(serverUrl: string, token: string): Promise<string | null> {
@@ -185,9 +187,12 @@ async function fetchCurrentUser(signal?: AbortSignal): Promise<AuthUser | null> 
 function resolveDesktopServerUrl(configUrl?: string): string {
   const url = (configUrl || CONSOLE_URL).trim().replace(/\/$/, '');
   // Migrate retired control-plane domains so clients with a stale stored URL
-  // land on the Agent37-backed Headmaster Console.
+  // land on the Agent37-backed Headmaster Console. Also collapse the bare
+  // apex (which 308s to `www.`) so the next request doesn't cross hosts —
+  // Node fetch drops the Authorization header on cross-host POST follow-ups.
   return url
-    .replace('://agent37.gcaplabs.com', '://console.gcaplabs.com');
+    .replace('://agent37.gcaplabs.com', '://www.console.gcaplabs.com')
+    .replace(/^(https?:\/\/)console\.gcaplabs\.com(\/|$)/, '$1www.console.gcaplabs.com$2');
 }
 
 async function extractRemoteSessionToken(endpointUrl: string): Promise<string | null> {

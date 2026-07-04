@@ -725,6 +725,7 @@ const handleAppReady = async (): Promise<void> => {
   // so Chromium enforces CORS for all requests to the local Hermes API server and
   // to the remote Agent37-backed Headmaster Console.
   const corsUrls = [
+    'https://www.console.gcaplabs.com/*',
     'https://console.gcaplabs.com/*',
     // Dev mode only: cover the local Hermes API server (dynamic port on 127.0.0.1)
     ...(!app.isPackaged ? ['http://127.0.0.1/*'] : []),

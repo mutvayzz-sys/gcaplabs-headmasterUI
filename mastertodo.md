@@ -5,6 +5,54 @@ verification runs) has been moved to `masterlog.md` and is preserved in git hist
 now only tracks what's genuinely still open, plus a launch/verify checklist for whatever changed
 most recently. If you're looking for "why does X work this way," check `masterlog.md` first.
 
+## ✅ Done 2026-07-04 — Console apex→www canonicalisation (fixes desktop 401 loop)
+
+**Symptom:** desktop logs show
+`POST /api/auth/login → 200 accessToken=len=926` immediately followed by
+`GET /api/desktop/provision/current → 401 "Sign in required"` even with valid credentials.
+
+**Root cause:** the bare Console apex (`console.gcaplabs.com`) 308s every path to
+`www.console.gcaplabs.com` at the Vercel edge. Node's `fetch` follows the 308 but drops the
+`Authorization` header on the cross-host POST follow-up, so the very next call lands on
+`www.` without a bearer and 401s. The 308 can't be removed on the Vercel Hobby plan
+(`vercel redirects` is paywalled and the apex domain is a per-project setting in the
+dashboard), so we canonicalise at both ends instead.
+
+**Changes shipped:**
+
+- Desktop (`gcaplabs-headmasterUI`): `normalizeBaseUrl()` in `agent37ProvisionService.ts`
+  now rewrites `agent37.gcaplabs.com` and the bare `console.gcaplabs.com` apex to
+  `www.console.gcaplabs.com`. Mirrored in `oauthBridge.ts`, `AuthContext.tsx`
+  (`CONSOLE_URL` default + `resolveDesktopServerUrl`), and the CORS allowlist in
+  `index.ts`. Two new unit tests in `agent37ProvisionService.test.ts` lock the
+  behaviour in. Typecheck clean, provision tests pass (6/6 in that file).
+- Console (`gcaplabs-console`): updated `NEXT_PUBLIC_SITE_URL` to
+  `https://www.console.gcaplabs.com` on Vercel production via `vercel env update`.
+  Added `https://www.console.gcaplabs.com/**` and the `/auth/callback` variant to the
+  Supabase `uri_allow_list` and set `site_url` to the `www.` host (via the Management
+  API). `publicSiteOrigin()` in `src/lib/site-url.ts` now canonicalises a stale apex
+  env value to `www.` so the server never hands the apex back to a client. `.env.example`
+  updated to point at `www.` with a comment explaining why.
+- Vercel: `NEXT_PUBLIC_SITE_URL` (production) changed to `https://www.console.gcaplabs.com`.
+  Supabase (project `phviwwzbwyqmeutoxywh` / `gcaplabs`): `site_url` + `uri_allow_list`
+  updated to canonicalise on `www.`.
+
+**Verify once shipped:**
+
+1. `vercel env ls production` — `NEXT_PUBLIC_SITE_URL=https://www.console.gcaplabs.com`.
+2. `GET https://api.supabase.com/v1/projects/phviwwzbwyqmeutoxywh/config/auth` (with
+   `SUPABASE_ACCESS_TOKEN`) — `site_url` is `https://www.console.gcaplabs.com`,
+   `uri_allow_list` contains both `https://console.gcaplabs.com/**` (legacy) and
+   `https://www.console.gcaplabs.com/**` + `/auth/callback`.
+3. Relaunch the desktop, log in — the `[agent37Provision] GET` line should show
+   `https://www.console.gcaplabs.com/...` and a 200, not a 401.
+
+**If the Vercel 308 ever needs to be removed** (cleaner long-term fix): requires
+removing the apex→www domain redirect in the Vercel dashboard for project
+`gcap-console` and adding `console.gcaplabs.com` as a domain that points to the
+deployment. Not paywalled, but only do it after we have a way to make the legacy
+apex client code path stop 308ing.
+
 ## 🚀 Ready to launch & verify — 2026-07-04 (gcaplabs-console admin/org/security pass)
 
 See `masterlog.md` → "2026-07-04" for the full write-up. Everything below is live on

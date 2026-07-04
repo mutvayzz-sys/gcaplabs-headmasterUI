@@ -110,4 +110,54 @@ describe('agent37ProvisionService', () => {
     expect(result.status).toBe(403);
     expect(getAgent37Provision()).toBeNull();
   });
+
+  // The bare Console apex (console.gcaplabs.com) 308s to `www.console.gcaplabs.com`
+  // at the Vercel edge. Node fetch drops the Authorization header on cross-host
+  // POST follow-ups, which is what surfaced as the 401 "Sign in required" right
+  // after a successful login. We canonicalise to `www.` at the request layer so
+  // the cross-host follow-up never happens. Lock the migration in here.
+  it('canonicalises the bare Console apex to www.console.gcaplabs.com', async () => {
+    setAgent37Url('https://console.gcaplabs.com');
+    setAgent37Token('session-token');
+    const fetchMock = vi.fn(
+      async () =>
+        new Response(JSON.stringify({ error: { code: 'unauthorized', message: 'Sign in required' } }), {
+          status: 401,
+          headers: { 'content-type': 'application/json' },
+        })
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    await provisionAgent37Desktop({
+      client: 'headmaster_desktop',
+      version: '0.2.1',
+      platform: 'win32',
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const calledUrl = fetchMock.mock.calls[0][0] as string;
+    expect(calledUrl.startsWith('https://www.console.gcaplabs.com/api/desktop/provision/current')).toBe(true);
+  });
+
+  it('canonicalises the legacy agent37 host to www.console.gcaplabs.com', async () => {
+    setAgent37Url('https://agent37.gcaplabs.com');
+    setAgent37Token('session-token');
+    const fetchMock = vi.fn(
+      async () =>
+        new Response(JSON.stringify({ error: { code: 'unauthorized', message: 'Sign in required' } }), {
+          status: 401,
+          headers: { 'content-type': 'application/json' },
+        })
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    await provisionAgent37Desktop({
+      client: 'headmaster_desktop',
+      version: '0.2.1',
+      platform: 'win32',
+    });
+
+    const calledUrl = fetchMock.mock.calls[0][0] as string;
+    expect(calledUrl.startsWith('https://www.console.gcaplabs.com/api/desktop/provision/current')).toBe(true);
+  });
 });

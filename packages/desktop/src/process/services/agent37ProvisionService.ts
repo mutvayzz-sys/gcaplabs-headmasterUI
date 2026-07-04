@@ -60,12 +60,17 @@ function normalizeBaseUrl(url: string): string {
   return url
     .trim()
     .replace(/\/$/, '')
-    .replace('://agent37.gcaplabs.com', '://console.gcaplabs.com');
+    // Legacy control-plane hostname → current Console host.
+    .replace('://agent37.gcaplabs.com', '://www.console.gcaplabs.com')
+    // The bare apex 308s everything to `www.` and the cross-host follow-up
+    // breaks POST bodies / Authorization headers under Node fetch. Canonicalise
+    // both stored config and env-var fallbacks to the live host up front.
+    .replace(/^(https?:\/\/)console\.gcaplabs\.com(\/|$)/, '$1www.console.gcaplabs.com$2');
 }
 
 function resolveBaseUrl(): string {
   const config = getAgent37Config();
-  const fallback = (process.env.AGENT37_BASE_URL || 'https://console.gcaplabs.com').trim();
+  const fallback = (process.env.AGENT37_BASE_URL || 'https://www.console.gcaplabs.com').trim();
   return normalizeBaseUrl(config.url || fallback);
 }
 
