@@ -1,5 +1,97 @@
 # Master Log
 
+## 2026-07-04
+
+### gcaplabs-console: admin/org/security overhaul + DNS/perf fixes
+
+All in `mutvayzz-sys/gcaplabs-console`, all committed + pushed to `main`, each step verified with
+`npm run typecheck && npm run build` before pushing, deployed via Vercel auto-deploy. Supersedes the
+"uncommitted" framing of the beta-approval fix recorded in `mastertodo.md`'s 2026-07-03 entry — that
+work is long since committed, and a second, deeper bug in the same area was found and fixed today.
+
+**DNS / infra:**
+- `www.gcaplabs.com` and `www.console.gcaplabs.com` added as real Vercel domains (A → `76.76.21.21`,
+  DNS-only) with valid certs; `gcaplabs.com` and `console.gcaplabs.com` now 308-redirect to their
+  `www.` counterparts (Vercel domain-level redirect, not a Cloudflare rule).
+- Deleted 5 stale Cloudflare tunnel/wildcard DNS records (`*.gcaplabs.com`, `*.run.gcaplabs.com`,
+  `hermesq.gcaplabs.com`, `headscale.gcaplabs.com`, `hq.gcaplabs.com`) at the owner's request,
+  confirmed via the Cloudflare API before/after.
+- Fixed the real cause of "console feels slow": `gcap-console`'s Vercel `serverlessFunctionRegion`
+  was `iad1` (Virginia) while the Supabase project is `ap-south-1` (Mumbai) — moved it to `bom1`
+  (Mumbai), confirmed live via the `X-Vercel-Id` response header.
+- Deduped 3x redundant `getSession()`/`isConsoleAdmin()` calls per page load (layout + page +
+  `requireUser()` each re-checking) down to 1 via React's per-request `cache()`; parallelized the
+  two sequential Agent37 API calls in `getManagedAgent()` (`getAgent` + `listTemplates`).
+
+**Admin model — `profiles.is_admin` split from `profiles.beta_approved`:**
+- Previously `isConsoleAdmin()` read `beta_approved`, so any approved beta signup would see the full
+  admin nav. Added `profiles.is_admin` (migration `0004_admin_role.sql`) as the real, separate
+  source of truth for console-admin access; `beta_approved` now only ever gates whether a signup
+  gets an Agent37 runtime. `admin@gcaplabs.com` is `is_admin=true`; `mutvayzz@gmail.com` was swapped
+  to the pending/testing account per owner request.
+
+**🔴 Real security bug found + fixed: revoking `beta_approved` didn't revoke access.**
+`getCurrentAgent37Runtime()` (`src/lib/agent37.ts`) only checked `beta_approved` on the
+first-time-provisioning branch — once `profiles.agent37_id` existed, a user kept full
+chat/files/integrations/settings access forever, even after being revoked. Caught live: after
+revoking `mutvayzz@gmail.com`, she still had full working access to her existing runtime via the
+console. Fixed by moving the check above both branches so it gates every access, not just creation.
+Separately confirmed (per the owner's direct question) that accepting an org invite never touches
+agent provisioning at all — only ever writes `organization_id`/`org_role`.
+
+**Agent naming:** new runtimes are named `Gcaplabs-{email}` (was `{displayName}'s Headmaster`); the
+two live instances were renamed via the Agent37 API to match (`Gcaplabs-admin@gcaplabs.com`,
+`Gcaplabs-mutvayzz@gmail.com`).
+
+**Console redesign — cherry-picked patterns from `jonradoff/lastsaas` (a different, Go+Mongo SaaS
+boilerplate — nothing ported as code, only UX/structure; kept gcaplabs-console's existing shadcn
+visual style throughout, never lastsaas's dark theme):**
+- **Nav split**: `DashboardShell.tsx` now has `USER_NAV` (everyone: Agent, Account) plus an additive
+  `ADMIN_NAV` section (console admins only: Users, Organizations, Messages, Announcements, Health,
+  Config) and an `ORG_NAV` section (org admins only: My Organization) — replacing the old
+  all-or-nothing single nav.
+- **User settings** (`/dashboard/settings`): Profile tab (display name) + Security tab (password
+  change, TOTP MFA enroll/verify, sign-out-other-devices, message-an-admin form) — all via the
+  existing browser Supabase client (`src/lib/supabase/client.ts`), not the service-role admin
+  client. Confirmed there's no Supabase Admin API to list/revoke individual sessions — only a
+  single "sign out everywhere else" action is possible.
+- **Admin Users**: search + pagination on `GET /api/admin/users` (search term sanitized before
+  embedding in a PostgREST `.or()` filter), plus a per-user detail page.
+- **Generic Config page**: new `app_config` table (string/number/boolean/enum/json typed values),
+  ships empty — for future feature flags.
+- **Organizations ("school" model)**: new `organizations`/`org_invitations` tables plus
+  `profiles.organization_id`/`org_role`. Deliberately lighter than lastsaas's literal
+  workspace-owns-agents model — agent ownership stays exactly 1:1 per user, `agent37.ts` untouched.
+  Two independent admin axes: `is_admin` (site-wide, all orgs) vs. `org_role='admin'` (scoped to
+  one's own org only). Org admins manage their org's members + issue invite links from
+  `/dashboard/org`; site admins get a per-org detail page (`/dashboard/admin/organizations/[id]`)
+  to do the same for any org, plus create orgs and assign the first admin by email.
+- **Health** (`/dashboard/admin/health`): point-in-time Supabase ping, Agent37 control-plane ping,
+  aggregate `agent37_status` counts. No history/charts yet (would need a snapshot table + cron).
+- **Announcements + messaging**: admin broadcasts a dismissible per-user banner (tracked via
+  `announcement_reads`); users message admins from Settings; unread-count badge on the admin nav's
+  Messages item, sourced from a `cache()`-deduped count so it doesn't add a query for non-admins.
+
+**Admin runtime control — parity check against the actual Agent37 dashboard:** logged into the
+real `agent37.com/dashboard/cloud` and compared its per-instance "⋯" menu (Restart/Stop/Delete/
+Re-pull image/rename/Copy dashboard-terminal-files links) against what the admin panel could already
+do. Added what was missing: `update` (re-pull image), rename, and "open Dashboard/Terminal/Files"
+via signed URLs (reusing `agent37.signedUrl()` + the existing `PORT_LABELS` map) — all on
+`/dashboard/admin/users/[id]`'s new `RuntimeControlPanel`, gated by `requireConsoleAdmin()`.
+Deliberately did **not** port Agent37's Config/System/Keys screens (raw YAML editing, credential
+pool, backup/restore) — too deep and risky to wrap in a customer-facing admin panel; that stays
+native. Then, per the owner's explicit "Hermes is back-facing, never user-facing" rule, **removed**
+the equivalent Dashboard/Terminal/Files buttons from the regular user's own agent Settings tab
+(`RuntimeSettingsTab.tsx`'s `AppsSection`) — that capability had existed there since before this
+session and is now admin-only. Deleted the now-unused `OpenPortButtons.tsx`.
+
+**headmasterUI (desktop) — verified, not modified this session:** traced the full auth/session/chat
+chain end-to-end from the console side (no HermesHQ SDK — logs in via console's `/api/auth/login`,
+which does a real Supabase `signInWithPassword` against the same project; loads the real
+`profiles.agent37_id` via `/api/desktop/provision/current`; chats go straight to
+`{instanceId}.agent37.app/v1/*` with the forwarded bearer token). Confirmed not stale or mocked —
+whatever real users exist in the console's `profiles` table are exactly who loads in desktop.
+
 ## 2026-07-03
 
 ### Agent37 migration review decisions + interactive prompt cleanup
@@ -631,3 +723,58 @@ See top-level `masterlog.md` for the full session record.
 - Console deploy: existing `gcaplabs-console` is a Wasp app, not Vercel-compatible. Code changes are committed; deploy step blocked on owner deciding console replacement.
 - Resend `gcaplabs.com` domain needs verification in Resend dashboard.
 - iOS build verification needs a Mac.
+
+## 2026-07-03 — HermesHQ → Agent37 Cloud cutover (verified complete)
+
+**Repos touched:** `gcaplabs-headmasterUI`, `gcaplabs-console`.
+
+Full write-up lived in root `Migration.md`; superseded and deleted after this entry landed
+(the plan is done, not a live tracker — verification below is the durable record).
+
+**Decision:** Agent37 Cloud (`api.agent37.com` / `{instanceId}.agent37.app`) is now the only backend.
+The self-hosted HermesHQ control plane and local Hermes process-spawning are retired from the
+active code path. "Hermes" survives as the *agent runtime identity* only (`HERMES_HOME`, the
+`agent37-hermes` template) — see `CLAUDE.md`'s white-label table, unchanged.
+
+**gcaplabs-console** — commit `e66869d`: cherry-picked upstream `agent37-platform/starter-kit`
+improvements onto the fork's single-managed-agent architecture: `BudgetDialog.tsx`,
+`OpenPortButtons.tsx`, `agent37.ts`/`http.ts` fixes, `0003_profile_rls_hardening.sql`. Explicitly
+did **not** pull upstream's fleet/workspace/membership tables — those stay commented out in
+`0001_init.sql` pending a real multi-agent product decision. `npm run typecheck && npm run build`
+clean; zero `hermeshq`/`hq.gcaplabs.com` refs outside caches.
+
+**gcaplabs-headmasterUI** — landed as five commits (`010886a` cut desktop provision shims to
+Agent37, `26a8b20` route desktop sessions through Agent37 v1, `15276e7` drop AionCore-named shadow
+sidecar files, `3851264` consolidate base URL routing + STT-unavailable guard, `d3e68dc` extract
+`isSttAvailable` predicate), all now pushed to `origin/main` along with follow-up cleanup —
+Migration.md's "local-only, not pushed" status was stale by the time of this entry; verified via
+`git status`/`git log` that these are on GitHub.
+
+Verified 2026-07-03 (re-check after Migration.md claimed done):
+- `grep -rniE "hermeshq" packages/desktop/src` → zero hits; same for `HermeshqConfig`/`hermeshq:`
+  channel strings.
+- `bunx tsc --noEmit` clean.
+- `preload/main.ts` has no legacy `getHermeshq*`/`setHermeshq*`/`provisionHermeshq` aliases.
+- `httpBridge.ts` speaks `/v1/responses` SSE (`response.output_text.delta` etc.); session CRUD
+  lives in `hermesSessionAdapter.ts` against `/v1/sessions`.
+- Remaining `9119`/`13400` hits are the intentional local-dashboard default port and comments
+  documenting the removed fallback — not migrated-path residue.
+
+**Kept on purpose (owner decisions, not migration debt):**
+- Local Headmaster runtime path (`hermesBootstrap.ts`, `hermesChatAdapter.ts`,
+  `applyProvisionToRuntime.ts`) — retained for app/dev/fallback use.
+- GCAPCore/Council sidecar (`aioncoreBridge.ts`, `gcapcoreBootstrap.ts`) — unrelated to HermesHQ;
+  only dead AionCore-named shadow files were removed (`8a03444`).
+- Vendored `gcaplabs-headmasterUI/hermeshq/` tree — optional/manual deletion later, not automated.
+- `gcaplabs-hermeshq` VPS teardown — explicitly owner-owned manual infra work, not tracked here.
+
+**Supabase identity (already unified, confirmed during this pass, not new work):** `gcaplabs-console`,
+`gcaplabs-headmasterUI`, and `gcaplabs-ios` (via console's BFF) already share one Supabase project
+(`profiles` table keyed by `auth.users.id`, carrying `email` + the assigned `agent37_id`/status/token
+fields from `0002_agent37_managed_runtime.sql`). `gcaplabs-hermeshq`'s separate self-hosted Postgres
+(users/orgs/OIDC/etc.) is not being merged in — that data is abandoned per the HermesHQ retirement
+decision, not migrated.
+
+**Remaining follow-ups (see `mastertodo.md`):** manual end-to-end desktop smoke against a live
+Agent37 instance, interactive mid-turn prompt rewire (cancel+resubmit), optional vendored
+`hermeshq/` deletion, NotebookLM bundle refresh, future STT support.
