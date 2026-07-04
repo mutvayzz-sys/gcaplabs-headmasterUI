@@ -29,8 +29,9 @@ screenshot truthiness stayed in review until accepted.
 **Console / `gcaplabs-console`:**
 - Added explicit CORS support to `/api/v1/[...path]` for the desktop dev origins and custom runtime
   headers: `Authorization`, `Content-Type`, `X-Hermes-Session-Key`, `X-Hermes-Session-Token`.
-  Route now handles `OPTIONS` and wraps proxied/error responses with CORS headers. This is needed
-  for `localhost:5173` desktop dev and will take effect on production after Git/Vercel auto-deploy.
+  Route now handles `OPTIONS` and wraps proxied/error responses with CORS headers. Pushed to
+  `gcaplabs-console/main` as `33a879f`; Vercel auto-deployed and live production preflight now
+  returns the expected `Access-Control-Allow-*` headers for `localhost:5173`.
 - Kept the reviewed logout/Gmail OAuth fixes: global authenticated logout control regression test
   alignment and Composio OAuth popup/callback/cancel handling.
 - Accepted the final Console branding cleanup review: the only remaining `agent37` strings are
@@ -42,7 +43,10 @@ screenshot truthiness stayed in review until accepted.
 **Verification before commit/push:**
 - `gcaplabs-headmasterUI`: `bunx vitest run tests/unit/common-adapter/httpBridge.test.ts --reporter=dot`
   → 32 passed; `bunx tsc --noEmit` → clean.
-- `gcaplabs-console`: `npm run typecheck` → clean; `npm run build` → clean Next production build.
+- `gcaplabs-console`: `npm run typecheck` → clean; `npm run build` → clean Next production build;
+  live production `OPTIONS https://www.console.gcaplabs.com/api/v1/health` from
+  `Origin: http://localhost:5173` returns `Access-Control-Allow-Headers` with
+  `X-Hermes-Session-Key`.
 
 **Board movement:** review-required implementation cards were marked done after owner asked to push;
 iOS stays on hold for Mac/Xcode logs; manual desktop smoke stays on hold for a human login/approved

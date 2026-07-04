@@ -27,8 +27,9 @@ kept in the review queue until owner direction; iOS and manual desktop smoke wer
 
 **Console / `gcaplabs-console`:**
 - Added CORS handling on `/api/v1/[...path]` for desktop-dev origins and the custom runtime headers
-  (`Authorization`, `Content-Type`, `X-Hermes-Session-Key`, `X-Hermes-Session-Token`). This still
-  requires the Git/Vercel auto-deploy before it affects `www.console.gcaplabs.com`.
+  (`Authorization`, `Content-Type`, `X-Hermes-Session-Key`, `X-Hermes-Session-Token`). Pushed to
+  `gcaplabs-console/main` as `33a879f`; Vercel auto-deployed and live OPTIONS preflight now returns
+  the expected `Access-Control-Allow-*` headers.
 - Kept the logout/Gmail OAuth regression fixes and focused scripts from the Console review lane.
 - Final branding cleanup review accepted: remaining `agent37` strings are intentional legacy SQL
   identifiers in a forward migration; no user-facing `Hermes` copy remains in active Console UI.
@@ -37,10 +38,13 @@ kept in the review queue until owner direction; iOS and manual desktop smoke wer
 **Verification before push:**
 - `gcaplabs-headmasterUI`: `bunx vitest run tests/unit/common-adapter/httpBridge.test.ts --reporter=dot`
   → 32 passed; `bunx tsc --noEmit` → clean.
-- `gcaplabs-console`: `npm run typecheck` → clean; `npm run build` → clean Next production build.
+- `gcaplabs-console`: `npm run typecheck` → clean; `npm run build` → clean Next production build;
+  live production `OPTIONS https://www.console.gcaplabs.com/api/v1/health` from
+  `Origin: http://localhost:5173` returns `Access-Control-Allow-Headers` with
+  `X-Hermes-Session-Key`.
 
 **Kanban state after routing:**
-- Review-required implementation cards are being closed/marked done as part of this push batch.
+- Review-required implementation cards are closed/marked done as part of this push batch.
 - iOS auth/build work is **on hold** until Mac/Xcode verification logs exist.
 - Manual desktop smoke is **on hold** until a human login / approved saved-login smoke session is
   available.
