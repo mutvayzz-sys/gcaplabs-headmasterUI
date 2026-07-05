@@ -1660,6 +1660,7 @@ export type I18nKey =
   | 'settings.groupAbout'
   | 'settings.groupAiCore'
   | 'settings.groupApp'
+  | 'settings.groupHeadmaster'
   | 'settings.groupHeadmasterUI'
   | 'settings.groupIntelligence'
   | 'settings.groupMemory'

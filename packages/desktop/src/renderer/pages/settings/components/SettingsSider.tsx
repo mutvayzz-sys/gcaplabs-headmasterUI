@@ -6,7 +6,6 @@ import { useExtensionSettingsTabs } from '@/renderer/hooks/system/useExtensionSe
 import {
   Api,
   Computer,
-  Earth,
   Info,
   Lightning,
   LinkCloud,
@@ -30,16 +29,16 @@ import { getSiderTooltipProps } from '@/renderer/utils/ui/siderTooltip';
  * The /settings/hermes route still exists for power-user / deep-link access.
  */
 export const BUILTIN_TAB_IDS = [
+  'appearance',
+  'webui',
+  'system',
+  'about',
   'model',
+  'runtime',
   'memory',
-  // 'hermes', // Connection — hidden until remote-mode is a real user-facing feature
   'tools',
   'skills-hub',
   'integrations',
-  'channels',
-  'appearance',
-  'system',
-  'about',
 ] as const;
 
 /**
@@ -51,8 +50,10 @@ export const LEGACY_ANCHOR_REMAP: Record<string, string> = {
   'skills-hub': 'skills-hub',
   tools: 'tools',
   display: 'appearance',
-  runtime: 'hermes',
-  webui: 'channels',
+  runtime: 'runtime',
+  hermes: 'runtime',
+  webui: 'webui',
+  channels: 'webui',
   integrations: 'integrations',
   assistants: 'skills-hub',
   agent: 'tools',
@@ -64,15 +65,15 @@ export const LEGACY_ANCHOR_REMAP: Record<string, string> = {
  * Extension tabs anchored between these builtins inherit the enclosing group visually.
  */
 const GROUP_HEADER_BEFORE: Record<string, string> = {
-  model: 'settings.groupIntelligence',
-  tools: 'settings.groupTools',
   appearance: 'settings.groupApp',
+  model: 'settings.groupHeadmaster',
 };
 
 type SiderItem = {
   id: string;
   label: string;
   icon: React.ReactElement;
+  badge?: 'Beta';
   isImageIcon?: boolean;
   /** Route path segment — for builtins: `/settings/{path}`, for extensions: `/settings/ext/{id}` */
   path: string;
@@ -102,6 +103,7 @@ const SettingsSider: React.FC<{ collapsed?: boolean; tooltipEnabled?: boolean }>
         id: 'memory',
         label: t('settings.memorySettings', { defaultValue: 'Memory & Context' }),
         icon: <MemoryOne />,
+        badge: 'Beta',
         path: 'memory',
       },
       hermes: {
@@ -126,25 +128,35 @@ const SettingsSider: React.FC<{ collapsed?: boolean; tooltipEnabled?: boolean }>
         id: 'tools',
         label: t('settings.capabilitiesTab.tools', { defaultValue: 'Tools' }),
         icon: <Api />,
+        badge: 'Beta',
         path: 'tools',
       },
       'skills-hub': {
         id: 'skills-hub',
         label: t('settings.capabilitiesTab.skills', { defaultValue: 'Skills' }),
         icon: <Puzzle />,
+        badge: 'Beta',
         path: 'skills-hub',
       },
       integrations: {
         id: 'integrations',
         label: t('settings.integrations', { defaultValue: 'Integrations' }),
         icon: <Api />,
+        badge: 'Beta',
         path: 'integrations',
       },
-      channels: {
-        id: 'channels',
-        label: t('settings.channels', { defaultValue: 'Channels' }),
-        icon: <Earth />,
-        path: 'channels',
+      runtime: {
+        id: 'runtime',
+        label: t('settings.runtime.menuLabel', { defaultValue: 'Runtime' }),
+        icon: <LinkCloud />,
+        badge: 'Beta',
+        path: 'runtime',
+      },
+      webui: {
+        id: 'webui',
+        label: t('settings.webui', { defaultValue: 'WebUI' }),
+        icon: <LinkCloud />,
+        path: 'webui',
       },
       appearance: { id: 'appearance', label: t('settings.appearancePanel'), icon: <Computer />, path: 'appearance' },
       system: { id: 'system', label: t('settings.system'), icon: <System />, path: 'system' },
@@ -186,6 +198,7 @@ const SettingsSider: React.FC<{ collapsed?: boolean; tooltipEnabled?: boolean }>
         id: tab.id,
         label: resolveExtTabName(tab),
         icon: resolvedIcon ? <img src={resolvedIcon} alt='' className='w-full h-full object-contain' /> : <Puzzle />,
+        badge: 'Beta',
         isImageIcon: Boolean(resolvedIcon),
         path: `ext/${tab.id}`,
       };
@@ -290,6 +303,11 @@ const SettingsSider: React.FC<{ collapsed?: boolean; tooltipEnabled?: boolean }>
                   <div className='settings-sider__item-label text-nowrap overflow-hidden inline-block w-full text-14px font-[500] lh-24px whitespace-nowrap text-t-primary'>
                     {item.label}
                   </div>
+                  {item.badge && !collapsed && (
+                    <span className='settings-sider__beta-badge ml-6px shrink-0 rd-100px border border-[rgba(var(--primary-6),0.25)] bg-[rgba(var(--primary-6),0.10)] px-6px py-1px text-10px font-600 leading-14px text-[rgb(var(--primary-6))] backdrop-blur-sm opacity-80'>
+                      {item.badge}
+                    </span>
+                  )}
                 </FlexFullContainer>
               </div>
             </Tooltip>

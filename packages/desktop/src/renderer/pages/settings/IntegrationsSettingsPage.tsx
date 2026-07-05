@@ -5,12 +5,12 @@
  */
 
 import React from 'react';
-import IntegrationsPage from '@/renderer/pages/integrations';
+import AppsPage from '@/renderer/pages/apps';
 import SettingsPageWrapper from './components/SettingsPageWrapper';
 
 const IntegrationsSettingsPage: React.FC = () => (
   <SettingsPageWrapper contentClassName='max-w-1100px'>
-    <IntegrationsPage />
+    <AppsPage />
   </SettingsPageWrapper>
 );
 

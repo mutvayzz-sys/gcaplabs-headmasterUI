@@ -1,5 +1,6 @@
 export type BackendGatedFeatureId =
   | 'channels'
+  | 'composio_integrations'
   | 'webui_remote_access'
   | 'extensions_install_permissions'
   | 'terminal_pty'
@@ -22,6 +23,13 @@ export const BACKEND_GATED_FEATURES: Record<BackendGatedFeatureId, BackendFeatur
     label: 'Channels',
     reason: 'Channel credential and session APIs are not contracted yet.',
     contractPath: 'docs/backend-contracts.md#channels-telegram-lark-dingtalk-wechat-wecom',
+  },
+  composio_integrations: {
+    id: 'composio_integrations',
+    active: true,
+    label: 'Composio integrations',
+    reason: 'Cloud connected-account and available-tool APIs are available through the Console BFF.',
+    contractPath: 'docs/backend-contracts.md#composio-integrations',
   },
   webui_remote_access: {
     id: 'webui_remote_access',

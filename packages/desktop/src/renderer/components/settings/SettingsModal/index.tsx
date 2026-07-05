@@ -25,8 +25,7 @@ import SystemModalContent from './contents/SystemModalContent';
 import ToolsModalContent from './contents/ToolsModalContent';
 import WebuiModalContent from './contents/WebuiModalContent';
 import SkillsHubSettings from '@/renderer/pages/settings/SkillsHubSettings';
-import IntegrationsPage from '@/renderer/pages/integrations';
-import ChannelsSettingsPage from '@/renderer/pages/settings/ChannelsSettingsPage';
+import AppsPage from '@/renderer/pages/apps';
 import { SettingsViewModeProvider } from './settingsViewContext';
 import { LEGACY_ANCHOR_REMAP } from '@/renderer/pages/settings/components/SettingsSider';
 
@@ -64,7 +63,6 @@ export type BuiltinSettingTab =
   | 'tools'
   | 'skills-hub'
   | 'integrations'
-  | 'channels'
   | 'webui'
   | 'runtime'
   | 'memory'
@@ -224,11 +222,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onCancel, defaul
         label: t('settings.integrations', { defaultValue: 'Integrations' }),
         icon: <Api theme='outline' size='20' fill={iconColors.secondary} />,
       },
-      {
-        key: 'channels',
-        label: t('settings.channels', { defaultValue: 'Channels' }),
-        icon: <Earth theme='outline' size='20' fill={iconColors.secondary} />,
-      },
     ];
 
     if (isDesktop) {
@@ -346,9 +339,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onCancel, defaul
       case 'skills-hub':
         return <SkillsHubSettings withWrapper={false} />;
       case 'integrations':
-        return <IntegrationsPage />;
-      case 'channels':
-        return <ChannelsSettingsPage withWrapper={false} />;
+        return <AppsPage />;
       case 'webui':
         return <WebuiModalContent />;
       case 'system':

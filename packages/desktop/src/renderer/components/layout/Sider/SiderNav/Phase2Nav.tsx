@@ -24,17 +24,18 @@ interface NavItem {
   icon: Icon;
   labelKey: string;
   defaultLabel: string;
+  badge?: 'Beta';
   requiredCapability?: string;
 }
 
 const NAV_ITEMS: NavItem[] = [
   { path: '/guid', icon: ChatCircle, labelKey: 'sidebar.chat', defaultLabel: 'Chat', requiredCapability: 'chat' },
-  { path: '/memory', icon: Brain, labelKey: 'sidebar.memory', defaultLabel: 'Memory', requiredCapability: 'chat' },
-  { path: '/agents', icon: Users, labelKey: 'sidebar.agents', defaultLabel: 'Agents', requiredCapability: 'terminal' },
-  { path: '/scheduled', icon: Clock, labelKey: 'sidebar.automations', defaultLabel: 'Automations', requiredCapability: 'cowork' },
-  { path: '/kanban', icon: Kanban, labelKey: 'sidebar.kanban', defaultLabel: 'Kanban', requiredCapability: 'cowork' },
-  { path: '/assets', icon: Package, labelKey: 'sidebar.deliverables', defaultLabel: 'Deliverables', requiredCapability: 'local_files' },
-  { path: '/apps', icon: Plugs, labelKey: 'sidebar.apps', defaultLabel: 'Apps', requiredCapability: 'integrations' },
+  { path: '/memory', icon: Brain, labelKey: 'sidebar.memory', defaultLabel: 'Memory', badge: 'Beta', requiredCapability: 'chat' },
+  { path: '/agents', icon: Users, labelKey: 'sidebar.agents', defaultLabel: 'Agents', badge: 'Beta', requiredCapability: 'terminal' },
+  { path: '/scheduled', icon: Clock, labelKey: 'sidebar.automations', defaultLabel: 'Automations', badge: 'Beta', requiredCapability: 'cowork' },
+  { path: '/kanban', icon: Kanban, labelKey: 'sidebar.kanban', defaultLabel: 'Kanban', badge: 'Beta', requiredCapability: 'cowork' },
+  { path: '/assets', icon: Package, labelKey: 'sidebar.deliverables', defaultLabel: 'Deliverables', badge: 'Beta', requiredCapability: 'local_files' },
+  { path: '/apps', icon: Plugs, labelKey: 'sidebar.apps', defaultLabel: 'Apps', badge: 'Beta', requiredCapability: 'integrations' },
   { path: '/settings/model', icon: GearSix, labelKey: 'sidebar.settings', defaultLabel: 'Settings', requiredCapability: 'runtime_settings' },
 ];
 
@@ -69,6 +70,7 @@ export default function Phase2Nav({ isMobile, collapsed, siderTooltipProps, onNa
             icon={item.icon}
             labelKey={item.labelKey}
             defaultLabel={item.defaultLabel}
+            badge={item.badge}
           />
         );
       })}

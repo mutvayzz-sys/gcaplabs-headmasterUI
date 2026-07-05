@@ -10,13 +10,10 @@ import { isBackendHttpError } from '@/common/adapter/httpBridge';
 import { configService } from '@/common/config/configService';
 import AionModal from '@/renderer/components/base/AionModal';
 import AionScrollArea from '@/renderer/components/base/AionScrollArea';
-import ChannelDiscordLogo from '@/renderer/assets/channel-logos/discord.svg';
-import ChannelSlackLogo from '@/renderer/assets/channel-logos/slack.svg';
-import ChannelTelegramLogo from '@/renderer/assets/channel-logos/telegram.svg';
 import { BACKEND_GATED_FEATURES } from '@/renderer/utils/backendFeatureGates';
 import { isElectronDesktop } from '@/renderer/utils/platform';
-import { Button, Form, Input, Message, Switch, Tabs, Tooltip } from '@arco-design/web-react';
-import { CheckOne, Communication, Copy, Earth, EditTwo, Refresh } from '@icon-park/react';
+import { Button, Form, Input, Message, Switch, Tooltip } from '@arco-design/web-react';
+import { CheckOne, Copy, Earth, EditTwo, Refresh } from '@icon-park/react';
 import React, { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSettingsViewMode } from '../settingsViewContext';
@@ -43,13 +40,6 @@ const PreferenceRow: React.FC<{
   </div>
 );
 
-const CHANNEL_LOGOS = [
-  { src: ChannelTelegramLogo, alt: 'Telegram' },
-  { src: ChannelSlackLogo, alt: 'Slack' },
-  { src: ChannelDiscordLogo, alt: 'Discord' },
-] as const;
-
-const ChannelModalContentLazy = React.lazy(() => import('./channels/ChannelModalContent'));
 const QRCodeSVGLazy = React.lazy(async () => {
   const mod = await import('qrcode.react');
   return { default: mod.QRCodeSVG };
@@ -67,7 +57,6 @@ const WebuiModalContent: React.FC<{ webuiOnly?: boolean }> = ({ webuiOnly = fals
   const { t } = useTranslation();
   const viewMode = useSettingsViewMode();
   const isPageMode = viewMode === 'page';
-  const [activeTab, setActiveTab] = useState<'webui' | 'channels'>('webui');
 
   // 检测是否在 Electron 桌面环境 / Check if running in Electron desktop environment
   const isDesktop = isElectronDesktop();
@@ -551,16 +540,18 @@ const WebuiModalContent: React.FC<{ webuiOnly?: boolean }> = ({ webuiOnly = fals
   const displayPassword = getDisplayPassword();
   const displayUsername = status?.adminUsername || 'admin';
 
-  // 浏览器端只显示 Channels 配置，不显示 WebUI 服务配置 / In browser mode, only show Channels config, not WebUI service config
+  // Browser mode has no desktop WebUI service bridge. Channels/messaging are not shipping.
   if (!isDesktop) {
     return (
       <div className='flex flex-col h-full w-full'>
         <AionScrollArea className='flex-1 min-h-0 pb-16px' disableOverflow={isPageMode}>
-          <div className='space-y-16px'>
-            <h2 className='text-20px font-500 text-t-primary m-0'>Channels</h2>
-            <Suspense fallback={<div className='text-13px text-t-secondary'>{t('common.loading')}</div>}>
-              <ChannelModalContentLazy />
-            </Suspense>
+          <div className='space-y-8px px-[12px] md:px-[28px]'>
+            <h2 className='text-20px font-500 text-t-primary m-0'>WebUI</h2>
+            <p className='m-0 text-13px text-t-secondary leading-relaxed'>
+              {t('settings.webui.browserNotSupportedDesc', {
+                defaultValue: 'WebUI service controls are available in the Headmaster desktop app.',
+              })}
+            </p>
           </div>
         </AionScrollArea>
       </div>
@@ -809,61 +800,7 @@ const WebuiModalContent: React.FC<{ webuiOnly?: boolean }> = ({ webuiOnly = fals
 
   return (
     <div className='flex flex-col h-full w-full'>
-      <Tabs
-        activeTab={activeTab}
-        onChange={(key) => setActiveTab((key as 'webui' | 'channels') || 'webui')}
-        type='line'
-        className='mb-12px settings-remote-tabs'
-      >
-        <Tabs.TabPane
-          key='webui'
-          title={
-            <span
-              data-webui-tab='webui'
-              className={`inline-flex items-center gap-6px transition-colors ${activeTab === 'webui' ? 'text-t-primary font-600' : 'text-t-secondary'}`}
-            >
-              <Earth theme='outline' size='15' />
-              <span>WebUI</span>
-            </span>
-          }
-        />
-        <Tabs.TabPane
-          key='channels'
-          title={
-            <span
-              data-webui-tab='channels'
-              className={`inline-flex items-center gap-6px transition-colors ${activeTab === 'channels' ? 'text-t-primary font-600' : 'text-t-secondary'}`}
-            >
-              <Communication theme='outline' size='15' />
-              <span>Channels</span>
-              <span className='inline-flex items-center gap-4px ml-2px'>
-                {CHANNEL_LOGOS.map((item) => (
-                  <span
-                    key={item.alt}
-                    className='inline-flex items-center justify-center w-16px h-16px rd-50% border border-line bg-fill-1'
-                    title={item.alt}
-                    aria-label={item.alt}
-                  >
-                    <img src={item.src} alt={item.alt} className='w-14px h-14px object-contain' />
-                  </span>
-                ))}
-              </span>
-            </span>
-          }
-        />
-      </Tabs>
-
-      {activeTab === 'webui' ? (
-        webuiPanel
-      ) : (
-        <div className='flex-1 min-h-0'>
-          <Suspense
-            fallback={<div className='px-[12px] md:px-[28px] text-13px text-t-secondary'>{t('common.loading')}</div>}
-          >
-            <ChannelModalContentLazy />
-          </Suspense>
-        </div>
-      )}
+      {webuiPanel}
 
       <AionModal
         visible={setUsernameModalVisible}

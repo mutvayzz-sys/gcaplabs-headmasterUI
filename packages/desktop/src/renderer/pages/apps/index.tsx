@@ -31,6 +31,8 @@ const AppsPage: React.FC = () => {
     connecting,
     disconnecting,
     error,
+    gated,
+    gateReason,
     search,
     setSearch,
     connect,
@@ -62,7 +64,21 @@ const AppsPage: React.FC = () => {
         <h1 className='text-18px font-semibold text-t-primary'>
           {t('apps.title', { defaultValue: 'Apps' })}
         </h1>
+        <span className='rd-100px border border-[rgba(var(--primary-6),0.25)] bg-[rgba(var(--primary-6),0.10)] px-7px py-2px text-10px font-600 text-[rgb(var(--primary-6))]'>
+          Beta
+        </span>
+        {gated ? <span className='rd-100px border border-line px-7px py-2px text-10px font-600 text-t-secondary'>Gated</span> : null}
       </div>
+
+      {gated ? (
+        <div className='mb-16px rounded-10px border border-warning-3 bg-warning-1 px-12px py-10px text-12px text-warning-7 leading-relaxed shrink-0'>
+          {t('apps.gatedNotice', {
+            defaultValue:
+              'Composio connected apps are visible as a beta entry, but disabled until the Console exposes the required integration APIs.',
+          })}{' '}
+          {gateReason}
+        </div>
+      ) : null}
 
       <div className='flex items-center gap-4px border-b border-line-1 mb-16px shrink-0'>
         <button
@@ -102,6 +118,7 @@ const AppsPage: React.FC = () => {
               <Input
                 value={search}
                 onChange={setSearch}
+                disabled={gated}
                 placeholder={t('apps.searchPlaceholder', { defaultValue: 'Search 1000+ apps…' })}
                 className='pl-32px!'
               />
@@ -111,7 +128,9 @@ const AppsPage: React.FC = () => {
               <div className='rounded-8px border border-dashed border-line-1 p-24px text-center text-13px text-t-secondary'>
                 {search.trim().length > 0 && search.trim().length < MIN_SEARCH
                   ? t('apps.searchMinChars', { defaultValue: `Type at least ${MIN_SEARCH} characters to search.` })
-                  : t('apps.noneFound', { defaultValue: 'No apps found.' })}
+                  : gated
+                    ? t('apps.gatedEmpty', { defaultValue: 'Connectors will appear here once the backend is ready.' })
+                    : t('apps.noneFound', { defaultValue: 'No apps found.' })}
               </div>
             ) : (
               <>
@@ -140,7 +159,7 @@ const AppsPage: React.FC = () => {
                         <Button
                           size='mini'
                           type={connected ? 'secondary' : 'primary'}
-                          disabled={connected || connecting === toolkit.slug}
+                          disabled={gated || connected || connecting === toolkit.slug}
                           onClick={() => void connect(toolkit.slug)}
                           icon={
                             connecting === toolkit.slug ? (
@@ -197,7 +216,7 @@ const AppsPage: React.FC = () => {
                 <Button
                   size='small'
                   type='secondary'
-                  disabled={disconnecting === conn.id}
+                  disabled={gated || disconnecting === conn.id}
                   onClick={() => void disconnect(conn.id)}
                   icon={
                     disconnecting === conn.id ? (

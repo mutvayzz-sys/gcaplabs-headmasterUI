@@ -6,11 +6,14 @@
 
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { Button, Empty, Spin } from '@arco-design/web-react';
+import { Button, Card, Empty, Spin, Tag } from '@arco-design/web-react';
 import { Plugs, ArrowCounterClockwise } from '@phosphor-icons/react';
 import classNames from 'classnames';
 import { useLayoutContext } from '@renderer/hooks/context/LayoutContext';
 import { useIntegrations } from './useIntegrations';
+import { BACKEND_GATED_FEATURES } from '@/renderer/utils/backendFeatureGates';
+
+const COMPOSIO_GATE = BACKEND_GATED_FEATURES.composio_integrations;
 
 const IntegrationsPage: React.FC = () => {
   const layout = useLayoutContext();
@@ -43,6 +46,36 @@ const IntegrationsPage: React.FC = () => {
           defaultValue: 'Webhook subscriptions for runtime events. MCP servers are managed under Settings → Tools.',
         })}
       </p>
+
+      <Card className='mb-14px bg-fill-1 border border-border-2' bordered={false}>
+        <div className='flex items-start justify-between gap-16px'>
+          <div className='min-w-0'>
+            <div className='flex items-center gap-8px mb-6px'>
+              <span className='text-15px font-600 text-t-primary'>
+                {t('integrations.composioTitle', { defaultValue: 'Composio connected apps' })}
+              </span>
+              <Tag size='small' color='purple'>
+                Beta
+              </Tag>
+              {!COMPOSIO_GATE.active && <Tag size='small'>Gated</Tag>}
+            </div>
+            <p className='text-13px text-t-secondary m-0 leading-relaxed'>
+              {t('integrations.composioHint', {
+                defaultValue:
+                  'Connect Gmail, Drive, Slack, GitHub, and other Composio apps so Headmaster can expose their tools to the runtime.',
+              })}
+            </p>
+            {!COMPOSIO_GATE.active && (
+              <div className='mt-10px rd-10px border border-warning-3 bg-warning-1 px-10px py-8px text-12px text-warning-7 leading-relaxed'>
+                {COMPOSIO_GATE.label} are disabled until the backend contract is implemented. {COMPOSIO_GATE.reason}
+              </div>
+            )}
+          </div>
+          <Button type='primary' disabled={!COMPOSIO_GATE.active}>
+            {t('integrations.connectApp', { defaultValue: 'Connect app' })}
+          </Button>
+        </div>
+      </Card>
 
       <div className='flex-1 min-h-0 overflow-y-auto mt-12px'>
         {error && (

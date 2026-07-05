@@ -6,11 +6,13 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ComposioConnection, ComposioToolkit } from '@/common/types/platform/electron';
+import { BACKEND_GATED_FEATURES } from '@/renderer/utils/backendFeatureGates';
 
 export type { ComposioConnection, ComposioToolkit };
 
 const SEARCH_DEBOUNCE_MS = 250;
 const MIN_SEARCH = 3; // matches the console's /api/chat/integrations/toolkits route's own guard
+const COMPOSIO_GATE = BACKEND_GATED_FEATURES.composio_integrations;
 
 function isActive(connection: ComposioConnection): boolean {
   return connection.status.toUpperCase() === 'ACTIVE';
@@ -32,6 +34,8 @@ interface UseComposioAppsReturn {
   connecting: string | null;
   disconnecting: string | null;
   error: string | null;
+  gated: boolean;
+  gateReason: string;
   search: string;
   setSearch: (value: string) => void;
   connect: (slug: string) => Promise<void>;
@@ -40,11 +44,12 @@ interface UseComposioAppsReturn {
 }
 
 export function useComposioApps(): UseComposioAppsReturn {
+  const gated = !COMPOSIO_GATE.active;
   const [toolkits, setToolkits] = useState<ComposioToolkit[]>([]);
   const [connections, setConnections] = useState<ComposioConnection[]>([]);
-  const [loadingToolkits, setLoadingToolkits] = useState(true);
+  const [loadingToolkits, setLoadingToolkits] = useState(!gated);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [loadingConnections, setLoadingConnections] = useState(true);
+  const [loadingConnections, setLoadingConnections] = useState(!gated);
   const [connecting, setConnecting] = useState<string | null>(null);
   const [disconnecting, setDisconnecting] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -57,19 +62,30 @@ export function useComposioApps(): UseComposioAppsReturn {
   const [hasMore, setHasMore] = useState(false);
 
   const refreshConnections = useCallback(async (): Promise<ComposioConnection[]> => {
+    if (gated) {
+      setConnections([]);
+      return [];
+    }
+
     const result = await window.electronAPI?.listComposioConnections?.();
     if (!result?.success) throw new Error(result?.error ?? 'Failed to load connections');
     const conns = result.data?.connections ?? [];
     setConnections(conns);
     return conns;
-  }, []);
+  }, [gated]);
 
   useEffect(() => {
+    if (gated) {
+      setConnections([]);
+      setLoadingConnections(false);
+      return;
+    }
+
     setLoadingConnections(true);
     refreshConnections()
       .catch((e: Error) => setError(e.message))
       .finally(() => setLoadingConnections(false));
-  }, [refreshConnections]);
+  }, [gated, refreshConnections]);
 
   const fetchPage = useCallback((query: string, cursor: string | null, seq: number) => {
     return window.electronAPI
@@ -90,6 +106,18 @@ export function useComposioApps(): UseComposioAppsReturn {
   // Reset and refetch from page one whenever the search query changes.
   useEffect(() => {
     const query = search.trim();
+    if (gated) {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      requestSeq.current += 1;
+      cursorRef.current = null;
+      setToolkits([]);
+      setHasMore(false);
+      setLoadingToolkits(false);
+      setLoadingMore(false);
+      setError(null);
+      return;
+    }
+
     if (query.length > 0 && query.length < MIN_SEARCH) return;
     if (debounceRef.current) clearTimeout(debounceRef.current);
     const seq = ++requestSeq.current;
@@ -108,10 +136,10 @@ export function useComposioApps(): UseComposioAppsReturn {
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
-  }, [search, fetchPage]);
+  }, [gated, search, fetchPage]);
 
   const loadMore = useCallback(() => {
-    if (!cursorRef.current || loadingMore || loadingToolkits) return;
+    if (gated || !cursorRef.current || loadingMore || loadingToolkits) return;
     const seq = requestSeq.current;
     setLoadingMore(true);
     fetchPage(search.trim(), cursorRef.current, seq)
@@ -119,10 +147,15 @@ export function useComposioApps(): UseComposioAppsReturn {
         if (seq === requestSeq.current) setError(e.message);
       })
       .finally(() => setLoadingMore(false));
-  }, [fetchPage, loadingMore, loadingToolkits, search]);
+  }, [fetchPage, gated, loadingMore, loadingToolkits, search]);
 
   const connect = useCallback(
     async (slug: string) => {
+      if (gated) {
+        setError(COMPOSIO_GATE.reason);
+        return;
+      }
+
       setConnecting(slug);
       setError(null);
       try {
@@ -147,23 +180,31 @@ export function useComposioApps(): UseComposioAppsReturn {
         setConnecting(null);
       }
     },
-    [refreshConnections]
+    [gated, refreshConnections]
   );
 
-  const disconnect = useCallback(async (connectionId: string) => {
-    setDisconnecting(connectionId);
-    setError(null);
-    try {
-      const result = await window.electronAPI?.disconnectComposioConnection?.(connectionId);
-      if (!result?.success) throw new Error(result?.error ?? 'Failed to disconnect.');
-      const updated = await window.electronAPI?.listComposioConnections?.();
-      if (updated?.success) setConnections(updated.data?.connections ?? []);
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setDisconnecting(null);
-    }
-  }, []);
+  const disconnect = useCallback(
+    async (connectionId: string) => {
+      if (gated) {
+        setError(COMPOSIO_GATE.reason);
+        return;
+      }
+
+      setDisconnecting(connectionId);
+      setError(null);
+      try {
+        const result = await window.electronAPI?.disconnectComposioConnection?.(connectionId);
+        if (!result?.success) throw new Error(result?.error ?? 'Failed to disconnect.');
+        const updated = await window.electronAPI?.listComposioConnections?.();
+        if (updated?.success) setConnections(updated.data?.connections ?? []);
+      } catch (e) {
+        setError((e as Error).message);
+      } finally {
+        setDisconnecting(null);
+      }
+    },
+    [gated]
+  );
 
   const connectedSlugs = new Set(
     connections
@@ -184,6 +225,8 @@ export function useComposioApps(): UseComposioAppsReturn {
     connecting,
     disconnecting,
     error,
+    gated,
+    gateReason: COMPOSIO_GATE.reason,
     search,
     setSearch,
     connect,

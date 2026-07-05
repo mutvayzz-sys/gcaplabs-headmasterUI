@@ -16,7 +16,7 @@ const MemorySettings = React.lazy(() => import('@renderer/pages/settings/MemoryS
 const ToolsSettingsPage = React.lazy(() => import('@renderer/pages/settings/ToolsSettingsPage'));
 const SkillsHubSettings = React.lazy(() => import('@renderer/pages/settings/SkillsHubSettings'));
 const IntegrationsSettingsPage = React.lazy(() => import('@renderer/pages/settings/IntegrationsSettingsPage'));
-const ChannelsSettingsPage = React.lazy(() => import('@renderer/pages/settings/ChannelsSettingsPage'));
+const WebuiSettings = React.lazy(() => import('@renderer/pages/settings/WebuiSettings'));
 const LoginPage = React.lazy(() => import('@renderer/pages/login'));
 const ComponentsShowcase = React.lazy(() => import('@renderer/pages/TestShowcase'));
 const ScheduledTasksPage = React.lazy(() => import('@renderer/pages/cron/ScheduledTasksPage'));
@@ -38,13 +38,13 @@ export const SETTINGS_PRIMARY_ROUTES = {
   tools: '/settings/tools',
   skills: '/settings/skills-hub',
   integrations: '/settings/integrations',
-  channels: '/settings/channels',
+  webui: '/settings/webui',
 } as const;
 
 export const SETTINGS_LEGACY_REDIRECTS = {
   '/settings/capabilities': SETTINGS_PRIMARY_ROUTES.tools,
   '/settings/skills': SETTINGS_PRIMARY_ROUTES.skills,
-  '/settings/webui': SETTINGS_PRIMARY_ROUTES.channels,
+  '/settings/channels': SETTINGS_PRIMARY_ROUTES.webui,
   '/settings/advanced': SETTINGS_PRIMARY_ROUTES.tools,
 } as const;
 
@@ -126,12 +126,12 @@ const PanelRoute: React.FC<{ layout: React.ReactElement }> = ({ layout }) => {
             element={<Navigate to={SETTINGS_LEGACY_REDIRECTS['/settings/skills']} replace />}
           />
           <Route path={SETTINGS_PRIMARY_ROUTES.tools} element={withRouteFallback(ToolsSettingsPage)} />
-          <Route path={SETTINGS_PRIMARY_ROUTES.channels} element={withRouteFallback(ChannelsSettingsPage)} />
+          <Route path={SETTINGS_PRIMARY_ROUTES.webui} element={withRouteFallback(WebuiSettings)} />
           <Route path='/settings/appearance' element={withRouteFallback(AppearanceSettings)} />
           <Route path='/settings/display' element={<Navigate to='/settings/appearance' replace />} />
           <Route
-            path='/settings/webui'
-            element={<Navigate to={SETTINGS_LEGACY_REDIRECTS['/settings/webui']} replace />}
+            path='/settings/channels'
+            element={<Navigate to={SETTINGS_LEGACY_REDIRECTS['/settings/channels']} replace />}
           />
           <Route
             path='/settings/advanced'

@@ -20,6 +20,7 @@ interface SiderNavEntryProps {
   icon: Icon;
   labelKey: string;
   defaultLabel?: string;
+  badge?: 'Beta';
 }
 
 const SiderNavEntry: React.FC<SiderNavEntryProps> = ({
@@ -31,6 +32,7 @@ const SiderNavEntry: React.FC<SiderNavEntryProps> = ({
   icon: IconComp,
   labelKey,
   defaultLabel = labelKey,
+  badge,
 }) => {
   const { t } = useTranslation();
   const label = t(labelKey, { defaultValue: defaultLabel });
@@ -64,7 +66,12 @@ const SiderNavEntry: React.FC<SiderNavEntryProps> = ({
         <span className='size-22px flex items-center justify-center shrink-0 text-t-primary'>
           <IconComp size={16} weight='regular' className='block leading-none' style={{ lineHeight: 0 }} />
         </span>
-        <span className='text-t-primary text-14px font-[500] leading-24px'>{label}</span>
+        <span className='min-w-0 flex-1 truncate text-t-primary text-14px font-[500] leading-24px'>{label}</span>
+        {badge ? (
+          <span className='shrink-0 rd-100px border border-[rgba(var(--primary-6),0.25)] bg-[rgba(var(--primary-6),0.10)] px-6px py-1px text-10px font-600 leading-14px text-[rgb(var(--primary-6))]'>
+            {badge}
+          </span>
+        ) : null}
       </div>
     </Tooltip>
   );

@@ -13,24 +13,23 @@ import { getBuiltinSettingsNavItems } from '../../../packages/desktop/src/render
 const translate = (_key: string, options?: { defaultValue?: string }): string => options?.defaultValue ?? _key;
 
 describe('settings navigation contract', () => {
-  it('keeps Tools, Skills, Integrations, and Channels as ordered first-class tabs', () => {
+  it('keeps Headmaster settings surfaces ordered and routes Channels to WebUI compatibility', () => {
     const toolStart = BUILTIN_TAB_IDS.indexOf('tools');
 
-    expect(BUILTIN_TAB_IDS.slice(toolStart, toolStart + 4)).toEqual([
+    expect(BUILTIN_TAB_IDS.slice(toolStart, toolStart + 3)).toEqual([
       'tools',
       'skills-hub',
       'integrations',
-      'channels',
     ]);
     expect(SETTINGS_PRIMARY_ROUTES).toEqual({
       tools: '/settings/tools',
       skills: '/settings/skills-hub',
       integrations: '/settings/integrations',
-      channels: '/settings/channels',
+      webui: '/settings/webui',
     });
   });
 
-  it('uses clear English fallback labels for the four settings surfaces', () => {
+  it('uses clear English fallback labels for Headmaster settings surfaces', () => {
     const items = getBuiltinSettingsNavItems(true, translate);
     const labels = Object.fromEntries(items.map((item) => [item.id, item.label]));
 
@@ -38,22 +37,22 @@ describe('settings navigation contract', () => {
       tools: 'Tools',
       'skills-hub': 'Skills',
       integrations: 'Integrations',
-      channels: 'Channels',
     });
+    expect(labels).not.toHaveProperty('channels');
   });
 
   it('redirects inherited routes and extension anchors to supported destinations', () => {
     expect(SETTINGS_LEGACY_REDIRECTS).toEqual({
       '/settings/capabilities': '/settings/tools',
       '/settings/skills': '/settings/skills-hub',
-      '/settings/webui': '/settings/channels',
+      '/settings/channels': '/settings/webui',
       '/settings/advanced': '/settings/tools',
     });
     expect(LEGACY_ANCHOR_REMAP).toMatchObject({
       tools: 'tools',
       'skills-hub': 'skills-hub',
       integrations: 'integrations',
-      webui: 'channels',
+      channels: 'webui',
     });
   });
 });
