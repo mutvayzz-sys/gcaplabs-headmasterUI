@@ -103,8 +103,8 @@ gcaplabs-headmasterUI/
 ├── packages/desktop/          # Electron main, preload, renderer, adapters
 ├── packages/web-cli/          # web CLI package
 ├── packages/web-host/         # web host package
-├── mastertodo.md              # current desktop todo log
-├── masterlog.md               # chronological desktop work log
+├── ../gcaplabs-home/sources-of-truth/headmasterui/mastertodo.md  # current desktop todo log
+├── ../gcaplabs-home/sources-of-truth/headmasterui/masterlog.md   # chronological desktop work log
 └── veeplan.md                 # historical beta-readiness plan; newer status notes supersede it
 ```
 
@@ -139,7 +139,6 @@ bun run dev
 ## Current open items
 
 - End-to-end desktop smoke against the existing provisioned Agent37 runtime. Do not create a new runtime unless explicitly asked.
-- Push/release the rebased local desktop and console commits.
 - Keep local runtime path, but document it as app/local fallback instead of primary cloud backend.
 - Keep `applyProvisionToRuntime.ts` for local runtime only.
 - Vendored HermesHQ cleanup is done for the desktop repo; only the separate historical `gcaplabs-hermeshq/` repo remains outside this project.

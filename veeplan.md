@@ -5,8 +5,9 @@
 > The single execution roadmap that takes GCAP Labs from today's state to a functioning,
 > beta-testable, multi-user product, modeled on Agent37's clean open-source implementation.
 >
-> **Implementation plan:** see `.hermes/plans/2026-06-30_222130-headmaster-beta-readiness.md`
-> for the full bite-sized task breakdown (Phases 0–7, file paths, verification steps).
+> **Historical implementation plan:** archived at
+> `../_support/archive/plans/stale-2026-07-05/2026-06-30_222130-headmaster-beta-readiness.md`.
+> Current plans/logs live in `../gcaplabs-home/`; start with `../gcaplabs-home/SOURCES.md`.
 >
 > **VPS infra status (2026-06-30):** Docker/Compose, Traefik v3.5, Cloudflare tunnel ingress,
 > forward-auth, Portainer, Cockpit, and the Agent37/Hermes runtime image are installed on `vps`.

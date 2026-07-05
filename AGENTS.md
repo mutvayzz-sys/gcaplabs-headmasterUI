@@ -8,7 +8,7 @@
 
 | Path                                              | What it is                                                                                                                                                                                                                     | When to use it                                                                                             | When to ignore it                                                                    |
 | ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
-| `gcaplabs-headmasterUI/`                         | **The actual app.** Electron + Vite + React + TypeScript. This is the build target. Pushed to `gcaplabs-headmasterUI` (private) on GitHub. **v0.2.2** adds cloud container support, capability gating, and cross-device session namespace. | Always — unless explicitly told otherwise.                                                                 | Never.                                                                               |
+| `gcaplabs-headmasterUI/`                         | **The actual app.** Electron + Vite + React + TypeScript. This is the build target. Pushed to `gcaplabs-headmasterUI` (private) on GitHub. Current version lives in root `package.json`. Agent37 Cloud is primary; local runtime is retained for app/dev/fallback. | Always — unless explicitly told otherwise.                                                                 | Never.                                                                               |
 | `headmaster-hub/`                                 | The "Headmaster Hub" web frontend (separate product). Has its own `.git`.                                                                                                                                                      | When the user asks about the Headmaster Hub web app.                                                       | For desktop work, ignore entirely.                                                   |
 | `gcaplabs-site/`                                  | The GCAP Labs marketing site. Next.js 15 App Router. **Live on gcaplabs.com.** Pushed to `mutvayzz-sys/gcaplabs-site` (private) on GitHub.                                                                                     | When the user asks to change gcaplabs.com / Headmaster HQ copy or pages.                                   | For desktop work, ignore entirely.                                                   |
 | `runtime/hermes-agent/`                           | The Python runtime (NousResearch). The actual agent code that runs in the background. Spawned by the desktop app via `hermes dashboard`. This is the **canonical** checkout.                                                   | When the user asks about runtime behavior, dashboard endpoints, or the `hermes_bootstrap.py` install flow. | For UI / frontstuff work — that's `gcaplabs-headmasterUI/`. |
@@ -44,7 +44,7 @@ bunx electron-vite build --config packages/desktop/electron.vite.config.ts
 node scripts/build-with-builder.js auto --win
 ```
 
-**Version:** `0.2.1` (release candidate; final packaged validation tracked in `mastertodo.md`). Output filenames track this version.
+**Version:** see root `package.json` (`0.2.34` at the time of this cleanup). Output filenames track this version.
 
 Output lands in `gcaplabs-headmasterUI/out/`:
 
@@ -56,7 +56,7 @@ For a quick iteration that only produces the runnable portable exe (skips the sl
 
 **Launch test:** `out\win-unpacked\Headmaster.exe`. Logs go to `%APPDATA%\Headmaster\logs\YYYY-MM-DD.log`.
 
-**Runtime: Hermes Python** (per the 2026-06-15 runtime pivot). The desktop supports two runtime modes: **Local Hermes** starts `hermes dashboard` on this machine, while **Remote Hermes** connects to a configured host/port/token. The legacy desktop backend resolver, bundled binary preparation, and fallback startup path have been removed.
+**Runtime: dual mode — Agent37 Cloud primary, local Headmaster runtime fallback/dev.** Cloud routing is centralized in `packages/desktop/src/common/adapter/backendUrl.ts`; local mode starts `hermes dashboard` on this machine when no cloud container is provisioned or when app/dev/fallback work needs it.
 
 ---
 
@@ -73,8 +73,8 @@ For a quick iteration that only produces the runnable portable exe (skips the sl
 
 ## Things that are easy to get wrong
 
-- **Remote runtime mode exists now.** Settings → Runtime has a Local/Remote selector plus host/port/token fields. Remote mode sets `__backendHost`, `__backendPort`, and `__hermesSessionToken` instead of spawning local Hermes. Local mode still starts `hermes dashboard`.
-- **There is no legacy desktop backend fallback.** Don't restore the removed binary resolver, bundled binary preparation, or fallback startup path. Hermes is the only desktop runtime.
+- **Agent37 Cloud is primary now.** Desktop backend requests route through `backendUrl.ts`; cloud mode uses the provisioned Agent37 `/v1` endpoint and bearer auth.
+- **Local runtime stays.** Don't delete `hermesBootstrap.ts`, local runtime UI, or `applyProvisionToRuntime.ts`; they're still valid for app/dev/fallback work.
 - **"Hermes" is allowed in some places, forbidden in others.** Allowed in: env var names (`HERMES_HOME`, `HERMES_DESKTOP_*`), the `hermes-media://` URL scheme, the Python venv directory `~/.hermes/hermes-agent/`, the `hermes` console script name, the `hermes dashboard` spawn command. Forbidden in: any user-visible UI string, app name, About panel, window title, marketing copy. See WHITE-LABEL-AUDIT.md for the full list.
 - **The Headmaster icon (the Sorting Hat) doesn't exist yet.** All icon assets are PLACEHOLDER per `HEADMASTER-ASSET-INVENTORY.md`. Don't reference them as if they exist.
 - **`gcaplabs-site/` is the website, not the desktop.** Different stack, different product surface. If the user says "change the website", that's `gcaplabs-site/`. If they say "change the app", that's `gcaplabs-headmasterUI/`.
@@ -91,10 +91,10 @@ For a quick iteration that only produces the runnable portable exe (skips the sl
 - **White-label audit:** `gcaplabs-headmasterUI/docs/white-label/WHITE-LABEL-AUDIT.md` (read before any rename work).
 - **Vocab mapping:** `gcaplabs-headmasterUI/docs/white-label/HEADMASTER-VOCABULARY.csv` (read before any naming work).
 - **Hermes runtime recon:** `runtime-recon/RECON.md` (read before any runtime/backend work).
-- **The plan:** `gcaplabs-headmasterUI/docs/white-label/WHAT-WE-TAKE.md` (high-level; likely out of date, the recon wins).
-- **Active backlog:** `mastertodo.md` — read this first when resuming desktop work. The current roadmap is the Agent37-aligned beta-readiness plan in `veeplan.md` (Phases 0–7); `mastertodo.md` tracks per-phase status and outstanding items.
+- **Current plans/logs/checklists:** `gcaplabs-home/` is the only active source-of-truth folder. Start with `gcaplabs-home/SOURCES.md`, then `gcaplabs-home/sources-of-truth/headmasterui/mastertodo.md` and `gcaplabs-home/sources-of-truth/headmasterui/masterlog.md`.
+- **Deleted stale plan:** `docs/white-label/WHAT-WE-TAKE.md` is gone; do not resurrect the old 14-screen plate, Analytics, or Approvals.
 - **Update check architecture:** `updateBridge.ts` calls `https://gcaplabs.com/api/release` (Vercel proxy, 5-min cache) which proxies `mutvayzz-sys/gcaplabs-headmasterUI` GitHub releases with a server-side `GITHUB_TOKEN`. Needs `GITHUB_TOKEN` set in Vercel env vars. Downloads rewritten to CDN via `static.gcaplabs.com/releases/{version}/{filename}`.
-- **Full history:** `DEVLOG.md` (workspace root, newest first).
+- **Historical root log:** `_support/archive/logs/DEVLOG.md` is archived. Current status lives in `gcaplabs-home/state/cross-project-status.md`.
 - **Last few things we did** (most recent first):
   1. **2026-06-19 — v0.1.7: Hermes-native desktop adapter:** Added Hermes session history and native JSON-RPC chat adapters, runtime recovery UI, interactive approval/clarification/secret handling, real profile/model/memory mappings, schema-driven Runtime Settings, Desktop Pet removal, and legacy desktop backend/script cleanup.
   2. **2026-06-19 — v0.1.6: Settings nav restructure + update proxy:** Settings sidebar reorganised into 4 groups (Intelligence / Workspace / Tools / App); tabs renamed: "Models & Providers", "Memory & Context", "Engines" (was Agents — fixed collision where both Agents and Assistants showed "Specialists"), "Tools & Integrations" (was Advanced Settings), "Connection" (was Runtime, then hidden — Headmaster always ships with local Hermes); fixed duplicate icon bug (Model and Runtime both used LinkCloud); `updateBridge.ts` now routes through `gcaplabs.com/api/release` Vercel proxy instead of hitting private GitHub API directly; `gcaplabs-site` gained `/api/release` route that proxies GitHub with server-side token + 5-min edge cache; v0.1.6 tag published to GitHub; todo items 11–15 added (Hermes inactive, chat history missing, chat broken, Hermes update restart UX, update proxy).

@@ -240,7 +240,7 @@ Plus **5 unnumbered older versions** (`Memory.png`, `Automations.png`, `Workflow
 
 ## Where the actual build map lives
 
-**See `WHAT-WE-TAKE.md` in this folder** for the simplified build plan (4 custom screens + 10 ported screens + 1 shared composer + 5-step merge).
+**Historical note:** the old `WHAT-WE-TAKE.md` / 14-screen plate was deleted as stale. Current owner-confirmed planning lives in `../../gcaplabs-home/` from the workspace root, especially `gcaplabs-home/SOURCES.md` and `gcaplabs-home/plans/current/owner-confirmed-headmaster-console-plan.md`.
 
 ## Updated scope-aware decision tree (additive to the one above)
 
