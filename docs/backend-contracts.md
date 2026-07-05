@@ -2,9 +2,11 @@
 
 Date: 2026-07-04
 
-These contracts block active UI. Until each contract is implemented and tested, Headmaster Desktop must expose only disabled, skeleton, or coming-soon states for the related feature.
+These contracts block active UI only for items still marked `needs backend` in `docs/upstream-feature-ledger.md`. Owner correction 2026-07-05: WebUI backend/deployment and Office docs/PDF/PPT are **wanted active product work**, not rejected or backend-gated out of the plan. Their contracts below describe what to build safely, not reasons to defer them indefinitely.
 
-## Channels: Telegram, Lark, DingTalk, WeChat, WeCom
+## Channels: Telegram, Lark, DingTalk, WeChat, WeCom — rejected from AionUI intake
+
+Owner correction 2026-07-05: do **not** take AionUI channels. This section is historical reference only unless channels are re-approved separately.
 
 Required backend surface:
 - `GET /v1/channels`: list configured channel connections and health.
@@ -22,7 +24,9 @@ Acceptance tests:
 - Disabled UI is shown when the route is absent or returns 404.
 - Delivery errors are visible and do not crash chat.
 
-## WebUI Remote Access, QR Access, Password Access
+## WebUI Backend Deployment, Remote Access, QR Access, Password Access — wanted
+
+Owner correction 2026-07-05: take the AionUI WebUI backend/deployment pattern, similar to <https://github.com/iOfficeAI/AionUi/wiki/WebUI-Configuration-Guide>. Include desktop-bundled WebUI, standalone/headless WebUI, data-dir behavior, auth/password reset, LAN/cross-network access, and server deployment concepts, adapted to Headmaster naming and security.
 
 Required backend surface:
 - `POST /v1/webui/sessions`: create a remote WebUI session with expiry.
@@ -113,7 +117,9 @@ Acceptance tests:
 - Revoked share returns unauthorized/not found.
 - Timeline can paginate large conversations.
 
-## Office Conversion
+## Office Conversion — wanted
+
+Owner correction 2026-07-05: Office docs/PDF/PPT are wanted product features, not backend-gated out of the plan. This section describes the needed safe conversion/rendering surface.
 
 Required backend surface:
 - `POST /v1/office/convert`: convert docx/xlsx/pptx/pdf to previewable artifact.
