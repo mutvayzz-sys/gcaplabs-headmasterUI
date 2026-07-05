@@ -303,11 +303,9 @@ See `masterlog.md` → "2026-07-04" for the full write-up. Everything below is l
 4. **Real marketing screenshots** — fake screenshots have been replaced with truthful capture-plan
    placeholders; final real captures wait on a runnable Headmaster desktop session and sanitized
    logged-in product states.
-5. **Optional cleanup**: delete the vendored `gcaplabs-headmasterUI/hermeshq/` tree once confirmed
-   unreferenced by `electron-builder.yml`/build scripts. Not urgent, no functional impact either way.
-6. **STT support** — keep `isSttAvailable()` false until a real runtime contract exists (`/api/stt`,
+5. **STT support** — keep `isSttAvailable()` false until a real runtime contract exists (`/api/stt`,
    `/api/stt/stream`, or Agent37-native). Add endpoint-specific tests before enabling UI calls.
-7. **HermesHQ VPS teardown** — owner-owned, manual, deliberately not automated/tracked here.
+6. **HermesHQ VPS teardown** — owner-owned, manual, deliberately not automated/tracked here.
 
 ### ✅ No longer open (confirmed via `masterlog.md`, remove if you see this repeated elsewhere)
 
@@ -322,6 +320,9 @@ See `masterlog.md` → "2026-07-04" for the full write-up. Everything below is l
 - The `gcaplabs-console` beta-approval gating fix — **done, committed, pushed, deployed**, and a
   second deeper bug in the same code path was found and fixed 2026-07-04. Stop treating this as
   "uncommitted" in any older note you find.
+- Vendored `gcaplabs-headmasterUI/hermeshq/` cleanup — **done**, 2026-07-05. The tree was confirmed
+  unused by workspaces, builder config, Vite config, build scripts, lockfiles, and active desktop
+  source before deletion.
 
 ## 🧭 Roadmap (post-beta / parallel track — long-horizon, not urgent)
 

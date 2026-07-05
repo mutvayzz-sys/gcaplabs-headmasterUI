@@ -1,6 +1,6 @@
 # Headmaster architecture
 
-Last updated: 2026-07-03
+Last updated: 2026-07-05
 Desktop version: see root package.json
 
 This file is the current architecture note for the Headmaster desktop repo. Older notes in this repo may still mention HermesHQ as the backend; treat those as historical unless this file or source code says otherwise.
@@ -12,7 +12,7 @@ This file is the current architecture note for the Headmaster desktop repo. Olde
 | Headmaster Desktop | `gcaplabs-headmasterUI/` | Electron desktop client. Talks to Agent37 Cloud when provisioned; keeps a local Headmaster runtime path for app/dev/local fallback. |
 | Headmaster Console | `gcaplabs-console/` | Next.js + Supabase front door and BFF. Owns user auth and desktop/iOS provisioning routes. |
 | Headmaster iOS | `gcaplabs-ios/` | Swift companion client. Uses the same Agent37 runtime contract. |
-| Legacy HermesHQ | `gcaplabs-hermeshq/` and vendored `hermeshq/` | Historical control plane. Do not build new backend work here unless explicitly asked. |
+| Legacy HermesHQ | `gcaplabs-hermeshq/` | Historical control plane. The vendored desktop copy was removed on 2026-07-05. Do not build new backend work here unless explicitly asked. |
 
 ## Backend/runtime model
 
@@ -103,7 +103,6 @@ gcaplabs-headmasterUI/
 ├── packages/desktop/          # Electron main, preload, renderer, adapters
 ├── packages/web-cli/          # web CLI package
 ├── packages/web-host/         # web host package
-├── hermeshq/                  # vendored legacy backend; historical/manual cleanup only
 ├── mastertodo.md              # current desktop todo log
 ├── masterlog.md               # chronological desktop work log
 └── veeplan.md                 # historical beta-readiness plan; newer status notes supersede it
@@ -143,7 +142,7 @@ bun run dev
 - Push/release the rebased local desktop and console commits.
 - Keep local runtime path, but document it as app/local fallback instead of primary cloud backend.
 - Keep `applyProvisionToRuntime.ts` for local runtime only.
-- Clean up vendored HermesHQ/manual historical baggage later if the owner asks.
+- Vendored HermesHQ cleanup is done for the desktop repo; only the separate historical `gcaplabs-hermeshq/` repo remains outside this project.
 - Future STT support remains a product/API todo; `isSttAvailable()` stays false until a real runtime endpoint exists.
 
 ## White-label rules

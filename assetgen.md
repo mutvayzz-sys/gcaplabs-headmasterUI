@@ -1,6 +1,6 @@
 # assetgen — gcaplabs-headmasterUI
 
-Scope: GCAP-original media only. Excluded from this list (per scope decision): channel logos (`packages/desktop/src/renderer/assets/channel-logos/*` — Slack, Discord, Telegram, WeCom, Lark, DingTalk, WeiXin), AI-provider logos (`assets/logos/ai-major/*` — Claude, Gemini, Grok, DeepSeek, Mistral, OpenRouter, Perplexity, Groq, Cerebras), the `examples/` template extensions, and the entire vendored `hermeshq/` sub-project — those are third-party marks or a separately-maintained bundled project, not GCAP originals.
+Scope: GCAP-original media only. Excluded from this list (per scope decision): channel logos (`packages/desktop/src/renderer/assets/channel-logos/*` — Slack, Discord, Telegram, WeCom, Lark, DingTalk, WeiXin), AI-provider logos (`assets/logos/ai-major/*` — Claude, Gemini, Grok, DeepSeek, Mistral, OpenRouter, Perplexity, Groq, Cerebras), and the `examples/` template extensions — those are third-party marks or boilerplate, not GCAP-owned brand surfaces. The old vendored `hermeshq/` sub-project was removed on 2026-07-05.
 
 **Important finding — read before regenerating anything here:** this repo is a white-label fork of an upstream project ("AionUi"). `CLAUDE.md` explicitly bans shipping "AionUi" in UI-facing strings. But several of the assets below **still show the literal word "AionUi"** or still use its old smiley-mascot mark, unchanged from the fork:
 - `resources/headmaster-banner-1.png` — README banner still reads "AionUi — Open Source Cowork with AI Agent"
@@ -49,6 +49,6 @@ Brand reference for prompts: primary mark = forest green (~#1A4D2E) hexagonal sh
 
 ## Notes on what's intentionally omitted
 - `examples/**` (extension template covers/icons) — boilerplate scaffolding for third-party extension authors, not GCAP branding.
-- `hermeshq/**` (docs media, frontend assets, Spanish-language icon set) — a bundled, separately-maintained sub-project; regenerate within its own repo/process if in scope, not here.
+- Removed legacy `hermeshq/**` media/assets are intentionally out of scope for this repo; regenerate inside the separate legacy backend repo only if that repo is explicitly revived.
 - `packages/desktop/src/renderer/assets/channel-logos/*` and `assets/logos/ai-major/*` — official third-party brand marks (Slack, Discord, Telegram, Claude, Gemini, etc.) that must stay accurate to the real vendor, not AI-generated equivalents.
 - `resources/{ai-assistants-experts,alart-task,app_dev,assitants,bannerimage,bug-report-button,contactus-x,file_generation_preview,homepage,linuxdo,llm_newapi,multi-model,"offica-ai BANNER-function",openclawvia,packycode,"remote-telegram copy",remote-telegram,remote,screenshot_1,screenshot_2,"webui banner",webui-remote-example,webui-remote,wx-11}.png` — unmodified upstream AionUi README screenshots/banners (all imported in one batch); several reference the upstream project's own Chinese-community ecosystem and don't depict this product at all. Recommend pruning these from the README rather than spending regen budget on them.

@@ -2,6 +2,19 @@
 
 ## 2026-07-05
 
+### Vendored HermesHQ tree removed from the desktop repo
+
+Removed the tracked `gcaplabs-headmasterUI/hermeshq/` legacy backend copy after re-running the
+removal audit. Confirmed before deletion: no nested `.git`; 504 tracked files; root workspaces only
+include `packages/*`; `electron-builder.yml`, `electron.vite.config.ts`, `scripts/build-with-builder.js`,
+`scripts/afterPack.js`, package manifests, and lockfiles have no `hermeshq` dependency; active
+`packages/desktop/src` has zero `VITE_HERMESHQ`, `__hermeshq`, `hermeshq:`, or `getHermeshq*` hits.
+
+Also replaced the stale `packages/desktop/.env.example` `VITE_HERMESHQ_URL` sample with
+`VITE_CONSOLE_URL=https://www.console.gcaplabs.com` and removed obsolete `hermeshq/` artifact ignores
+from `.gitignore`. The separate workspace-root `gcaplabs-hermeshq/` repo remains untouched and
+HermesHQ VPS teardown stays owner-owned/manual.
+
 ### Kanban review batch: desktop duplicate-send, remote-mode gates, Console CORS/OAuth, board closeout
 
 Owner shifted the artifact-derived Kanban workflow into explicit human-in-the-loop mode: workers

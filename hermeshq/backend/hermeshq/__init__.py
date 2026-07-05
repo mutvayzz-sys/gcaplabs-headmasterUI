@@ -1,2 +1,0 @@
-"""HermesHQ backend package."""
-

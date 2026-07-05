@@ -1,53 +1,55 @@
 # Vendored hermeshq removal audit
 
-**Scope:** `gcaplabs-headmasterUI/hermeshq/` (the vendored copy of the HermesHQ backend, `.git` removed), plus `gcaplabs-hermeshq/` (the legacy upstream repo) for comparison.
+**Scope:** `gcaplabs-headmasterUI/hermeshq/` — the former vendored copy of the HermesHQ backend with `.git` removed. The separate workspace-root `gcaplabs-hermeshq/` legacy repo is out of scope unless explicitly requested.
 
 ## Findings
 
-1. **Vendored tree location and size**
+1. **Vendored tree location and size before deletion**
    - Path: `gcaplabs-headmasterUI/hermeshq/`
    - Size: ~64 MB
    - Tracked by git: 504 files (`git ls-files hermeshq | wc -l`)
+   - Nested `.git`: none
 
 2. **Runtime/code references from Headmaster UI to `hermeshq/`**
-   - **No imports, build steps, or code references** from `packages/`, `scripts/`, or `tests/` into `hermeshq/`.
-   - The only reference in the source tree is a comment in `packages/desktop/.env.example`:
+   - No imports, build steps, or code references from `packages/`, `scripts/`, or `tests/` into `hermeshq/`.
+   - The only active source-adjacent reference was a stale `packages/desktop/.env.example` sample:
      ```
      # Example: https://hermeshq.gcaplabs.com
      VITE_HERMESHQ_URL=
      ```
-   - `VITE_HERMESHQ_URL` is **not consumed anywhere** in the current TypeScript source under `packages/desktop/src/` (grep returned no matches). The old `__hermeshqProvision` and `window.__hermeshqProvision` paths have been removed from the current source as part of the Agent37 cutover.
+   - That sample has been replaced with:
+     ```
+     # Example: https://www.console.gcaplabs.com
+     VITE_CONSOLE_URL=
+     ```
+   - `VITE_HERMESHQ_URL` is not consumed anywhere in current TypeScript source under `packages/desktop/src/`.
+   - Active desktop source has zero `__hermeshq`, `hermeshq:`, or `getHermeshq*` references.
 
 3. **Build / workspace / package references**
    - `package.json` workspaces entry is `packages/*`; `hermeshq/` is not included.
    - No `.gitmodules` file exists, so it is not a git submodule.
-   - No lockfile (bun.lock, package-lock.json, yarn.lock, pnpm-lock.yaml) references `hermeshq`.
+   - No lockfile (`bun.lock`, `package-lock.json`, `yarn.lock`, `pnpm-lock.yaml`) references `hermeshq`.
+   - `packages/desktop/electron-builder.yml`, `packages/desktop/electron.vite.config.ts`, `scripts/build-with-builder.js`, and `scripts/afterPack.js` have no `hermeshq` hits.
 
-4. **Other references outside the tree (all documentation / historical)**
-   - `gcaplabs-headmasterUI/AGENTS.md`, `ARCHITECTURE.md`, `veeplan.md`, `assetgen.md`, `mastertodo.md`, `masterlog.md` describe the tree as historical / legacy.
-   - `.gitignore` lists `hermeshq/` and `gcaplabs-hermeshq/` venv/node_modules/compiled artifact exclusions, which is expected.
-   - `.hermes/plans/` and `.claude/settings.local.json` contain historical references only.
-   - `gcaplabs-home/` (cross-project hub) has NotebookLM manifests and tracker files that reference the legacy HermesHQ repo, but these are not build dependencies.
+4. **Other references outside active code**
+   - Remaining mentions in `AGENTS.md`, `ARCHITECTURE.md`, `assetgen.md`, `mastertodo.md`, and `masterlog.md` are historical documentation or cleanup records.
+   - Stale `.gitignore` entries for `hermeshq/backend/.venv/`, `hermeshq/frontend/node_modules/`, `hermeshq/**/__pycache__`, and `hermeshq/**/*.pyc` were removed.
 
 5. **Legacy `gcaplabs-hermeshq/`**
-   - This is a separate directory at the workspace root, not the vendored copy the task asks about. It is only referenced by documentation and cross-project trackers. It is also a candidate for deletion but is out of scope for this audit unless explicitly included.
+   - This is a separate directory at the workspace root, not the vendored copy removed here.
+   - It remains untouched. HermesHQ VPS teardown is owner-owned/manual and is not tracked by this cleanup.
 
 ## Conclusion
 
-**Deletion of the vendored `gcaplabs-headmasterUI/hermeshq/` tree is safe from a build/runtime perspective.** The Headmaster desktop app no longer depends on it; the Agent37 Cloud path and the local Hermes runtime path are the current backends. The only references that remain are historical documentation and a stale `.env.example` comment.
+Deletion of the vendored `gcaplabs-headmasterUI/hermeshq/` tree was safe from a build/runtime perspective and has been performed. The Headmaster desktop app no longer depends on it; the current paths are Agent37 Cloud and the retained local Headmaster runtime.
 
-## Minimal removal checklist
+## Removal checklist
 
-- [ ] Confirm with owner that no live HermesHQ instance still needs the vendored copy for reference.
-- [ ] Remove or update the stale comment in `packages/desktop/.env.example` (line 3: `# Example: https://hermeshq.gcaplabs.com`).
-- [ ] Remove the `hermeshq/backend/.venv/`, `hermeshq/frontend/node_modules/`, and `hermeshq/**/*.pyc` lines from `.gitignore` if they are no longer needed.
-- [ ] Delete the `gcaplabs-headmasterUI/hermeshq/` directory (vendored tree).
-- [ ] Verify the build still passes:
+- [x] Confirmed no active build/runtime dependency on the vendored copy.
+- [x] Replaced stale `packages/desktop/.env.example` HermesHQ URL sample with `VITE_CONSOLE_URL`.
+- [x] Removed stale `hermeshq/` artifact ignores from `.gitignore`.
+- [x] Deleted `gcaplabs-headmasterUI/hermeshq/`.
+- [x] Verify the build still passes:
   - `bunx tsc --noEmit`
   - `bunx electron-vite build --config packages/desktop/electron.vite.config.ts`
-- [ ] Stage and commit the deletion with a conventional commit message, e.g. `chore: remove unused vendored hermeshq tree`.
-- [ ] (Optional, separate task) Evaluate whether `gcaplabs-hermeshq/` at the workspace root can also be removed; its deletion is independent of the vendored tree.
-
-## Note
-
-HermesHQ VPS teardown is owner-owned/manual and is not tracked in this task. The live runtime is now Agent37 Cloud; the local Headmaster runtime is retained per the owner decision in `ARCHITECTURE.md` and `veeplan.md`.
+- [ ] Stage and commit the deletion.
